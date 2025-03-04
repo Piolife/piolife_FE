@@ -1,0 +1,86 @@
+import React from "react";
+import { StatusBar } from "expo-status-bar";
+import {
+  Text,
+  View,
+  SafeAreaView,
+  StyleSheet,
+  Image,
+  Pressable,
+  Platform,
+} from "react-native";
+
+const consult = require("../assets/images/image 48-2.png");
+
+const Consult = () => {
+  const buttons = [
+    { id: 1, text: "Hospital" },
+    { id: 2, text: "Emergency" },
+    { id: 3, text: "Real Estate" },
+    { id: 4, text: "Flight Booking" },
+    { id: 5, text: "E-Commerce" },
+    { id: 6, text: "Hotel Booking" },
+    { id: 7, text: "Insurance" },
+    { id: 8, text: "Entertainment" },
+    { id: 9, text: "Transport" },
+    { id: 10, text: "Chambers" },
+    { id: 11, text: "Media House" },
+    { id: 12, text: "Government" },
+  ];
+
+  return (
+    <SafeAreaView className="flex-1 bg-white">
+      <StatusBar style="dark" backgroundColor="#ffffff" />
+      <View className="py-[16px] px-[4%] gap-[32px]">
+        <View className="flex flex-col gap-[8px]">
+          <View className="flex items-center flex-col gap-[8px]">
+            <Image source={consult} className="w-[125px] h-[88px]" />
+            <Text
+              className="text-[#272757] text-[18px] leading-[20px]  "
+              style={{ fontFamily: "Inter_600SemiBold" }}
+            >
+              Offices
+            </Text>
+          </View>
+          <View className="flex flex-wrap flex-row justify-between mt-4">
+            {buttons.map((button, index) => (
+              <Pressable
+                key={button.id}
+                className={`w-[48%] py-[16px]  rounded-lg items-center relative overflow-hidden ${
+                  button.text === "Hospital" ||
+                  button.text === "Emergency" ||
+                  button.text === "Real Estate"
+                    ? "bg-[#0e16ff]"
+                    : "bg-[#ffffff]"
+                } ${index < buttons.length - 2 ? "mb-4" : ""}`}
+              >
+                <View className="absolute top-0 left-0 right-0 bottom-0 bg-black opacity-10 rounded-lg" />
+                <Text
+                  className={` text-[16px] leading-[24px] ${
+                    button.text === "Hospital" ||
+                    button.text === "Emergency" ||
+                    button.text === "Real Estate"
+                      ? "text-[#ffffff]"
+                      : "text-[#272757]"
+                  }`}
+                  style={{ fontFamily: "Inter_600SemiBold" }}
+                >
+                  {button.text}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+};
+const styles = StyleSheet.create({
+  shadowProp: {
+    shadowColor: "#171717",
+    shadowOffset: { width: -2, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+});
+export default Consult;
