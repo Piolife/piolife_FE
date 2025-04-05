@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Image,
   Pressable,
-  Platform,
 } from "react-native";
 import { router } from "expo-router";
 const user = require("../assets/images/image 42-2.png");
@@ -15,9 +14,9 @@ const provider = require("../assets/images/User Account.png");
 
 const SelectProfile = () => {
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-[#fffff0]">
       <StatusBar style="dark" backgroundColor="#ffffff" />
-      <View className="py-[16px] px-[24px] gap-[32px]">
+      <View className="py-[16px] px-[4%] gap-[32px]">
         <Text
           className="text-[#272757] text-[18px] leading-[24px] text-center mt-4"
           style={{ fontFamily: "Inter_500Medium" }}
@@ -32,7 +31,7 @@ const SelectProfile = () => {
         </Text>
         <View className="flex flex-col gap-[24px]">
           <Pressable
-            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-white"
+            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-[#fffff0]"
             onPress={() => {
               router.push("/clientSignup");
             }}
@@ -55,10 +54,10 @@ const SelectProfile = () => {
             </View>
           </Pressable>
           <Pressable
-            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-white"
+            className="rounded-[4px] border-[#DADADA80]  border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-[#fffff0]"
             style={[styles.shadowProp]}
             onPress={() => {
-              router.push("/selectConsultant");
+              router.push("/(tabs)");
             }}
           >
             <Image source={provider} className="h-[40px] w-[40px]" />
@@ -88,6 +87,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: -2, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
+    elevation: 5,
   },
 });
 export default SelectProfile;

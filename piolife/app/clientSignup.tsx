@@ -1,41 +1,48 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   UIManager,
-  Animated,
-  Button,
-  Image,
-  Alert,
   Pressable,
+  ImageSourcePropType,
 } from "react-native";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { FormData } from "@/services/core/types";
+import { clientSignupFormData, FormData } from "@/services/core/types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
+  CountryPicker,
   CustomTextInput,
   ProfileImagePlaceholder,
 } from "@/components/reusables";
 import { CustomPicker } from "@/components/reusables";
 import { CustomDatePicker } from "@/components/reusables";
-import { ReusableImageUpload } from "@/components/reusables";
-import { getUserToken } from "@/components/reusables";
-import { submitKyc } from "@/services/api/request";
+import { useFetchData } from "@/services/api/request";
+import { usePostData } from "@/services/api/request";
 import { router } from "expo-router";
-
+import { validateClientForm } from "@/hooks/auth";
+import { uploadImageToCloudinary } from "@/components/cloudinary";
+import allcountry from "../countries.json";
 const ClientSignup = () => {
+  const [countries, setCountries] = useState<any>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [errors, setErrors] = useState<Partial<FormData>>({});
+  const [errors, setErrors] = useState<Partial<clientSignupFormData>>({});
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [step, setStep] = useState(1);
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  const [userType, setUserType] = useState("user");
+  const [isLoad, setLoading] = useState<boolean>(false);
+
+  const [imageUri, setImageUri] = useState<string>("");
+
+  const { data } = useFetchData<any[]>("https://restcountries.com/v3.1/all");
+  const {
+    data: register,
+    loading: isLoading,
+    error: RegisterError,
+    postData,
+  } = usePostData("https://piolife-be.onrender.com/api/v12/users/create");
 
   const totalSteps = 3;
 
@@ -45,107 +52,106 @@ const ClientSignup = () => {
   ) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
   }
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const findNigeria = (countries: any) =>
+    countries.find(
+      (country: { name: string }) => country?.name?.toLowerCase() === "nigeria"
+    );
 
-  const validateForm = (formData: FormData): Partial<FormData> => {
-    const newErrors: Partial<FormData> = {};
-
-    if (!formData.phoneNumber)
-      newErrors.phoneNumber = "Phone Number is required";
-    if (!formData.address) newErrors.address = "Address is required";
-    if (!formData.gender) newErrors.gender = "Gender is required";
-    if (!formData.dateOfBirth)
-      newErrors.dateOfBirth = "Date of Birth is required";
-    if (!formData.nin) newErrors.nin = "NIN is required";
-    if (!formData.bvn) newErrors.bvn = "BVN is required";
-    if (!formData.idCardPhoto)
-      newErrors.idCardPhoto = "ID Card Photo is required";
-    if (!formData.userHoldingIdCardPhoto)
-      newErrors.userHoldingIdCardPhoto =
-        "User Holding ID Card Photo is required";
-    if (!formData.idType) newErrors.idType = "ID Type is required";
-    // if (!formData.fullName) newErrors.fullName = "Full Name is required";
-    if (!formData.fullName || formData.fullName.trim().split(" ").length < 2) {
-      newErrors.fullName = "Please enter your full name (first and last name).";
-    }
-    if (!formData.dateOfIncorporation)
-      newErrors.dateOfIncorporation = "Date Of Incorporation is required";
-    if (!formData.businessRegNumber)
-      newErrors.businessRegNumber = "Business Reg. Number is required";
-    if (!formData.businessRegDocuments)
-      newErrors.businessRegDocuments = "business Reg. Documents is required";
-
-    return newErrors;
-  };
-  const [formData, setFormData] = useState<FormData>({
-    phoneNumber: "",
-    address: "",
+  const [formData, setFormData] = useState<clientSignupFormData>({
+    firstName: "",
+    lastName: "",
+    otherName: "",
     gender: "",
+    maritalStatus: "",
     dateOfBirth: "",
-    nin: "",
-    bvn: "",
-    idCardPhoto: "",
-    userHoldingIdCardPhoto: "",
-    idType: "",
-    fullName: "",
-    dateOfIncorporation: "",
-    businessRegNumber: "",
-    businessRegDocuments: "",
+    countryOrigin: "",
+    countryOfResidence: "",
+    stateOfOrigin: "",
+    stateOfResidence: "",
+    email: "",
+    confirmEmail: "",
+    phoneNumber: "",
+    confirmPhoneNumber: "",
+    password: "",
+    confirmPassword: "",
+    profilePicture: "",
+    role: "client",
   });
   const handleChange = (name: any, value: any) => {
-    const validationErrors = validateForm(formData);
+    const validationErrors = validateClientForm(formData);
     setErrors(validationErrors);
     setFormData((prevData) => ({
       ...prevData,
       [name]: value,
     }));
   };
+  const handleSignup = async () => {
+    const {
+      confirmEmail,
+      confirmPassword,
+      confirmPhoneNumber,
+      ...filteredData
+    } = formData;
+    try {
+      const response = await postData(filteredData);
+
+      if (response) {
+        console.log("Signup successful", response);
+        router.push("/successfulRegistration");
+      }
+    } catch (err: any) {
+      alert("Signup failed: " + RegisterError);
+    }
+  };
 
   const handleDateChange = (fieldName: string, date: string) => {
+    const validationErrors = validateClientForm(formData);
+    setErrors(validationErrors);
     setFormData((prevData) => ({
       ...prevData,
       [fieldName]: date,
     }));
   };
 
-  const Submit = async (formData: any) => {
-    try {
-      setLoading(true);
-      const token = await getUserToken();
-      const filteredFormData = Object.fromEntries(
-        Object.entries(formData).filter(
-          ([_, value]) => value !== "" && value !== null && value !== undefined
-        )
-      );
-      const response = await submitKyc(filteredFormData, token);
-
-      if (response.status === 201) {
-        const responseData = await response.data.message;
-
-        Alert.alert(responseData);
-      } else {
-        const errorData = await response.data.message;
-
-        Alert.alert(errorData);
-        // Log parsed response data
-      }
-    } catch (error: any) {
-      Alert.alert(error.response.data.message);
-    }
-    setLoading(false);
-  };
-
   const handleNext = async () => {
-    const validationErrors = validateForm(formData);
+    const validationErrors = validateClientForm(formData);
     setErrors(validationErrors);
 
-    if (step < totalSteps) {
+    if (
+      step === 1 &&
+      !validationErrors.profilePicture &&
+      !validationErrors.firstName &&
+      !validationErrors.lastName &&
+      !validationErrors.otherName &&
+      !validationErrors.gender &&
+      !validationErrors.maritalStatus
+    ) {
       setStep((prevStep) => prevStep + 1);
     }
 
-    if (step === 3) {
-      // Submit(formData);
-      router.push("/(tabs)");
+    if (
+      step === 2 &&
+      !validationErrors.dateOfBirth &&
+      !validationErrors.countryOrigin &&
+      !validationErrors.countryOfResidence &&
+      !validationErrors.stateOfOrigin &&
+      !validationErrors.stateOfResidence
+    ) {
+      setStep((prevStep) => prevStep + 1);
+    }
+
+    if (
+      step === 3 &&
+      !validationErrors.email &&
+      !validationErrors.confirmEmail &&
+      !validationErrors.phoneNumber &&
+      !validationErrors.confirmPhoneNumber &&
+      !validationErrors.password &&
+      !validationErrors.confirmPassword
+    ) {
+      console.log("formData", formData);
+      handleSignup();
+      // router.push("/successfulRegistration");
     }
   };
 
@@ -160,9 +166,7 @@ const ClientSignup = () => {
 
       onChange: () => {
         if (selectedDate) {
-          // Convert the Date object to a string (you can choose the format)
-          const formattedDate = selectedDate.toISOString().split("T")[0]; // YYYY-MM-DD format
-          // setValue("dateOfBirth", formattedDate); // Now it's a string
+          const formattedDate = selectedDate.toISOString().split("T")[0];
         }
       },
       mode: currentMode,
@@ -183,10 +187,53 @@ const ClientSignup = () => {
     }
   };
 
+  useEffect(() => {
+    // Map the country list to the desired format
+    const countryList = allcountry.map((country: any) => ({
+      label: country.name,
+      value: country.code, // country code will be the value
+      key: country.code,
+    }));
+
+    // Set the country list
+    setCountries(countryList);
+
+    // Find Nigeria and check if it exists in the list
+    const nigeria = countryList.find(
+      (country) => country.label.toLowerCase() === "nigeria"
+    );
+    const nigeriaExists = !!nigeria;
+
+    // Default country value (Nigeria if exists, otherwise the first country in the list)
+    const defaultCountry = nigeriaExists
+      ? nigeria.value
+      : countryList[0]?.value || "";
+
+    // Update the form data with the default country
+    setFormData((prevData) => ({
+      ...prevData,
+      countryOrigin: defaultCountry,
+      countryOfResidence: defaultCountry,
+    }));
+  }, []);
+  const handleImageUpload = async () => {
+    try {
+      const imageUrl = await uploadImageToCloudinary(setLoading);
+      setImageUri(imageUrl || ""); // Use an empty string if imageUrl is null
+
+      setFormData((prevData) => ({
+        ...prevData,
+        profilePicture: imageUrl || "", // Use an empty string if imageUrl is null
+      }));
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    }
+  };
+
   return (
-    <SafeAreaView className="flex flex-1 bg-[#FFFFFF] ">
+    <SafeAreaView className="flex flex-1 bg-[#fffff0] ">
       <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: "white" }}
+        style={{ flex: 1, backgroundColor: "#fffff0" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View className="flex flex-col  px-[4%]">
@@ -213,14 +260,29 @@ const ClientSignup = () => {
             </Text>
           )}
           <View className="flex flex-col items-center mt-6 pb-2">
-            <ProfileImagePlaceholder />
+            <ProfileImagePlaceholder
+              showBorder={true}
+              upload={handleImageUpload}
+              imageUri={imageUri}
+            />
+            {errors.profilePicture && (
+              <View>
+                <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
+                  {errors.profilePicture}
+                </Text>
+              </View>
+            )}
           </View>
 
-          <ScrollView className="h-[60%]" alwaysBounceVertical={false}>
-            <View className="   bg-white h-screen">
+          <ScrollView
+            className="h-[60%]"
+            alwaysBounceVertical={false}
+            showsVerticalScrollIndicator={false}
+          >
+            <View className="   bg-[#fffff0] h-screen">
               <View className=" mt-8">
                 {step === 1 && (
-                  <View className="flex flex-col">
+                  <View className="flex flex-col gap-[16px]">
                     <Text
                       className="text-[#030319] text-[14px] leading-[17px] text-center mb-2 "
                       style={{ fontFamily: "Inter_400Regular" }}
@@ -230,33 +292,31 @@ const ClientSignup = () => {
 
                     <CustomTextInput
                       label="First Name"
-                      value={formData.phoneNumber}
-                      onChangeText={(value) =>
-                        handleChange("phoneNumber", value)
-                      }
+                      value={formData.firstName}
+                      onChangeText={(value) => handleChange("firstName", value)}
                       placeholder="Enter FirstName"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="phone-pad"
-                      errorMessage={errors.phoneNumber}
+                      keyboardType="default"
+                      errorMessage={errors.firstName}
                     />
 
                     <CustomTextInput
                       label="Last Name (Surname)"
-                      value={formData.fullName}
-                      onChangeText={(value) => handleChange("fullName", value)}
+                      value={formData.lastName}
+                      onChangeText={(value) => handleChange("lastName", value)}
                       placeholder="Enter LastName"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
-                      errorMessage={errors.fullName}
+                      errorMessage={errors.lastName}
                     />
                     <CustomTextInput
                       label="Other Names"
-                      value={formData.address}
-                      onChangeText={(value) => handleChange("address", value)}
+                      value={formData.otherName}
+                      onChangeText={(value) => handleChange("otherName", value)}
                       placeholder="Enter Middle Name"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
-                      errorMessage={errors.address}
+                      errorMessage={errors.otherName}
                     />
                     <CustomPicker
                       label="Gender"
@@ -272,19 +332,21 @@ const ClientSignup = () => {
                     />
                     <CustomPicker
                       label="Status"
-                      value={formData.gender || ""}
-                      onValueChange={(value) => handleChange("gender", value)}
+                      value={formData.maritalStatus || ""}
+                      onValueChange={(value) =>
+                        handleChange("maritalStatus", value)
+                      }
                       items={[
                         { label: "Married", value: "married" },
                         { label: "Single", value: "single" },
                       ]}
-                      placeholder="Select your gender"
-                      error={errors.gender}
+                      placeholder="Select your marital status"
+                      error={errors.maritalStatus}
                     />
                   </View>
                 )}
                 {step === 2 && (
-                  <View className="flex flex-col">
+                  <View className="flex flex-col gap-[16px]">
                     <CustomDatePicker
                       label="Date of Birth"
                       selectedDate={
@@ -300,108 +362,116 @@ const ClientSignup = () => {
                         handleDateChange("dateOfBirth", date)
                       }
                     />
-                    <CustomPicker
+
+                    <CountryPicker
                       label="Country of Origin"
-                      value={formData.gender || ""}
-                      onValueChange={(value) => handleChange("gender", value)}
-                      items={[
-                        { label: "Male", value: "male" },
-                        { label: "Female", value: "female" },
-                        { label: "Other", value: "other" },
-                      ]}
-                      placeholder="Select your gender"
-                      error={errors.gender}
+                      value={formData.countryOrigin || ""}
+                      onValueChange={(value) =>
+                        handleChange("countryOrigin", value)
+                      }
+                      items={countries}
+                      placeholder="Select your Country of Origin"
+                      error={errors.countryOrigin}
                     />
-                    <CustomPicker
+                    <CountryPicker
                       label="Country of Residence"
-                      value={formData.gender || ""}
-                      onValueChange={(value) => handleChange("gender", value)}
-                      items={[
-                        { label: "Male", value: "male" },
-                        { label: "Female", value: "female" },
-                        { label: "Other", value: "other" },
-                      ]}
-                      placeholder="Select your gender"
-                      error={errors.gender}
+                      value={formData.countryOfResidence || ""}
+                      onValueChange={(value) =>
+                        handleChange("countryOfResidence", value)
+                      }
+                      items={countries}
+                      placeholder="Select your Country of Residence"
+                      error={errors.countryOfResidence}
                     />
+
                     <CustomTextInput
                       label="State of Origin"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.stateOfOrigin}
+                      onChangeText={(value) =>
+                        handleChange("stateOfOrigin", value)
+                      }
+                      placeholder="Enter Your State of Origin"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      keyboardType="default"
+                      errorMessage={errors.stateOfOrigin}
                     />
 
                     <CustomTextInput
                       label="State/Province/County of Residence"
-                      value={formData.businessRegNumber}
+                      value={formData.stateOfResidence}
                       onChangeText={(value) =>
-                        handleChange("businessRegNumber", value)
+                        handleChange("stateOfResidence", value)
                       }
-                      placeholder="Enter Your Business Registration Number"
+                      placeholder="Enter Your State of Residence"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.businessRegNumber}
+                      keyboardType="default"
+                      errorMessage={errors.stateOfResidence}
                     />
                   </View>
                 )}
                 {step === 3 && (
-                  <View className="flex flex-col">
+                  <View className="flex flex-col gap-[16px]">
                     <CustomTextInput
                       label="Email"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.email}
+                      onChangeText={(value) => handleChange("email", value)}
+                      placeholder="Enter Your Email"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      keyboardType="default"
+                      errorMessage={errors.email}
                     />
                     <CustomTextInput
                       label="Confirm Email"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.confirmEmail}
+                      onChangeText={(value) =>
+                        handleChange("confirmEmail", value)
+                      }
+                      placeholder="Enter Your Email"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      keyboardType="default"
+                      errorMessage={errors.confirmEmail}
                     />
                     <CustomTextInput
                       label="Phone No"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.phoneNumber}
+                      onChangeText={(value) =>
+                        handleChange("phoneNumber", value)
+                      }
+                      placeholder="Enter Your Phone"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      errorMessage={errors.phoneNumber}
                     />
                     <CustomTextInput
                       label="Confirm Phone No"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.confirmPhoneNumber}
+                      onChangeText={(value) =>
+                        handleChange("confirmPhoneNumber", value)
+                      }
+                      placeholder="Enter Your Phone"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      errorMessage={errors.confirmPhoneNumber}
                     />
                     <CustomTextInput
                       label="Create Password"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.password}
+                      onChangeText={(value) => handleChange("password", value)}
+                      placeholder="Enter Your password"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      keyboardType="default"
+                      errorMessage={errors.password}
                     />
                     <CustomTextInput
                       label="Confirm Password"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.confirmPassword}
+                      onChangeText={(value) =>
+                        handleChange("confirmPassword", value)
+                      }
+                      placeholder="Enter Your password"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      keyboardType="default"
+                      errorMessage={errors.confirmPassword}
                     />
                   </View>
                 )}
@@ -410,6 +480,7 @@ const ClientSignup = () => {
           </ScrollView>
           <View className="flex-col flex items-center justify-center mt-8  gap-[16px]">
             <Pressable
+              disabled={isLoading}
               onPress={handleNext}
               className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
             >
@@ -417,7 +488,7 @@ const ClientSignup = () => {
                 className="text-white text-[16px]"
                 style={{ fontFamily: "Inter_700Bold" }}
               >
-                {step < totalSteps ? "Next" : "Done"}
+                {isLoading ? "Loading..." : step < totalSteps ? "Next" : "Done"}
               </Text>
             </Pressable>
             <Text

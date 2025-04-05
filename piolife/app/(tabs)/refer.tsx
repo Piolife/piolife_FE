@@ -15,9 +15,9 @@ const piocoin = require("../../assets/images/piocoin-removebg-preview 1.png");
 
 const Refer = () => {
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-[#fffff0]">
       <StatusBar style="dark" backgroundColor="#ffffff" />
-      <View className="py-[16px] px-[24px] gap-[32px]">
+      <View className="py-[16px] px-[4%] gap-[32px]">
         <Text
           className="text-[#272757] text-[20px] leading-[24px] text-center mt-4"
           style={{ fontFamily: "Inter_500Medium" }}
@@ -34,19 +34,35 @@ const Refer = () => {
             style={{ fontFamily: "Inter_400Regular" }}
           >
             Refer a friend with your link and earn 10 Piocoins.{"\n"}
+            {"\n"}
             The more you refer, the more you earn!
           </Text>
+          <View className="flex flex-row gap-[16px] items-center">
+            <View className="flex-1 flex-row gap-[16px]  border-[#a5a5a5] border-[1px] rounded-[8px] p-[12px] ">
+              <Text
+                className="text-[#030319] text-[14px] leading-[100%] text-center"
+                style={{ fontFamily: "Inter_400Regular" }}
+              >
+                Edu2i579mh
+              </Text>
+            </View>
+            <Pressable
+              className="bg-[#0e16ff]  py-[8px] px-[16px] rounded-[8px] border-[#dadada] border-[1px]"
+              onPress={() => {
+                router.push("/realEstate");
+              }}
+            >
+              <Text
+                className="text-[#ffffff] text-[14px] leading-[24px] text-center"
+                style={{ fontFamily: "Inter_600SemiBold" }}
+              >
+                Copy
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     </SafeAreaView>
   );
 };
-const styles = StyleSheet.create({
-  shadowProp: {
-    shadowColor: "#171717",
-    shadowOffset: { width: -2, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-});
 export default Refer;

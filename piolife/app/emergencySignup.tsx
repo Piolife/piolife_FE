@@ -15,7 +15,7 @@ import {
   Pressable,
 } from "react-native";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { FormData } from "@/services/core/types";
+import { emergencySignupFormData, FormData } from "@/services/core/types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
   CustomTextInput,
@@ -25,13 +25,13 @@ import { CustomPicker } from "@/components/reusables";
 import { CustomDatePicker } from "@/components/reusables";
 import { ReusableImageUpload } from "@/components/reusables";
 import { getUserToken } from "@/components/reusables";
-import { submitKyc } from "@/services/api/request";
+
 import { router } from "expo-router";
 
 const EmergencySignup = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [errors, setErrors] = useState<Partial<FormData>>({});
+  const [errors, setErrors] = useState<Partial<emergencySignupFormData>>({});
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [step, setStep] = useState(1);
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -47,50 +47,56 @@ const EmergencySignup = () => {
   }
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const validateForm = (formData: FormData): Partial<FormData> => {
-    const newErrors: Partial<FormData> = {};
+  const validateForm = (
+    formData: emergencySignupFormData
+  ): Partial<emergencySignupFormData> => {
+    const newErrors: Partial<emergencySignupFormData> = {};
 
-    if (!formData.phoneNumber)
-      newErrors.phoneNumber = "Phone Number is required";
-    if (!formData.address) newErrors.address = "Address is required";
-    if (!formData.gender) newErrors.gender = "Gender is required";
-    if (!formData.dateOfBirth)
-      newErrors.dateOfBirth = "Date of Birth is required";
-    if (!formData.nin) newErrors.nin = "NIN is required";
-    if (!formData.bvn) newErrors.bvn = "BVN is required";
-    if (!formData.idCardPhoto)
-      newErrors.idCardPhoto = "ID Card Photo is required";
-    if (!formData.userHoldingIdCardPhoto)
-      newErrors.userHoldingIdCardPhoto =
-        "User Holding ID Card Photo is required";
-    if (!formData.idType) newErrors.idType = "ID Type is required";
-    // if (!formData.fullName) newErrors.fullName = "Full Name is required";
-    if (!formData.fullName || formData.fullName.trim().split(" ").length < 2) {
-      newErrors.fullName = "Please enter your full name (first and last name).";
+    if (!formData.accountName)
+      newErrors.accountName = "Account Name is required";
+    if (!formData.accountNumber)
+      newErrors.accountNumber = "Account Number is required";
+    if (!formData.alternativePhone)
+      newErrors.alternativePhone = "Alternative Phone is required";
+    if (!formData.bankName) newErrors.bankName = "Bank Name is required";
+    if (!formData.confirmAccountNumber)
+      newErrors.confirmAccountNumber = "confirm Account Number is required";
+    if (formData.confirmAccountNumber !== formData.accountNumber)
+      newErrors.confirmAccountNumber =
+        "confirm Account Number must be same as account number";
+    if (!formData.confirmPassword)
+      newErrors.confirmPassword = "confirm Password is required";
+    if (formData.confirmPassword !== formData.password)
+      newErrors.confirmPassword = "confirm Password must be same as password";
+    if (!formData.email) newErrors.email = "Email is required";
+    if (!formData.facility) newErrors.facility = "Facility name is required";
+    if (!formData.lga) newErrors.lga = "LGA is required";
+    if (!formData.officer) newErrors.officer = "Full Name is required";
+    if (!formData.password) {
+      newErrors.password = "Password is required";
     }
-    if (!formData.dateOfIncorporation)
-      newErrors.dateOfIncorporation = "Date Of Incorporation is required";
-    if (!formData.businessRegNumber)
-      newErrors.businessRegNumber = "Business Reg. Number is required";
-    if (!formData.businessRegDocuments)
-      newErrors.businessRegDocuments = "business Reg. Documents is required";
+    if (!formData.phone) newErrors.phone = "Phone Number is required";
+    if (!formData.state) newErrors.state = "Business Reg. Number is required";
+    if (!formData.ward) newErrors.ward = "Ward is required";
 
     return newErrors;
   };
-  const [formData, setFormData] = useState<FormData>({
-    phoneNumber: "",
-    address: "",
-    gender: "",
-    dateOfBirth: "",
-    nin: "",
-    bvn: "",
-    idCardPhoto: "",
-    userHoldingIdCardPhoto: "",
-    idType: "",
-    fullName: "",
-    dateOfIncorporation: "",
-    businessRegNumber: "",
-    businessRegDocuments: "",
+
+  const [formData, setFormData] = useState<emergencySignupFormData>({
+    facility: "",
+    officer: "",
+    phone: "",
+    alternativePhone: "",
+    state: "",
+    lga: "",
+    ward: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    accountNumber: "",
+    confirmAccountNumber: "",
+    accountName: "",
+    bankName: "",
   });
   const handleChange = (name: any, value: any) => {
     const validationErrors = validateForm(formData);
@@ -108,42 +114,41 @@ const EmergencySignup = () => {
     }));
   };
 
-  const Submit = async (formData: any) => {
-    try {
-      setLoading(true);
-      const token = await getUserToken();
-      const filteredFormData = Object.fromEntries(
-        Object.entries(formData).filter(
-          ([_, value]) => value !== "" && value !== null && value !== undefined
-        )
-      );
-      const response = await submitKyc(filteredFormData, token);
-
-      if (response.status === 201) {
-        const responseData = await response.data.message;
-
-        Alert.alert(responseData);
-      } else {
-        const errorData = await response.data.message;
-
-        Alert.alert(errorData);
-        // Log parsed response data
-      }
-    } catch (error: any) {
-      Alert.alert(error.response.data.message);
-    }
-    setLoading(false);
-  };
+  const Submit = async (formData: any) => {};
 
   const handleNext = async () => {
     const validationErrors = validateForm(formData);
     setErrors(validationErrors);
-
-    if (step < totalSteps) {
+    if (
+      step === 1
+      // &&
+      // !validationErrors.facility &&
+      // !validationErrors.officer &&
+      // !validationErrors.phone &&
+      // !validationErrors.alternativePhone
+    ) {
+      setStep((prevStep) => prevStep + 1);
+    }
+    if (
+      step === 2
+      // &&
+      // !validationErrors.state &&
+      // !validationErrors.lga &&
+      // !validationErrors.ward &&
+      // !validationErrors.email &&
+      // !validationErrors.password &&
+      // !validationErrors.confirmPassword
+    ) {
       setStep((prevStep) => prevStep + 1);
     }
 
-    if (step === 3) {
+    if (
+      step === 3 &&
+      !validationErrors.accountNumber &&
+      !validationErrors.confirmAccountNumber &&
+      !validationErrors.accountName &&
+      !validationErrors.bankName
+    ) {
       Submit(formData);
     }
   };
@@ -183,9 +188,9 @@ const EmergencySignup = () => {
   };
 
   return (
-    <SafeAreaView className="flex flex-1 bg-[#FFFFFF] ">
+    <SafeAreaView className="flex flex-1 bg-[#fffff0] ">
       <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: "white" }}
+        style={{ flex: 1, backgroundColor: "#fffff0" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View className="flex flex-col  px-[4%]">
@@ -212,128 +217,129 @@ const EmergencySignup = () => {
             </Text>
           )}
           <View className="flex flex-col items-center mt-6 pb-2">
-            <ProfileImagePlaceholder />
+            <ProfileImagePlaceholder
+              imageUri={require("../assets/images/ertg6.png")}
+              showBorder={false}
+            />
           </View>
 
-          <ScrollView className="h-[60%]" alwaysBounceVertical={false}>
-            <View className="   bg-white h-screen">
+          <ScrollView
+            className="h-[60%]"
+            alwaysBounceVertical={false}
+            showsVerticalScrollIndicator={false}
+          >
+            <View className="   bg-[#fffff0] h-screen">
               <View className=" mt-8">
                 {step === 1 && (
-                  <View className="flex flex-col">
+                  <View className="flex flex-col gap-[16px]">
                     <CustomTextInput
                       label="Hospital/Health Facility Name"
-                      value={formData.phoneNumber}
-                      onChangeText={(value) =>
-                        handleChange("phoneNumber", value)
-                      }
-                      placeholder=""
+                      value={formData.facility}
+                      onChangeText={(value) => handleChange("facility", value)}
+                      placeholder="Enter Facility name"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="phone-pad"
-                      errorMessage={errors.phoneNumber}
+                      keyboardType="default"
+                      errorMessage={errors.facility}
                     />
 
                     <CustomTextInput
                       label="MD/Officer in Charge"
-                      value={formData.fullName}
-                      onChangeText={(value) => handleChange("fullName", value)}
-                      placeholder=""
+                      value={formData.officer}
+                      onChangeText={(value) => handleChange("officer", value)}
+                      placeholder="Enter Officer Name"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
-                      errorMessage={errors.fullName}
+                      errorMessage={errors.officer}
                     />
                     <CustomTextInput
                       label="Mobile Number"
-                      value={formData.address}
-                      onChangeText={(value) => handleChange("address", value)}
-                      placeholder=""
+                      value={formData.phone}
+                      onChangeText={(value) => handleChange("phone", value)}
+                      placeholder="Enter Phone number"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="default"
-                      errorMessage={errors.address}
+                      keyboardType="numeric"
+                      errorMessage={errors.phone}
                     />
                     <CustomTextInput
                       label="Alternative Mobile Number"
-                      value={formData.address}
-                      onChangeText={(value) => handleChange("address", value)}
-                      placeholder=""
+                      value={formData.alternativePhone}
+                      onChangeText={(value) =>
+                        handleChange("alternativePhone", value)
+                      }
+                      placeholder=" Enter alternate phone number"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="default"
-                      errorMessage={errors.address}
+                      keyboardType="numeric"
+                      errorMessage={errors.alternativePhone}
                     />
                   </View>
                 )}
                 {step === 2 && (
-                  <View className="flex flex-col">
+                  <View className="flex flex-col gap-[16px]">
                     <CustomPicker
                       label="State"
-                      value={formData.gender || ""}
-                      onValueChange={(value) => handleChange("gender", value)}
+                      value={formData.state || ""}
+                      onValueChange={(value) => handleChange("state", value)}
                       items={[
                         { label: "Male", value: "male" },
                         { label: "Female", value: "female" },
                         { label: "Other", value: "other" },
                       ]}
                       placeholder="Select your State"
-                      error={errors.gender}
+                      error={errors.state}
                     />
 
                     <CustomTextInput
                       label="LGA"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
+                      value={formData.lga}
+                      onChangeText={(value) => handleChange("lga", value)}
                       placeholder=""
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      keyboardType="default"
+                      errorMessage={errors.lga}
                     />
 
                     <CustomTextInput
                       label="Ward"
-                      value={formData.businessRegNumber}
-                      onChangeText={(value) =>
-                        handleChange("businessRegNumber", value)
-                      }
+                      value={formData.ward}
+                      onChangeText={(value) => handleChange("ward", value)}
                       placeholder=""
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.businessRegNumber}
+                      keyboardType="default"
+                      errorMessage={errors.ward}
                     />
                     <CustomTextInput
                       label="Email"
-                      value={formData.businessRegNumber}
-                      onChangeText={(value) =>
-                        handleChange("businessRegNumber", value)
-                      }
+                      value={formData.email}
+                      onChangeText={(value) => handleChange("email", value)}
                       placeholder=""
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.businessRegNumber}
+                      keyboardType="default"
+                      errorMessage={errors.email}
                     />
                     <CustomTextInput
                       label="Create Password"
-                      value={formData.businessRegNumber}
-                      onChangeText={(value) =>
-                        handleChange("businessRegNumber", value)
-                      }
+                      value={formData.password}
+                      onChangeText={(value) => handleChange("password", value)}
                       placeholder=""
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.businessRegNumber}
+                      keyboardType="default"
+                      errorMessage={errors.password}
                     />
                     <CustomTextInput
-                      label="Create Password"
-                      value={formData.businessRegNumber}
+                      label="Confirm Password"
+                      value={formData.confirmPassword}
                       onChangeText={(value) =>
-                        handleChange("businessRegNumber", value)
+                        handleChange("confirmPassword", value)
                       }
                       placeholder=""
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.businessRegNumber}
+                      keyboardType="default"
+                      errorMessage={errors.confirmPassword}
                     />
                   </View>
                 )}
                 {step === 3 && (
-                  <View className="flex flex-col">
+                  <View className="flex flex-col gap-[16px]">
                     <Text
                       className="text-[#272757] text-[16px] leading-[20px] mb-6 "
                       style={{ fontFamily: "Inter_500Medium" }}
@@ -342,39 +348,45 @@ const EmergencySignup = () => {
                     </Text>
                     <CustomTextInput
                       label="Account Number"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
+                      value={formData.accountNumber}
+                      onChangeText={(value) =>
+                        handleChange("accountNumber", value)
+                      }
                       placeholder=""
                       placeholderTextColor={"#BABABA"}
                       keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      errorMessage={errors.accountNumber}
                     />
                     <CustomTextInput
                       label="Confirm Account Number"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
+                      value={formData.confirmAccountNumber}
+                      onChangeText={(value) =>
+                        handleChange("confirmAccountNumber", value)
+                      }
                       placeholder=""
                       placeholderTextColor={"#BABABA"}
                       keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      errorMessage={errors.confirmAccountNumber}
                     />
                     <CustomTextInput
                       label="Account Name"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
+                      value={formData.accountName}
+                      onChangeText={(value) =>
+                        handleChange("accountName", value)
+                      }
                       placeholder=""
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      keyboardType="default"
+                      errorMessage={errors.accountName}
                     />
                     <CustomTextInput
                       label="Bank Name"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.bankName}
+                      onChangeText={(value) => handleChange("bankName", value)}
+                      placeholder="Enter Your bank Name"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      keyboardType="default"
+                      errorMessage={errors.bankName}
                     />
                   </View>
                 )}

@@ -53,10 +53,9 @@ export const uploadImageToCloudinary = async (
     const result = await response.json();
     setLoading(false);
 
-    if (result.url) {
-      return result.url;
+    if (result && result.secure_url) {
+      return result.secure_url; // Return the Cloudinary image URL
     } else {
-      console.log("Failed to upload image to Cloudinary:", result);
       return null;
     }
   } catch (error) {

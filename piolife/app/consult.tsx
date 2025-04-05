@@ -9,23 +9,28 @@ import {
   Pressable,
   Platform,
 } from "react-native";
-
+import { router } from "expo-router";
 const consult = require("../assets/images/image 48-2.png");
 
 const Consult = () => {
-  const buttons = [
-    { id: 1, text: "Hospital" },
-    { id: 2, text: "Emergency" },
-    { id: 3, text: "Real Estate" },
-    { id: 4, text: "Flight Booking" },
-    { id: 5, text: "E-Commerce" },
-    { id: 6, text: "Hotel Booking" },
-    { id: 7, text: "Insurance" },
-    { id: 8, text: "Entertainment" },
-    { id: 9, text: "Transport" },
-    { id: 10, text: "Chambers" },
-    { id: 11, text: "Media House" },
-    { id: 12, text: "Government" },
+  type ButtonType = {
+    id: number;
+    text: string;
+    link?: any;
+  };
+  const buttons: ButtonType[] = [
+    { id: 1, text: "Hospital", link: "/hospitalOptions" },
+    { id: 2, text: "Emergency", link: "/hospitalOptions" },
+    { id: 3, text: "Real Estate", link: "/hospitalOptions" },
+    { id: 4, text: "Flight Booking", link: "/hospitalOptions" },
+    { id: 5, text: "E-Commerce", link: "/hospitalOptions" },
+    { id: 6, text: "Hotel Booking", link: "/hospitalOptions" },
+    { id: 7, text: "Insurance", link: "/hospitalOptions" },
+    { id: 8, text: "Entertainment", link: "/hospitalOptions" },
+    { id: 9, text: "Transport", link: "/hospitalOptions" },
+    { id: 10, text: "Chambers", link: "/hospitalOptions" },
+    { id: 11, text: "Media House", link: "/hospitalOptions" },
+    { id: 12, text: "Government", link: "/hospitalOptions" },
   ];
 
   return (
@@ -45,6 +50,7 @@ const Consult = () => {
           <View className="flex flex-wrap flex-row justify-between mt-4">
             {buttons.map((button, index) => (
               <Pressable
+                onPress={() => router.push(button.link)}
                 key={button.id}
                 className={`w-[48%] py-[16px]  rounded-lg items-center relative overflow-hidden ${
                   button.text === "Hospital" ||

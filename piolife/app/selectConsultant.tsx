@@ -17,7 +17,7 @@ const realtor = require("../assets/images/User-2.png");
 
 const SelectConsultant = () => {
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-[#fffff0]">
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[24px] gap-[32px]">
         <Text
@@ -34,7 +34,7 @@ const SelectConsultant = () => {
         </Text>
         <View className="flex flex-col gap-[24px]">
           <Pressable
-            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-white"
+            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-[#fffff0]"
             onPress={() => {
               router.push("/doctorSignup");
             }}
@@ -57,7 +57,7 @@ const SelectConsultant = () => {
             </View>
           </Pressable>
           <Pressable
-            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-white"
+            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-[#fffff0]"
             style={[styles.shadowProp]}
             onPress={() => {
               router.push("/emergencySignup");
@@ -80,7 +80,7 @@ const SelectConsultant = () => {
             </View>
           </Pressable>
           <Pressable
-            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-white"
+            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-[#fffff0]"
             style={[styles.shadowProp]}
           >
             <Image source={realtor} className="h-[40px] w-[40px]" />
@@ -100,7 +100,7 @@ const SelectConsultant = () => {
             </View>
           </Pressable>
           <Pressable
-            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-white"
+            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-[#fffff0]"
             style={[styles.shadowProp]}
             onPress={() => {
               router.push("/selectConsultant");

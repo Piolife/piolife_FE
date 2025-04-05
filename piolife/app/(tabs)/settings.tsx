@@ -11,72 +11,80 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { CustomTextInput } from "@/components/reusables";
-
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import Entypo from "@expo/vector-icons/Entypo";
+const profile = require("../../assets/images/profile.png");
+const key = require("../../assets/images/key-square.png");
+const call = require("../../assets/images/call-calling.png");
+const login = require("../../assets/images/login.png");
 const Login = () => {
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-[#fffff0]">
       <StatusBar style="dark" backgroundColor="#ffffff" />
-      <View className="py-[16px] px-[4%] gap-[32px]">
+      <View className="py-[16px] px-[6%] gap-[32px]">
         <Text
-          className="text-[#272757] text-[24px] leading-[24px] text-center mt-4"
+          className="text-[#272757] text-[20px] leading-[24px] text-center mt-4"
           style={{ fontFamily: "Inter_500Medium" }}
         >
-          Welcome back!
+          Settings
         </Text>
-        <Text
-          className="text-[#272757] text-[16px] leading-[22px] text-center "
-          style={{ fontFamily: "Inter_400Regular" }}
-        >
-          Kindly log in to continue
-        </Text>
-        <View className="flex flex-col ">
-          <CustomTextInput
-            label="Email"
-            value={""}
-            onChangeText={(value) => console.log(value)}
-            placeholder="Enter Email"
-            placeholderTextColor={"#BABABA"}
-            keyboardType="default"
-            errorMessage={""}
-          />
-          <View className="flex flex-col">
-            <CustomTextInput
-              label="Password"
-              value={""}
-              onChangeText={(value) => console.log(value)}
-              placeholder="Enter Password"
-              placeholderTextColor={"#BABABA"}
-              keyboardType="default"
-              errorMessage={""}
-            />
-            <Text
-              className="text-[#272757] text-[14px] leading-[22px] text-right "
-              style={{ fontFamily: "Inter_500Medium" }}
-            >
-              Forgot Password?
-            </Text>
+        <View className="flex flex-col gap-[32px]">
+          <View className="flex flex-row gap-[32px] items-center w-full  ">
+            <View className="p-[10px] w-[44px] h-[44px] rounded-[20px] bg-white shadow-md justify-center items-center">
+              <Image source={profile} className="w-[24px] h-[24px]" />
+            </View>
+            <View className="flex-1 flex-row justify-between items-center  ">
+              <Text
+                className="text-[#272757] text-[16px] leading-[24px] text-center"
+                style={{ fontFamily: "Inter_500Medium" }}
+              >
+                Profile
+              </Text>
+              <Entypo name="chevron-small-right" size={24} color="black" />
+            </View>
           </View>
-        </View>
-        <View className="flex-col flex items-center justify-center mt-4  gap-[16px]">
-          <Pressable
-            className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
-          >
-            <Text
-              className="text-white text-[16px]"
-              style={{ fontFamily: "Inter_700Bold" }}
-            >
-              Log In
-            </Text>
-          </Pressable>
-          <Text
-            onPress={() => {
-              router.push("/selectProfile");
-            }}
-            className="text-[16px] leading-[22px]"
-            style={{ fontFamily: "Inter_600SemiBold" }}
-          >
-            Don’t have an account? Register
-          </Text>
+          <View className="flex flex-row gap-[32px] items-center w-full  ">
+            <View className="p-[10px] w-[44px] h-[44px] rounded-[20px] bg-white shadow-md justify-center items-center">
+              <Image source={key} className="w-[24px] h-[24px]" />
+            </View>
+            <View className="flex-1 flex-row justify-between items-center  ">
+              <Text
+                className="text-[#272757] text-[16px] leading-[24px] text-center"
+                style={{ fontFamily: "Inter_500Medium" }}
+              >
+                Login Settings
+              </Text>
+              <Entypo name="chevron-small-right" size={24} color="black" />
+            </View>
+          </View>
+          <View className="flex flex-row gap-[32px] items-center w-full  ">
+            <View className="p-[10px] w-[44px] h-[44px] rounded-[20px] bg-white shadow-md justify-center items-center">
+              <Image source={call} className="w-[24px] h-[24px]" />
+            </View>
+            <View className="flex-1 flex-row justify-between items-center  ">
+              <Text
+                className="text-[#272757] text-[16px] leading-[24px] text-center"
+                style={{ fontFamily: "Inter_500Medium" }}
+              >
+                Customer Support
+              </Text>
+              <Entypo name="chevron-small-right" size={24} color="black" />
+            </View>
+          </View>
+          <View className="flex flex-row gap-[32px] items-center w-full  ">
+            <View className="p-[10px] w-[44px] h-[44px] rounded-[20px] bg-white shadow-md justify-center items-center">
+              <Image source={login} className="w-[24px] h-[24px]" />
+            </View>
+            <View className="flex-1 flex-row justify-between items-center  ">
+              <Text
+                className="text-[#272757] text-[16px] leading-[24px] text-center"
+                style={{ fontFamily: "Inter_500Medium" }}
+              >
+                Log Out
+              </Text>
+              <Entypo name="chevron-small-right" size={24} color="black" />
+            </View>
+          </View>
         </View>
       </View>
     </SafeAreaView>

@@ -32,6 +32,13 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow CONZOT+ to access your photos",
+          "cameraPermission": "Allow CONZOT+ to access your camera"
+        }
       ]
     ],
     "experiments": {

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -15,9 +15,10 @@ import {
   Pressable,
 } from "react-native";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { FormData } from "@/services/core/types";
+import { doctorSignupFormData, FormData } from "@/services/core/types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
+  CountryPicker,
   CustomTextInput,
   ProfileImagePlaceholder,
 } from "@/components/reusables";
@@ -25,19 +26,71 @@ import { CustomPicker } from "@/components/reusables";
 import { CustomDatePicker } from "@/components/reusables";
 import { ReusableImageUpload } from "@/components/reusables";
 import { getUserToken } from "@/components/reusables";
-import { submitKyc } from "@/services/api/request";
+import Checkbox from "expo-checkbox";
 import { router } from "expo-router";
-
+import { useFetchData, usePostData } from "@/services/api/request";
+import RadioGroup, { RadioButtonProps } from "react-native-radio-buttons-group";
+import { validateDoctorForm } from "@/hooks/auth";
+import { uploadImageToCloudinary } from "@/components/cloudinary";
+const errorImage = require("../assets/images/error.png");
 const DoctorSignup = () => {
+  const [isChecked, setChecked] = useState(false);
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [isLoad, setLoading] = useState<boolean>(false);
+
+  const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [countries, setCountries] = useState<any>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [errors, setErrors] = useState<Partial<FormData>>({});
+  const [errors, setErrors] = useState<Partial<doctorSignupFormData>>({});
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [step, setStep] = useState(1);
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  const [userType, setUserType] = useState("user");
+  const { data, loading, error } = useFetchData<any[]>(
+    "https://restcountries.com/v3.1/all"
+  );
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([
+    "English",
+  ]);
 
-  const totalSteps = 3;
+  const languages = ["English", "Igbo", "Yoruba", "Hausa", "Others"];
+
+  // const toggleCheckbox = (language: string) => {
+  //   setSelectedLanguages((prev) =>
+  //     prev.includes(language)
+  //       ? prev.filter((lang) => lang !== language)
+  //       : [...prev, language]
+  //   );
+  // };
+  const toggleCheckbox = (language: string) => {
+    setSelectedLanguages((prev) =>
+      prev.includes(language)
+        ? prev.filter((lang) => lang !== language)
+        : [...prev, language]
+    );
+
+    setFormData((prevData) => ({
+      ...prevData,
+      language: selectedLanguages.includes(language)
+        ? selectedLanguages.filter((lang) => lang !== language) // Remove from list
+        : [...selectedLanguages, language], // Add to list
+    }));
+  };
+
+  const radioButtons: RadioButtonProps[] = useMemo(
+    () => [
+      {
+        id: "yes",
+        label: "Yes",
+        value: "yes",
+      },
+      {
+        id: "no",
+        label: "No",
+        value: "no",
+      },
+    ],
+    []
+  );
+  const totalSteps = 5;
 
   if (
     Platform.OS === "android" &&
@@ -47,53 +100,39 @@ const DoctorSignup = () => {
   }
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const validateForm = (formData: FormData): Partial<FormData> => {
-    const newErrors: Partial<FormData> = {};
-
-    if (!formData.phoneNumber)
-      newErrors.phoneNumber = "Phone Number is required";
-    if (!formData.address) newErrors.address = "Address is required";
-    if (!formData.gender) newErrors.gender = "Gender is required";
-    if (!formData.dateOfBirth)
-      newErrors.dateOfBirth = "Date of Birth is required";
-    if (!formData.nin) newErrors.nin = "NIN is required";
-    if (!formData.bvn) newErrors.bvn = "BVN is required";
-    if (!formData.idCardPhoto)
-      newErrors.idCardPhoto = "ID Card Photo is required";
-    if (!formData.userHoldingIdCardPhoto)
-      newErrors.userHoldingIdCardPhoto =
-        "User Holding ID Card Photo is required";
-    if (!formData.idType) newErrors.idType = "ID Type is required";
-    // if (!formData.fullName) newErrors.fullName = "Full Name is required";
-    if (!formData.fullName || formData.fullName.trim().split(" ").length < 2) {
-      newErrors.fullName = "Please enter your full name (first and last name).";
-    }
-    if (!formData.dateOfIncorporation)
-      newErrors.dateOfIncorporation = "Date Of Incorporation is required";
-    if (!formData.businessRegNumber)
-      newErrors.businessRegNumber = "Business Reg. Number is required";
-    if (!formData.businessRegDocuments)
-      newErrors.businessRegDocuments = "business Reg. Documents is required";
-
-    return newErrors;
-  };
-  const [formData, setFormData] = useState<FormData>({
-    phoneNumber: "",
-    address: "",
+  const [formData, setFormData] = useState<doctorSignupFormData>({
+    firstName: "",
+    lastName: "",
+    otherName: "",
     gender: "",
+    maritalStatus: "",
     dateOfBirth: "",
-    nin: "",
-    bvn: "",
-    idCardPhoto: "",
-    userHoldingIdCardPhoto: "",
-    idType: "",
-    fullName: "",
-    dateOfIncorporation: "",
-    businessRegNumber: "",
-    businessRegDocuments: "",
+    countryOrigin: "",
+    countryOfResidence: "",
+    stateOfOrigin: "",
+    stateofResidence: "",
+    email: "",
+    confirmEmail: "",
+    phoneNumber: "",
+    confirmPhoneNumber: "",
+    password: "",
+    confirmPassword: "",
+    degreeCertificate: "",
+    currentPracticeLicense: "",
+    specialty: "",
+    language: [],
+    role: "medical_practitioner",
+    otherLanguage: "",
+    bankDetails: {
+      confirmAccountNumber: "",
+      accountName: "",
+      bankName: "",
+      accountNumber: "",
+    },
   });
+
   const handleChange = (name: any, value: any) => {
-    const validationErrors = validateForm(formData);
+    const validationErrors = validateDoctorForm(formData);
     setErrors(validationErrors);
     setFormData((prevData) => ({
       ...prevData,
@@ -108,45 +147,78 @@ const DoctorSignup = () => {
     }));
   };
 
-  const Submit = async (formData: any) => {
+  const handleSignup = async () => {
     try {
-      setLoading(true);
-      const token = await getUserToken();
-      const filteredFormData = Object.fromEntries(
-        Object.entries(formData).filter(
-          ([_, value]) => value !== "" && value !== null && value !== undefined
-        )
-      );
-      const response = await submitKyc(filteredFormData, token);
+      const response = await postData(formData);
 
-      if (response.status === 201) {
-        const responseData = await response.data.message;
-
-        Alert.alert(responseData);
-      } else {
-        const errorData = await response.data.message;
-
-        Alert.alert(errorData);
-        // Log parsed response data
+      if (response) {
+        console.log("Signup successful", response);
+        router.push("/successfulRegistration");
       }
-    } catch (error: any) {
-      Alert.alert(error.response.data.message);
+    } catch (err: any) {
+      alert("Signup failed: " + RegisterError);
     }
-    setLoading(false);
   };
 
   const handleNext = async () => {
-    const validationErrors = validateForm(formData);
+    const validationErrors = validateDoctorForm(formData);
     setErrors(validationErrors);
-
-    if (step < totalSteps) {
+    if (
+      step === 1 &&
+      !validationErrors.profileImage &&
+      !validationErrors.firstName &&
+      !validationErrors.lastName &&
+      !validationErrors.otherName &&
+      !validationErrors.gender &&
+      !validationErrors.maritalStatus
+    ) {
       setStep((prevStep) => prevStep + 1);
     }
-
-    if (step === 3) {
-      Submit(formData);
+    if (
+      step === 2 &&
+      !validationErrors.dateOfBirth &&
+      !validationErrors.countryOrigin &&
+      !validationErrors.countryOfResidence &&
+      !validationErrors.stateOfOrigin &&
+      !validationErrors.stateofResidence
+    ) {
+      setStep((prevStep) => prevStep + 1);
+    }
+    if (
+      step === 3 &&
+      !validationErrors.email &&
+      !validationErrors.confirmEmail &&
+      !validationErrors.phoneNumber &&
+      !validationErrors.confirmPhoneNumber &&
+      !validationErrors.password &&
+      !validationErrors.confirmPassword
+    ) {
+      setStep((prevStep) => prevStep + 1);
+    }
+    if (
+      step === 4 &&
+      !validationErrors.degreeCertificate &&
+      !validationErrors.currentPracticeLicense &&
+      !validationErrors.specialty
+    ) {
+      setStep((prevStep) => prevStep + 1);
+    }
+    if (
+      step === 5 &&
+      !validationErrors.bankDetails?.accountNumber &&
+      !validationErrors.bankDetails?.confirmAccountNumber &&
+      !validationErrors.bankDetails?.accountName &&
+      !validationErrors.bankDetails?.bankName
+    ) {
+      handleSignup();
     }
   };
+  const {
+    data: register,
+    loading: isLoading,
+    error: RegisterError,
+    postData,
+  } = usePostData("https://piolife-be.onrender.com/api/v12/users/create");
 
   const handlePrevious = () => {
     setStep((prevStep) => Math.max(prevStep - 1, 1));
@@ -181,11 +253,33 @@ const DoctorSignup = () => {
       setShowDatePicker(!showDatePicker);
     }
   };
+  const handleImageUpload = async () => {
+    try {
+      const imageUrl = await uploadImageToCloudinary(setLoading);
+      setImageUri(imageUrl);
 
+      setFormData((prevData) => ({
+        ...prevData,
+        profileImage: imageUrl,
+      }));
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (data) {
+      const countryList = data.map((country: any) => ({
+        label: country.name.common,
+        value: country.cca2, // Using country code as value
+      }));
+      setCountries(countryList);
+    }
+  }, [data]);
   return (
-    <SafeAreaView className="flex flex-1 bg-[#FFFFFF] ">
+    <SafeAreaView className="flex flex-1 bg-[#fffff0] ">
       <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: "white" }}
+        style={{ flex: 1, backgroundColor: "#fffff0" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View className="flex flex-col  px-[4%]">
@@ -211,15 +305,31 @@ const DoctorSignup = () => {
               Create Your Account
             </Text>
           )}
-          <View className="flex flex-col items-center mt-6 pb-2">
-            <ProfileImagePlaceholder />
-          </View>
-
-          <ScrollView className="h-[60%]" alwaysBounceVertical={false}>
-            <View className="   bg-white h-screen">
+          {step <= 3 && (
+            <View className="flex flex-col items-center mt-6 pb-2">
+              <ProfileImagePlaceholder
+                showBorder={true}
+                upload={handleImageUpload}
+                imageUri={imageUri}
+              />
+              {errors.profileImage && (
+                <View>
+                  <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
+                    {errors.profileImage}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+          <ScrollView
+            className={` ${step <= 3 ? "h-[60%]" : "h-[80%]"}`}
+            alwaysBounceVertical={false}
+            showsVerticalScrollIndicator={false}
+          >
+            <View className="   bg-[#fffff0] h-screen">
               <View className=" mt-8">
                 {step === 1 && (
-                  <View className="flex flex-col">
+                  <View className="flex flex-col gap-[16px]">
                     <Text
                       className="text-[#030319] text-[14px] leading-[17px] text-center mb-2 "
                       style={{ fontFamily: "Inter_400Regular" }}
@@ -229,33 +339,31 @@ const DoctorSignup = () => {
 
                     <CustomTextInput
                       label="First Name"
-                      value={formData.phoneNumber}
-                      onChangeText={(value) =>
-                        handleChange("phoneNumber", value)
-                      }
+                      value={formData.firstName}
+                      onChangeText={(value) => handleChange("firstName", value)}
                       placeholder="Enter FirstName"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="phone-pad"
-                      errorMessage={errors.phoneNumber}
+                      keyboardType="default"
+                      errorMessage={errors.firstName}
                     />
 
                     <CustomTextInput
                       label="Last Name (Surname)"
-                      value={formData.fullName}
-                      onChangeText={(value) => handleChange("fullName", value)}
+                      value={formData.lastName}
+                      onChangeText={(value) => handleChange("lastName", value)}
                       placeholder="Enter LastName"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
-                      errorMessage={errors.fullName}
+                      errorMessage={errors.lastName}
                     />
                     <CustomTextInput
                       label="Other Names"
-                      value={formData.address}
-                      onChangeText={(value) => handleChange("address", value)}
+                      value={formData.otherName}
+                      onChangeText={(value) => handleChange("otherName", value)}
                       placeholder="Enter Middle Name"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
-                      errorMessage={errors.address}
+                      errorMessage={errors.otherName}
                     />
                     <CustomPicker
                       label="Gender"
@@ -271,19 +379,21 @@ const DoctorSignup = () => {
                     />
                     <CustomPicker
                       label="Status"
-                      value={formData.gender || ""}
-                      onValueChange={(value) => handleChange("gender", value)}
+                      value={formData.maritalStatus || ""}
+                      onValueChange={(value) =>
+                        handleChange("maritalStatus", value)
+                      }
                       items={[
                         { label: "Married", value: "married" },
                         { label: "Single", value: "single" },
                       ]}
-                      placeholder="Select your gender"
-                      error={errors.gender}
+                      placeholder="Select your marital status"
+                      error={errors.maritalStatus}
                     />
                   </View>
                 )}
                 {step === 2 && (
-                  <View className="flex flex-col">
+                  <View className="flex flex-col gap-[16px]">
                     <CustomDatePicker
                       label="Date of Birth"
                       selectedDate={
@@ -299,109 +409,313 @@ const DoctorSignup = () => {
                         handleDateChange("dateOfBirth", date)
                       }
                     />
-                    <CustomPicker
+                    <CountryPicker
                       label="Country of Origin"
-                      value={formData.gender || ""}
-                      onValueChange={(value) => handleChange("gender", value)}
-                      items={[
-                        { label: "Male", value: "male" },
-                        { label: "Female", value: "female" },
-                        { label: "Other", value: "other" },
-                      ]}
-                      placeholder="Select your gender"
-                      error={errors.gender}
+                      value={formData.countryOrigin || ""}
+                      onValueChange={(value) =>
+                        handleChange("countryOrigin", value)
+                      }
+                      items={countries}
+                      placeholder="Select your Country of Origin"
+                      error={errors.countryOrigin}
                     />
-                    <CustomPicker
+                    <CountryPicker
                       label="Country of Residence"
-                      value={formData.gender || ""}
-                      onValueChange={(value) => handleChange("gender", value)}
-                      items={[
-                        { label: "Male", value: "male" },
-                        { label: "Female", value: "female" },
-                        { label: "Other", value: "other" },
-                      ]}
-                      placeholder="Select your gender"
-                      error={errors.gender}
+                      value={formData.countryOfResidence || ""}
+                      onValueChange={(value) =>
+                        handleChange("countryOfResidence", value)
+                      }
+                      items={countries}
+                      placeholder="Select your Country of Residence"
+                      error={errors.countryOfResidence}
                     />
                     <CustomTextInput
                       label="State of Origin"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.stateOfOrigin}
+                      onChangeText={(value) =>
+                        handleChange("stateOfOrigin", value)
+                      }
+                      placeholder="Enter Your state Of Origin"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      keyboardType="default"
+                      errorMessage={errors.stateOfOrigin}
                     />
 
                     <CustomTextInput
                       label="State/Province/County of Residence"
-                      value={formData.businessRegNumber}
+                      value={formData.stateofResidence}
                       onChangeText={(value) =>
-                        handleChange("businessRegNumber", value)
+                        handleChange("stateofResidence", value)
                       }
-                      placeholder="Enter Your Business Registration Number"
+                      placeholder="Enter Your state of Residence"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.businessRegNumber}
+                      keyboardType="default"
+                      errorMessage={errors.stateofResidence}
                     />
                   </View>
                 )}
                 {step === 3 && (
-                  <View className="flex flex-col">
+                  <View className="flex flex-col gap-[16px]">
                     <CustomTextInput
                       label="Email"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.email}
+                      onChangeText={(value) => handleChange("email", value)}
+                      placeholder="Enter Your Email"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      keyboardType="default"
+                      errorMessage={errors.email}
                     />
                     <CustomTextInput
                       label="Confirm Email"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.confirmEmail}
+                      onChangeText={(value) =>
+                        handleChange("confirmEmail", value)
+                      }
+                      placeholder="Enter Your Email"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      keyboardType="default"
+                      errorMessage={errors.confirmEmail}
                     />
                     <CustomTextInput
                       label="Phone No"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.phoneNumber}
+                      onChangeText={(value) =>
+                        handleChange("phoneNumber", value)
+                      }
+                      placeholder="Enter Your phone number"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      errorMessage={errors.phoneNumber}
                     />
                     <CustomTextInput
                       label="Confirm Phone No"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.confirmPhoneNumber}
+                      onChangeText={(value) =>
+                        handleChange("confirmPhoneNumber", value)
+                      }
+                      placeholder="Enter Your phone number"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      errorMessage={errors.confirmPhoneNumber}
                     />
                     <CustomTextInput
                       label="Create Password"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.password}
+                      onChangeText={(value) => handleChange("password", value)}
+                      placeholder="Enter Your Password"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      keyboardType="default"
+                      errorMessage={errors.password}
                     />
                     <CustomTextInput
                       label="Confirm Password"
-                      value={formData.bvn}
-                      onChangeText={(value) => handleChange("bvn", value)}
-                      placeholder="Enter Your BVN"
+                      value={formData.confirmPassword}
+                      onChangeText={(value) =>
+                        handleChange("confirmPassword", value)
+                      }
+                      placeholder="Enter Your Password"
                       placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.bvn}
+                      keyboardType="default"
+                      errorMessage={errors.confirmPassword}
                     />
+                  </View>
+                )}
+                {step === 4 && (
+                  <View className="flex flex-col gap-[16px] ">
+                    <View className="flex flex-col gap-[12px] ">
+                      <Text
+                        className="text-[14px] leading-[22px] text-[#030319]"
+                        style={{ fontFamily: "Inter_300Light" }}
+                      >
+                        Degree certificate
+                      </Text>
+                      <ReusableImageUpload
+                        fieldName="userHoldingIdCardPhoto"
+                        handleChange={handleChange}
+                        errorMessage={errors.degreeCertificate}
+                      />
+                    </View>
+                    <View className="flex flex-col gap-[12px] ">
+                      <Text
+                        className="text-[14px] leading-[22px] text-[#030319]"
+                        style={{ fontFamily: "Inter_300Light" }}
+                      >
+                        Current Praticing license
+                      </Text>
+                      <ReusableImageUpload
+                        fieldName="userHoldingIdCardPhoto"
+                        handleChange={handleChange}
+                        errorMessage={errors.currentPracticeLicense}
+                      />
+                    </View>
+                    <View className="flex flex-col gap-[16px]">
+                      <View className="flex flex-col gap-[12px]">
+                        <Text
+                          className="text-[14px] leading-[22px] text-[#030319]"
+                          style={{ fontFamily: "Inter_300Light" }}
+                        >
+                          Specialty (If general medicine, kindly Indicate)
+                        </Text>
+                        <CustomPicker
+                          label=""
+                          value={formData.specialty || ""}
+                          onValueChange={(value) =>
+                            handleChange("gender", value)
+                          }
+                          items={[
+                            { label: "surgeon", value: "surgeon" },
+                            { label: "Eye ", value: "Eye" },
+                            { label: "Nose ", value: "nose" },
+                          ]}
+                          placeholder="Select your Specialty"
+                          error={errors.specialty}
+                        />
+                      </View>
+                      <View className="flex flex-col gap-[8px] w-full">
+                        <Text
+                          className="text-[14px] leading-[22px] text-[#030319]"
+                          style={{ fontFamily: "Inter_300Light" }}
+                        >
+                          Language Proficiency
+                        </Text>
+                        <View className="flex flex-row flex-wrap gap-[16px]">
+                          {languages.map((language) => (
+                            <View
+                              key={language}
+                              className="py-[8px] px-[4px] flex flex-row gap-[16px] items-center"
+                            >
+                              <Text
+                                className="text-[14px] leading-[22px] text-[#030319]"
+                                style={{ fontFamily: "Inter_400Regular" }}
+                              >
+                                {language}
+                              </Text>
+                              <Checkbox
+                                value={selectedLanguages.includes(language)}
+                                onValueChange={() => toggleCheckbox(language)}
+                                color={
+                                  selectedLanguages.includes(language)
+                                    ? "#272757"
+                                    : "#777777"
+                                }
+                              />
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+
+                      <CustomTextInput
+                        label="Others (Specify)"
+                        value={formData.otherLanguage}
+                        onChangeText={(value) =>
+                          handleChange("otherLanguage", value)
+                        }
+                        placeholder="Enter Your other Language if applicable"
+                        placeholderTextColor={"#BABABA"}
+                        keyboardType="default"
+                      />
+                    </View>
+                  </View>
+                )}
+                {step === 5 && (
+                  <View className="flex flex-col gap-[16px]">
+                    <View className="flex flex-col gap-[24px]">
+                      <Text
+                        className="text-[16px] leading-[22px] text-[#272757]"
+                        style={{ fontFamily: "Inter_500Medium" }}
+                      >
+                        Bank Details
+                      </Text>
+                      <View className="flex flex-col gap-[16px]">
+                        <CustomTextInput
+                          label="Account Number"
+                          value={formData.bankDetails?.accountNumber}
+                          onChangeText={(value) =>
+                            handleChange("accountNumber", value)
+                          }
+                          placeholder="Enter Your Account Number"
+                          placeholderTextColor={"#BABABA"}
+                          keyboardType="default"
+                          errorMessage={errors.bankDetails?.accountNumber}
+                        />
+                        <CustomTextInput
+                          label="Confirm Account Number"
+                          value={formData.bankDetails?.confirmAccountNumber}
+                          onChangeText={(value) =>
+                            handleChange("confirmAccountNumber", value)
+                          }
+                          placeholder="Enter Your confirm Account Number"
+                          placeholderTextColor={"#BABABA"}
+                          keyboardType="default"
+                          errorMessage={
+                            errors.bankDetails?.confirmAccountNumber
+                          }
+                        />
+                        <CustomTextInput
+                          label="Account Name"
+                          value={formData.bankDetails?.accountName}
+                          onChangeText={(value) =>
+                            handleChange("accountName", value)
+                          }
+                          placeholder="Enter Your account Name"
+                          placeholderTextColor={"#BABABA"}
+                          keyboardType="default"
+                          errorMessage={errors.bankDetails?.accountName}
+                        />
+                        <CustomTextInput
+                          label="Bank Name"
+                          value={formData.bankDetails?.bankName}
+                          onChangeText={(value) =>
+                            handleChange("bankName", value)
+                          }
+                          placeholder="Enter Your bank Name"
+                          placeholderTextColor={"#BABABA"}
+                          keyboardType="default"
+                          errorMessage={errors.bankDetails?.bankName}
+                        />
+                      </View>
+                    </View>
+                    <View className="flex flex-col gap-[24px] w-full">
+                      <Text
+                        className="text-[16px] leading-[22px] text-[#272757]"
+                        style={{ fontFamily: "Inter_500Medium" }}
+                      >
+                        Policy Agreement
+                      </Text>
+                      <View className="p-[16px] rounded-[8px] bg-[#F0F8FF66] flex flex-row gap-[16px] items-center w-full">
+                        <Image
+                          source={errorImage}
+                          className="w-[24px] h-[24px]"
+                        />
+                        <Text
+                          className="text-[10px] leading-[14px] text-[#272757]  flex-1"
+                          style={{ fontFamily: "Inter_400Regular" }}
+                        >
+                          Do not exchange contact (phone number, email, etc)
+                          with the client, this is an offense to Piolife Limited
+                          and an infringement to the right of use of this app,
+                          as such is a chargeable offense. You are being
+                          monitored.
+                        </Text>
+                      </View>
+                    </View>
+                    <View className="flex flex-col gap-[16px]">
+                      <Text
+                        className="text-[16px] leading-[22px] text-[#272757]"
+                        style={{ fontFamily: "Inter_500Medium" }}
+                      >
+                        Do you agree to our policy?
+                      </Text>
+                      <RadioGroup
+                        containerStyle={{
+                          display: "flex",
+                          flexDirection: "row",
+                        }}
+                        radioButtons={radioButtons}
+                        onPress={setSelectedId}
+                        selectedId={selectedId}
+                      />
+                    </View>
                   </View>
                 )}
               </View>
