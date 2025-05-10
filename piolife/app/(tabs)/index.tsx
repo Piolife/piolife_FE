@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
   Text,
@@ -7,8 +7,10 @@ import {
   StyleSheet,
   Image,
   Pressable,
-  Platform,
   FlatList,
+  Alert,
+  ActivityIndicator,
+  Platform,
 } from "react-native";
 import { router } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
@@ -20,9 +22,32 @@ import {
   DoctorScreen,
   Stat,
 } from "@/components/reusables";
-
+import { useFetchData } from "@/services/api/request";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { User } from "@/services/core/types";
 const Index = () => {
-  const [role, setRole] = useState<string>("doctor");
+  useEffect(() => {
+    const loadUser = async () => {
+      const userData = await AsyncStorage.getItem("user");
+      if (userData) {
+        const user = JSON.parse(userData);
+        SetUser(user);
+      }
+    };
+    loadUser();
+    AsyncStorage.setItem("hasLaunched", "launched");
+  }, []);
+
+  const [user, SetUser] = useState<User>();
+  const token = user?.token;
+  const { data, loading, error } = useFetchData<User>(
+    user ? `https://piolife-be.onrender.com/api/v12/users/${user.id}` : "",
+    { token }
+  );
+
+  if (error) {
+    Alert.alert(error);
+  }
   interface RecentConsultationsProps {
     patient: string;
     callType: string;
@@ -37,6 +62,14 @@ const Index = () => {
       callType: "Video call",
     },
   ];
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
   const RecentConsultations = ({
     patient,
     callType,
@@ -68,26 +101,36 @@ const Index = () => {
     );
   };
   return (
-    <SafeAreaView className="flex-1 bg-[#fffff0]">
+    <SafeAreaView
+      className={`flex-1 bg-[#fffff0]`}
+      style={{ paddingTop: Platform.OS === "android" ? 20 : 0 }}
+    >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[32px]">
         <View className="flex flex-row items-center justify-between mt-4">
           <View className="flex w-[80%]">
             <View className="flex flex-row gap-[16px]">
-              <FontAwesome name="user" size={50} color="#ccc" />
+              {data ? (
+                <Image
+                  source={{ uri: data?.profilePicture }}
+                  className="w-[56px] h-[56px] rounded-full"
+                />
+              ) : (
+                <FontAwesome name="user" size={50} color="#ccc" />
+              )}
 
               <View className="flex flex-col gap-[4px] py-[4px]">
                 <Text
                   className="text-[#030319] text-[16px] leading-[19px] "
                   style={{ fontFamily: "Inter_500Medium" }}
                 >
-                  Hi, Kelvin
+                  Hi, {data?.firstName}
                 </Text>
                 <Text
                   className="text-[#2a2a2a] text-[14px] leading-[17px] "
                   style={{ fontFamily: "Inter_400Regular" }}
                 >
-                  ID: KEL123BIA
+                  ID: {data?.username}
                 </Text>
               </View>
             </View>
@@ -104,7 +147,7 @@ const Index = () => {
           </View>
         </View>
         <View className="flex flex-col gap-[16px]">
-          {role === "client" && (
+          {user?.role === "client" && (
             <Text
               className="text-[#272757] text-[18px] leading-[17px] "
               style={{ fontFamily: "Inter_600SemiBold" }}
@@ -112,13 +155,13 @@ const Index = () => {
               Actions
             </Text>
           )}
-          {role === "client" && <ClientScreen />}
-          {role === "doctor" && <DoctorScreen balance={3000} />}
-          {role === "doctor" && <Stat />}
+          {user?.role === "client" && <ClientScreen />}
+          {user?.role === "doctor" && <DoctorScreen balance={3000} />}
+          {user?.role === "doctor" && <Stat />}
         </View>
 
-        {role === "client" && <ClientMenu />}
-        {role === "doctor" && (
+        {user?.role === "client" && <ClientMenu />}
+        {user?.role === "doctor" && (
           <View className="flex flex-col gap-[20px]">
             <Text
               className="text-[#272757] text-[18px] leading-[17px] "
@@ -148,6 +191,11 @@ const Index = () => {
   );
 };
 const styles = StyleSheet.create({
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   shadowProp: {
     shadowColor: "#171717",
     shadowOffset: { width: -2, height: 4 },

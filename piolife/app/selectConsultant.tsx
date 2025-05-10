@@ -17,7 +17,10 @@ const realtor = require("../assets/images/User-2.png");
 
 const SelectConsultant = () => {
   return (
-    <SafeAreaView className="flex-1 bg-[#fffff0]">
+    <SafeAreaView
+      className="flex-1 bg-[#fffff0]"
+      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
+    >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[24px] gap-[32px]">
         <Text

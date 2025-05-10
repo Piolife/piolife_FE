@@ -22,9 +22,7 @@ import {
   ProfileImagePlaceholder,
 } from "@/components/reusables";
 import { CustomPicker } from "@/components/reusables";
-import { CustomDatePicker } from "@/components/reusables";
-import { ReusableImageUpload } from "@/components/reusables";
-import { getUserToken } from "@/components/reusables";
+import { validateFormEmergencyForm } from "@/hooks/auth";
 
 import { router } from "expo-router";
 
@@ -34,8 +32,6 @@ const EmergencySignup = () => {
   const [errors, setErrors] = useState<Partial<emergencySignupFormData>>({});
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [step, setStep] = useState(1);
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  const [userType, setUserType] = useState("user");
 
   const totalSteps = 3;
 
@@ -45,61 +41,28 @@ const EmergencySignup = () => {
   ) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
   }
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  const validateForm = (
-    formData: emergencySignupFormData
-  ): Partial<emergencySignupFormData> => {
-    const newErrors: Partial<emergencySignupFormData> = {};
-
-    if (!formData.accountName)
-      newErrors.accountName = "Account Name is required";
-    if (!formData.accountNumber)
-      newErrors.accountNumber = "Account Number is required";
-    if (!formData.alternativePhone)
-      newErrors.alternativePhone = "Alternative Phone is required";
-    if (!formData.bankName) newErrors.bankName = "Bank Name is required";
-    if (!formData.confirmAccountNumber)
-      newErrors.confirmAccountNumber = "confirm Account Number is required";
-    if (formData.confirmAccountNumber !== formData.accountNumber)
-      newErrors.confirmAccountNumber =
-        "confirm Account Number must be same as account number";
-    if (!formData.confirmPassword)
-      newErrors.confirmPassword = "confirm Password is required";
-    if (formData.confirmPassword !== formData.password)
-      newErrors.confirmPassword = "confirm Password must be same as password";
-    if (!formData.email) newErrors.email = "Email is required";
-    if (!formData.facility) newErrors.facility = "Facility name is required";
-    if (!formData.lga) newErrors.lga = "LGA is required";
-    if (!formData.officer) newErrors.officer = "Full Name is required";
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    }
-    if (!formData.phone) newErrors.phone = "Phone Number is required";
-    if (!formData.state) newErrors.state = "Business Reg. Number is required";
-    if (!formData.ward) newErrors.ward = "Ward is required";
-
-    return newErrors;
-  };
 
   const [formData, setFormData] = useState<emergencySignupFormData>({
-    facility: "",
-    officer: "",
-    phone: "",
-    alternativePhone: "",
-    state: "",
-    lga: "",
+    hospitalName: "",
+    officerInCharge: "",
+    phoneNumber: "",
+    alternatePhoneNumber: "",
+    stateOfResidence: "",
+    localGovernmentArea: "",
     ward: "",
     email: "",
     password: "",
     confirmPassword: "",
-    accountNumber: "",
-    confirmAccountNumber: "",
-    accountName: "",
-    bankName: "",
+    bankDetails: {
+      accountNumber: "",
+      confirmAccountNumber: "",
+      accountName: "",
+      bankName: "",
+    },
   });
+
   const handleChange = (name: any, value: any) => {
-    const validationErrors = validateForm(formData);
+    const validationErrors = validateFormEmergencyForm(formData);
     setErrors(validationErrors);
     setFormData((prevData) => ({
       ...prevData,
@@ -107,17 +70,10 @@ const EmergencySignup = () => {
     }));
   };
 
-  const handleDateChange = (fieldName: string, date: string) => {
-    setFormData((prevData) => ({
-      ...prevData,
-      [fieldName]: date,
-    }));
-  };
-
   const Submit = async (formData: any) => {};
 
   const handleNext = async () => {
-    const validationErrors = validateForm(formData);
+    const validationErrors = validateFormEmergencyForm(formData);
     setErrors(validationErrors);
     if (
       step === 1
@@ -144,10 +100,10 @@ const EmergencySignup = () => {
 
     if (
       step === 3 &&
-      !validationErrors.accountNumber &&
-      !validationErrors.confirmAccountNumber &&
-      !validationErrors.accountName &&
-      !validationErrors.bankName
+      !validationErrors.bankDetails?.accountNumber &&
+      !validationErrors.bankDetails?.confirmAccountNumber &&
+      !validationErrors.bankDetails?.accountName &&
+      !validationErrors.bankDetails?.bankName
     ) {
       Submit(formData);
     }
@@ -186,90 +142,117 @@ const EmergencySignup = () => {
       setShowDatePicker(!showDatePicker);
     }
   };
+  const handleNestedChange = (path: string, value: any) => {
+    setFormData((prevData) => {
+      const keys = path.split(".");
+      const updatedData: any = { ...prevData };
+      let current = updatedData;
 
+      for (let i = 0; i < keys.length - 1; i++) {
+        current[keys[i]] = { ...current[keys[i]] };
+        current = current[keys[i]];
+      }
+
+      current[keys[keys.length - 1]] = value;
+
+      return updatedData;
+    });
+
+    const validationErrors = validateFormEmergencyForm(formData);
+    setErrors(validationErrors);
+  };
   return (
-    <SafeAreaView className="flex flex-1 bg-[#fffff0] ">
+    <SafeAreaView
+      className="flex flex-1 bg-[#fffff0] "
+      style={{ paddingTop: Platform.OS === "android" ? 20 : 0 }}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: "#fffff0" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View className="flex flex-col  px-[4%]">
-          {step > 1 && (
-            <Pressable
-              className="flex flex-row items-center gap-[16px] mt-2"
-              onPress={handlePrevious}
-            >
-              <FontAwesome name="angle-left" size={24} color="black" />
+        <ScrollView
+          className=""
+          alwaysBounceVertical={false}
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="flex flex-col  px-[4%]">
+            {step > 1 && (
+              <Pressable
+                className="flex flex-row items-center gap-[16px] mt-2"
+                onPress={handlePrevious}
+              >
+                <FontAwesome name="angle-left" size={24} color="black" />
+                <Text
+                  className="text-[#272757] text-[16px] leading-[20px] text-center "
+                  style={{ fontFamily: "Inter_500Medium" }}
+                >
+                  Back
+                </Text>
+              </Pressable>
+            )}
+            {step === 1 && (
               <Text
-                className="text-[#272757] text-[16px] leading-[20px] text-center "
+                className="text-[#272757] text-[18px] leading-[24px] text-center mt-4"
                 style={{ fontFamily: "Inter_500Medium" }}
               >
-                Back
+                Create Your Account
               </Text>
-            </Pressable>
-          )}
-          {step === 1 && (
-            <Text
-              className="text-[#272757] text-[18px] leading-[24px] text-center mt-4"
-              style={{ fontFamily: "Inter_500Medium" }}
-            >
-              Create Your Account
-            </Text>
-          )}
-          <View className="flex flex-col items-center mt-6 pb-2">
-            <ProfileImagePlaceholder
-              imageUri={require("../assets/images/ertg6.png")}
-              showBorder={false}
-            />
-          </View>
+            )}
+            <View className="flex flex-col items-center mt-6 pb-2">
+              <ProfileImagePlaceholder
+                imageUri={require("../assets/images/ertg6.png")}
+                showBorder={false}
+              />
+            </View>
 
-          <ScrollView
-            className="h-[60%]"
-            alwaysBounceVertical={false}
-            showsVerticalScrollIndicator={false}
-          >
-            <View className="   bg-[#fffff0] h-screen">
+            <View className="   bg-[#fffff0] ">
               <View className=" mt-8">
                 {step === 1 && (
                   <View className="flex flex-col gap-[16px]">
                     <CustomTextInput
                       label="Hospital/Health Facility Name"
-                      value={formData.facility}
-                      onChangeText={(value) => handleChange("facility", value)}
+                      value={formData.hospitalName}
+                      onChangeText={(value) =>
+                        handleChange("hospitalName", value)
+                      }
                       placeholder="Enter Facility name"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
-                      errorMessage={errors.facility}
+                      errorMessage={errors.hospitalName}
                     />
 
                     <CustomTextInput
                       label="MD/Officer in Charge"
-                      value={formData.officer}
-                      onChangeText={(value) => handleChange("officer", value)}
+                      value={formData.officerInCharge}
+                      onChangeText={(value) =>
+                        handleChange("officerInCharge", value)
+                      }
                       placeholder="Enter Officer Name"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
-                      errorMessage={errors.officer}
+                      errorMessage={errors.officerInCharge}
                     />
                     <CustomTextInput
                       label="Mobile Number"
-                      value={formData.phone}
-                      onChangeText={(value) => handleChange("phone", value)}
+                      value={formData.phoneNumber}
+                      onChangeText={(value) =>
+                        handleChange("phoneNumber", value)
+                      }
                       placeholder="Enter Phone number"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="numeric"
-                      errorMessage={errors.phone}
+                      errorMessage={errors.phoneNumber}
                     />
                     <CustomTextInput
                       label="Alternative Mobile Number"
-                      value={formData.alternativePhone}
+                      value={formData.alternatePhoneNumber}
                       onChangeText={(value) =>
-                        handleChange("alternativePhone", value)
+                        handleChange("alternatePhoneNumber", value)
                       }
                       placeholder=" Enter alternate phone number"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="numeric"
-                      errorMessage={errors.alternativePhone}
+                      errorMessage={errors.alternatePhoneNumber}
                     />
                   </View>
                 )}
@@ -277,25 +260,29 @@ const EmergencySignup = () => {
                   <View className="flex flex-col gap-[16px]">
                     <CustomPicker
                       label="State"
-                      value={formData.state || ""}
-                      onValueChange={(value) => handleChange("state", value)}
+                      value={formData.stateOfResidence || ""}
+                      onValueChange={(value) =>
+                        handleChange("stateOfResidence", value)
+                      }
                       items={[
                         { label: "Male", value: "male" },
                         { label: "Female", value: "female" },
                         { label: "Other", value: "other" },
                       ]}
                       placeholder="Select your State"
-                      error={errors.state}
+                      error={errors.stateOfResidence}
                     />
 
                     <CustomTextInput
                       label="LGA"
-                      value={formData.lga}
-                      onChangeText={(value) => handleChange("lga", value)}
+                      value={formData.localGovernmentArea}
+                      onChangeText={(value) =>
+                        handleChange("localGovernmentArea", value)
+                      }
                       placeholder=""
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
-                      errorMessage={errors.lga}
+                      errorMessage={errors.localGovernmentArea}
                     />
 
                     <CustomTextInput
@@ -348,74 +335,80 @@ const EmergencySignup = () => {
                     </Text>
                     <CustomTextInput
                       label="Account Number"
-                      value={formData.accountNumber}
+                      value={formData.bankDetails.accountNumber}
                       onChangeText={(value) =>
-                        handleChange("accountNumber", value)
+                        handleNestedChange("bankDetails.accountNumber", value)
                       }
                       placeholder=""
                       placeholderTextColor={"#BABABA"}
                       keyboardType="numeric"
-                      errorMessage={errors.accountNumber}
+                      errorMessage={errors.bankDetails?.accountNumber}
                     />
                     <CustomTextInput
                       label="Confirm Account Number"
-                      value={formData.confirmAccountNumber}
+                      value={formData.bankDetails.confirmAccountNumber}
                       onChangeText={(value) =>
-                        handleChange("confirmAccountNumber", value)
+                        handleNestedChange(
+                          "bankDetails.confirmAccountNumber",
+                          value
+                        )
                       }
                       placeholder=""
                       placeholderTextColor={"#BABABA"}
                       keyboardType="numeric"
-                      errorMessage={errors.confirmAccountNumber}
+                      errorMessage={errors.bankDetails?.confirmAccountNumber}
                     />
                     <CustomTextInput
                       label="Account Name"
-                      value={formData.accountName}
+                      value={formData.bankDetails.accountName}
                       onChangeText={(value) =>
-                        handleChange("accountName", value)
+                        handleNestedChange("bankDetails.accountName", value)
                       }
                       placeholder=""
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
-                      errorMessage={errors.accountName}
+                      errorMessage={errors.bankDetails?.accountName}
                     />
                     <CustomTextInput
                       label="Bank Name"
-                      value={formData.bankName}
-                      onChangeText={(value) => handleChange("bankName", value)}
+                      value={formData.bankDetails.bankName}
+                      onChangeText={(value) =>
+                        handleNestedChange("bankDetails.bankName", value)
+                      }
                       placeholder="Enter Your bank Name"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
-                      errorMessage={errors.bankName}
+                      errorMessage={errors.bankDetails?.bankName}
                     />
                   </View>
                 )}
               </View>
             </View>
-          </ScrollView>
-          <View className="flex-col flex items-center justify-center mt-8  gap-[16px]">
-            <Pressable
-              onPress={handleNext}
-              className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
-            >
-              <Text
-                className="text-white text-[16px]"
-                style={{ fontFamily: "Inter_700Bold" }}
+
+            <View className="flex-col flex items-center justify-center my-8  gap-[16px]">
+              <Pressable
+                onPress={handleNext}
+                className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
               >
-                {step < totalSteps ? "Next" : "Done"}
+                <Text
+                  className="text-white text-[16px]"
+                  style={{ fontFamily: "Inter_700Bold" }}
+                >
+                  {step < totalSteps ? "Next" : "Done"}
+                </Text>
+              </Pressable>
+              <Text
+                onPress={() => {
+                  router.push("/login");
+                }}
+                className="text-[16px] leading-[22px]"
+                style={{ fontFamily: "Inter_600SemiBold" }}
+              >
+                Already have an account? Log in
               </Text>
-            </Pressable>
-            <Text
-              onPress={() => {
-                router.push("/login");
-              }}
-              className="text-[16px] leading-[22px]"
-              style={{ fontFamily: "Inter_600SemiBold" }}
-            >
-              Already have an account? Log in
-            </Text>
+            </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

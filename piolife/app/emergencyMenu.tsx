@@ -1,42 +1,28 @@
 import React, { useMemo, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { Text, View, SafeAreaView, Pressable, Platform } from "react-native";
+import {
+  Text,
+  View,
+  SafeAreaView,
+  Pressable,
+  Platform,
+  Image,
+} from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
-import RadioGroup, { RadioButtonProps } from "react-native-radio-buttons-group";
 import { router } from "expo-router";
 
 const EmergencyMenu = () => {
   const handlePrevious = () => {
     router.back();
   };
-  const [selectedId, setSelectedId] = useState<string | undefined>();
-  const radioButtons: RadioButtonProps[] = useMemo(
-    () => [
-      {
-        id: "english",
-        label: "English",
-        value: "english",
-      },
-      {
-        id: "yoruba",
-        label: "Yoruba",
-        value: "yoruba",
-      },
-      {
-        id: "igbo",
-        label: "Igbo",
-        value: "igbo",
-      },
-      {
-        id: "hausa",
-        label: "Hausa",
-        value: "hausa",
-      },
-    ],
-    []
-  );
+
+  const error = require("../assets/images/error.png");
+  const ambulance = require("../assets/images/15-2.png");
   return (
-    <SafeAreaView className="flex-1 bg-[#fffff0]">
+    <SafeAreaView
+      className="flex-1 bg-[#fffff0]"
+      style={{ paddingTop: Platform.OS === "android" ? 20 : 0 }}
+    >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[24px]">
         <Pressable
@@ -51,40 +37,38 @@ const EmergencyMenu = () => {
             Back
           </Text>
         </Pressable>
-        <View className="flex flex-col gap-[16px]">
+        <View className="flex flex-col gap-[32px]">
           <Text
             className="text-[#030319] text-[16px] leading-[24px]"
             style={{ fontFamily: "Inter_500Medium" }}
           >
-            Consult a doctor
+            Emergency Services
           </Text>
-          <Text
-            className="text-[#424242] text-[14px] leading-[17px]"
-            style={{ fontFamily: "Inter_400Regular" }}
-          >
-            Fill the form below, as the information provided will help us get
-            the right doctor to you.
-          </Text>
-        </View>
-        <View className="flex flex-col gap-[24px]">
-          <Text
-            className="text-[#030319] text-[16px] leading-[24px]"
-            style={{ fontFamily: "Inter_500Medium" }}
-          >
-            Preferred Language (select just one)
-          </Text>
-          <RadioGroup
-            layout="column"
-            containerStyle={{
-              display: "flex",
-              flexWrap: "wrap",
-              flexDirection: "row",
-              gridRowGap: "8px",
+          <View className="p-[16px] bg-[#F0F8FF66] rounded-[8px] flex flex-row items-center gap-[16px]">
+            <Image source={error} className="w-[24px] h-[24px]" />
+            <Text
+              className="text-[#424242] text-[12px] leading-[17px]"
+              style={{ fontFamily: "Inter_400Regular" }}
+            >
+              You will charged automatically from your wallet
+            </Text>
+          </View>
+          <View className="flex items-center">
+            <Image source={ambulance} className="w-[150px] h-[149px]" />
+          </View>
+          <Pressable
+            onPress={() => {
+              router.push("/emergencyDetails");
             }}
-            radioButtons={radioButtons}
-            onPress={setSelectedId}
-            selectedId={selectedId}
-          />
+            className={`px-[32px] h-[56px] bg-[#0e16ff]  rounded-[8px] flex items-center justify-center`}
+          >
+            <Text
+              className="text-white text-[16px]"
+              style={{ fontFamily: "Inter_700Bold" }}
+            >
+              Request Ambulance Services
+            </Text>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>

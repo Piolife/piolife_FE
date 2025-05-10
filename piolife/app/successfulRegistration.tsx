@@ -17,7 +17,10 @@ const backgroundImage = require("../assets/images/Ellipse 1xxxx.png");
 
 const SuccesfulRegistration = () => {
   return (
-    <SafeAreaView className="flex-1 bg-[#fffff0]  min-h-screen  items-center justify-center">
+    <SafeAreaView
+      className="flex-1 bg-[#fffff0]  min-h-screen  items-center justify-center"
+      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
+    >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="flex flex-col gap-[106px]">
         <View className="flex flex-col gap-[32px] items-center">
@@ -39,7 +42,7 @@ const SuccesfulRegistration = () => {
         </View>
         <Pressable
           onPress={() => {
-            router.push("/(tabs)");
+            router.push("/login");
           }}
           className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
         >

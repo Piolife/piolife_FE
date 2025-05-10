@@ -20,8 +20,8 @@ const Consult = () => {
   };
   const buttons: ButtonType[] = [
     { id: 1, text: "Hospital", link: "/hospitalOptions" },
-    { id: 2, text: "Emergency", link: "/hospitalOptions" },
-    { id: 3, text: "Real Estate", link: "/hospitalOptions" },
+    { id: 2, text: "Emergency", link: "/emergencyMenu" },
+    { id: 3, text: "Real Estate", link: "/realEstate" },
     { id: 4, text: "Flight Booking", link: "/hospitalOptions" },
     { id: 5, text: "E-Commerce", link: "/hospitalOptions" },
     { id: 6, text: "Hotel Booking", link: "/hospitalOptions" },
@@ -34,7 +34,10 @@ const Consult = () => {
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView
+      className="flex-1 bg-white"
+      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
+    >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[32px]">
         <View className="flex flex-col gap-[8px]">

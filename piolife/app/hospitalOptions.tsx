@@ -20,7 +20,10 @@ const HospitalOptions = () => {
     router.back();
   };
   return (
-    <SafeAreaView className="flex-1 bg-[#fffff0]">
+    <SafeAreaView
+      className="flex-1 bg-[#fffff0]"
+      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
+    >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[24px]">
         <Pressable
@@ -104,9 +107,6 @@ const HospitalOptions = () => {
           </Pressable>
           <Pressable
             className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row justify-between items-center bg-[#fffff0]"
-            onPress={() => {
-              router.push("/doctorSignup");
-            }}
             style={[styles.shadowProp]}
           >
             <View className="flex flex-row gap-[16px] items-center">

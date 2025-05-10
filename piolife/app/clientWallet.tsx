@@ -1,4 +1,10 @@
-import React, { LegacyRef, ReactNode, useRef } from "react";
+import React, {
+  LegacyRef,
+  ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { StatusBar } from "expo-status-bar";
 import {
   Text,
@@ -7,22 +13,79 @@ import {
   StyleSheet,
   Image,
   Pressable,
+  Alert,
+  ActivityIndicator,
   Platform,
 } from "react-native";
 import { router } from "expo-router";
-import Feather from "@expo/vector-icons/Feather";
 import { Paystack, paystackProps } from "react-native-paystack-webview";
-import { CustomTextInput } from "@/components/reusables";
 import { FontAwesome } from "@expo/vector-icons";
-import Octicons from "@expo/vector-icons/Octicons";
-const wallet = require("../assets/images/Cash Wallet.png");
+import { useFetchData, usePostData } from "@/services/api/request";
+import { wallet, User } from "@/services/core/types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import AddFundsModal from "@/components/addFundsModal";
+import { BlurView } from "expo-blur";
+import { formatNumberToThousands } from "@/components/reusables";
+const wallety = require("../assets/images/Cash Wallet.png");
 const piocoin = require("../assets/images/piocoin_symbol-removebg-preview 1.png");
 const fundwallet = require("../assets/images/image 47.png");
 const getloan = require("../assets/images/image 44-2.png");
 const ClientWallet = () => {
+  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
+  const [amount, setAmount] = useState<number>(0);
   const paystackWebViewRef = useRef<paystackProps.PayStackRef>();
+  useEffect(() => {
+    const loadUser = async () => {
+      const userData = await AsyncStorage.getItem("user");
+      if (userData) {
+        const user = JSON.parse(userData);
+        SetUser(user);
+      }
+    };
+    loadUser();
+  }, []);
+  const [user, SetUser] = useState<User>();
+  const token = user?.token;
+  const { data, loading, error, refetch } = useFetchData<wallet>(
+    user
+      ? `https://piolife-be.onrender.com/api/v12/wallet/${user.id}/balance`
+      : "",
+    { token }
+  );
+
+  if (data) {
+    console.log("data", data);
+  }
+
+  if (error) {
+    Alert.alert(error);
+  }
+  const handleOpenBottomSheet = () => {
+    setIsBottomSheetOpen(true);
+  };
+  const handleCloseBottomSheet = () => {
+    setIsBottomSheetOpen(false);
+  };
+  const handleAmountChange = (newAmount: number) => {
+    setAmount(newAmount);
+    console.log("Amount from modal:", newAmount);
+  };
+  const handleSubmit = () => {
+    handleCloseBottomSheet();
+    paystackWebViewRef?.current?.startTransaction();
+  };
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView
+      className="flex-1 bg-white"
+      style={{ paddingTop: Platform.OS === "android" ? 20 : 0 }}
+    >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[32px]">
         <View className="flex flex-col gap-[8px]">
@@ -41,7 +104,7 @@ const ClientWallet = () => {
             </Text>
           </Pressable>
           <View className="flex items-center">
-            <Image source={wallet} className="w-[80px] h-[80px]" />
+            <Image source={wallety} className="w-[80px] h-[80px]" />
           </View>
           <View className="flex flex-col gap-[16px]">
             <Text
@@ -66,7 +129,7 @@ const ClientWallet = () => {
                   className="text-[#030319] text-[20px] leading-[20px]  "
                   style={{ fontFamily: "Inter_500Medium" }}
                 >
-                  2,209.00
+                  {formatNumberToThousands(data?.balance)}
                 </Text>
               </View>
             </View>
@@ -86,7 +149,7 @@ const ClientWallet = () => {
                   className="text-[#030319] text-[20px] leading-[20px]  "
                   style={{ fontFamily: "Inter_500Medium" }}
                 >
-                  2,209.00
+                  {formatNumberToThousands(data?.loanBalance)}
                 </Text>
               </View>
             </View>
@@ -101,7 +164,8 @@ const ClientWallet = () => {
           </Text>
           <View className="flex flex-row justify-between">
             <Pressable
-              onPress={() => paystackWebViewRef?.current?.startTransaction()}
+              // onPress={() => paystackWebViewRef?.current?.startTransaction()}
+              onPress={handleOpenBottomSheet}
               className="py-[8px] px-[16px] bg-[#0e16ff] w-[48%] rounded-[4px] gap-[4px] items-center"
             >
               <Image source={fundwallet} className="w-[60px] h-[46px]" />
@@ -112,7 +176,12 @@ const ClientWallet = () => {
                 Fund wallet
               </Text>
             </Pressable>
-            <Pressable className="py-[8px] px-[16px] bg-[#0e16ff] w-[48%] rounded-[4px] gap-[4px] items-center">
+            <Pressable
+              className="py-[8px] px-[16px] bg-[#0e16ff] w-[48%] rounded-[4px] gap-[4px] items-center"
+              onPress={() => {
+                router.push("/collectLoan");
+              }}
+            >
               <Image source={getloan} className="w-[46px] h-[46px]" />
               <Text
                 className="text-[#ffffff] text-[14px] leading-[20px]  "
@@ -124,16 +193,28 @@ const ClientWallet = () => {
           </View>
         </View>
       </View>
+      <AddFundsModal
+        isVisible={isBottomSheetOpen}
+        onClose={handleCloseBottomSheet}
+        onAmountChange={handleAmountChange}
+        onSubmit={handleSubmit}
+      />
+      {isBottomSheetOpen && (
+        <BlurView style={styles.absolute} intensity={20} tint="dark" />
+      )}
       <Paystack
+        metadata={{
+          cart_id: user?.id, // or use email or another unique ID
+        }}
         paystackKey="pk_test_10f0bf166cf0c44bfa35b7f7f0ea72f24c01a60c"
-        billingEmail="chijiokenwoye64@gmail.com"
-        amount={"15000.00"}
+        billingEmail={user?.email ?? ""}
+        amount={amount}
         onCancel={(e) => {
-          // handle response here
+          Alert.alert("Funding unsucessful");
         }}
         onSuccess={(res) => {
-          // handle response here
-          console.log("res", res);
+          Alert.alert("Funding sucessful");
+          refetch();
         }}
         ref={paystackWebViewRef as unknown as LegacyRef<ReactNode>}
       />
@@ -146,6 +227,20 @@ const styles = StyleSheet.create({
     shadowOffset: { width: -2, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  absolute: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
+    flex: 1,
+    overflow: "hidden",
   },
 });
 export default ClientWallet;

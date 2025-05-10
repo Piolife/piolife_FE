@@ -40,20 +40,22 @@ export type FormData = {
   businessRegDocuments: string;
 };
 export type emergencySignupFormData = {
-  facility: string;
-  officer: string;
-  phone: string;
-  alternativePhone: string;
-  state: string;
-  lga: string;
+  hospitalName: string;
+  officerInCharge: string;
+  phoneNumber: string;
+  alternatePhoneNumber: string;
+  stateOfResidence: string;
+  localGovernmentArea: string;
   ward: string;
   email: string;
   password: string;
   confirmPassword: string;
-  accountNumber: string;
-  confirmAccountNumber: string;
-  accountName: string;
-  bankName: string;
+  bankDetails: {
+    accountNumber: string;
+    confirmAccountNumber: string;
+    accountName: string;
+    bankName: string;
+  };
 };
 export type clientSignupFormData = {
   firstName: string;
@@ -62,7 +64,7 @@ export type clientSignupFormData = {
   gender: string;
   maritalStatus: string;
   dateOfBirth: string;
-  countryOrigin: string;
+  countryOfOrigin: string;
   countryOfResidence: string;
   stateOfOrigin: string;
   stateOfResidence: string;
@@ -83,7 +85,7 @@ export type doctorSignupFormData = {
   gender: string;
   maritalStatus: string;
   dateOfBirth: string;
-  countryOrigin: string;
+  countryOfOrigin: string;
   countryOfResidence: string;
   stateOfOrigin: string;
   stateOfResidence: string;
@@ -96,8 +98,8 @@ export type doctorSignupFormData = {
   degreeCertificate: string;
   currentPracticeLicense: string;
   specialty: string;
-  language: string[];
-  profileImage?: string | null;
+  languageProficiency: string[];
+  profilePicture?: string | null;
   role: string;
   bankDetails?: {
     accountNumber: string;
@@ -108,7 +110,7 @@ export type doctorSignupFormData = {
 };
 export interface CustomDatePickerProps {
   label: string;
-  selectedDate: Date | null;
+  selectedDate: Date;
   showDatePicker: boolean;
   toggleDatePicker: () => void;
   errorMessage?: string;
@@ -128,4 +130,38 @@ export interface ReusableImageUploadProps {
   fieldName: string;
   handleChange: (name: string, value: string | null) => void;
   errorMessage?: string;
+}
+export interface LoginFormProps {
+  role: string;
+  email: string;
+  password: string;
+}
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  token: string;
+  isVerified: boolean;
+  dateOfBirth: string;
+  profilePicture: string;
+  username: string;
+}
+export interface wallet {
+  balance: number;
+  loanBalance: number;
+}
+export interface eligibility {
+  loanEligibility: number;
+  walletBalance: number;
+  userId: number;
+}
+export interface HealthIssueType {
+  _id: string;
+  name: string;
+  image: string;
+  description: string;
+  price: number;
+  __v: number;
 }

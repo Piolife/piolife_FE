@@ -9,7 +9,6 @@ import {
   Pressable,
   Image,
   ActivityIndicator,
-  ImageSourcePropType,
   FlatList,
   StyleSheet,
 } from "react-native";
@@ -28,7 +27,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { CustomDatePickerProps } from "@/services/core/types";
 import { uploadImageToCloudinary } from "./cloudinary";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import SearchableDropdown from "react-native-searchable-dropdown";
 import { router } from "expo-router";
 const wallet = require("../assets/images/Cash Wallet.png");
 const consult = require("../assets/images/image 46.png");
@@ -72,13 +70,12 @@ export const CustomTextInput: React.FC<CustomTextInputProps> = ({
           className={` px-[10px] border-[#a5a5a5] border-[1px] rounded-[8px] text-[14px] leading-[15px] h-[45px] ${className}`}
           {...props}
         />
-        {errorMessage && (
-          <Animated.View style={{ opacity: fadeAnim }}>
-            <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
-              {errorMessage}
-            </Text>
-          </Animated.View>
-        )}
+
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
+            {errorMessage}
+          </Text>
+        </Animated.View>
       </View>
     </View>
   );
@@ -115,16 +112,6 @@ export const CountryPicker: React.FC<CustomPickerProps> = ({
               ) : null
             }
             darkTheme={true}
-            style={{
-              inputIOS: {
-                color: "black", // Text color for iOS
-                fontSize: 14,
-              },
-              inputAndroid: {
-                color: "black", // Text color for Android
-                fontSize: 14,
-              },
-            }}
             value={value}
             onValueChange={onValueChange}
             items={items}
@@ -176,18 +163,7 @@ export const CustomPicker: React.FC<CustomPickerProps> = ({
                 <Entypo name="chevron-small-down" size={24} color="black" />
               ) : null
             }
-            style={{
-              inputIOS: {
-                color: "#000000", // Text color for iOS
-                fontSize: 14,
-              },
-              inputAndroid: {
-                color: "black", // Text color for Android
-                fontSize: 14,
-              },
-              placeholder: { color: "#000000" },
-              viewContainer: {},
-            }}
+            darkTheme={true}
             value={value}
             onValueChange={onValueChange}
             items={items}
@@ -197,13 +173,12 @@ export const CustomPicker: React.FC<CustomPickerProps> = ({
             }}
           />
         </View>
-        {error && (
-          <Animated.View style={{ opacity: fadeAnim }}>
-            <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
-              {error}
-            </Text>
-          </Animated.View>
-        )}
+
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
+            {error}
+          </Text>
+        </Animated.View>
       </View>
     </View>
   );
@@ -604,12 +579,9 @@ export const ClientMenu = () => {
       <View className="flex flex-col gap-[16px]">
         <Pressable
           className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-white justify-between"
-          onPress={() => {
-            router.push("/clientSignup");
-          }}
           style={[styles.shadowProp]}
         >
-          <View className="flex flex-col gap-[8px]">
+          <View className="flex flex-col gap-[8px] flex-1">
             <Text
               className="text-[#272757] text-[14px] leading-[20px]  "
               style={{ fontFamily: "Inter_600SemiBold" }}
@@ -627,12 +599,9 @@ export const ClientMenu = () => {
         </Pressable>
         <Pressable
           className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-white justify-between"
-          onPress={() => {
-            router.push("/clientSignup");
-          }}
           style={[styles.shadowProp]}
         >
-          <View className="flex flex-col gap-[8px]">
+          <View className="flex flex-col gap-[8px] flex-1">
             <Text
               className="text-[#272757] text-[14px] leading-[20px]  "
               style={{ fontFamily: "Inter_600SemiBold" }}
@@ -652,3 +621,6 @@ export const ClientMenu = () => {
     </View>
   );
 };
+export function formatNumberToThousands(number: any) {
+  return number?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}

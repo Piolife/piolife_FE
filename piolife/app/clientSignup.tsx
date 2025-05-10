@@ -8,10 +8,10 @@ import {
   ScrollView,
   UIManager,
   Pressable,
-  ImageSourcePropType,
+  Alert,
 } from "react-native";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { clientSignupFormData, FormData } from "@/services/core/types";
+import { clientSignupFormData } from "@/services/core/types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
   CountryPicker,
@@ -20,13 +20,19 @@ import {
 } from "@/components/reusables";
 import { CustomPicker } from "@/components/reusables";
 import { CustomDatePicker } from "@/components/reusables";
-import { useFetchData } from "@/services/api/request";
 import { usePostData } from "@/services/api/request";
 import { router } from "expo-router";
 import { validateClientForm } from "@/hooks/auth";
 import { uploadImageToCloudinary } from "@/components/cloudinary";
 import allcountry from "../countries.json";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+interface signupResponse {
+  otp: string;
+  token: string;
+}
 const ClientSignup = () => {
+  const scrollRef = useRef<ScrollView>(null);
   const [countries, setCountries] = useState<any>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [errors, setErrors] = useState<Partial<clientSignupFormData>>({});
@@ -36,11 +42,10 @@ const ClientSignup = () => {
 
   const [imageUri, setImageUri] = useState<string>("");
 
-  const { data } = useFetchData<any[]>("https://restcountries.com/v3.1/all");
   const {
     data: register,
     loading: isLoading,
-    error: RegisterError,
+
     postData,
   } = usePostData("https://piolife-be.onrender.com/api/v12/users/create");
 
@@ -52,10 +57,6 @@ const ClientSignup = () => {
   ) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
   }
-  const findNigeria = (countries: any) =>
-    countries.find(
-      (country: { name: string }) => country?.name?.toLowerCase() === "nigeria"
-    );
 
   const [formData, setFormData] = useState<clientSignupFormData>({
     firstName: "",
@@ -64,7 +65,7 @@ const ClientSignup = () => {
     gender: "",
     maritalStatus: "",
     dateOfBirth: "",
-    countryOrigin: "",
+    countryOfOrigin: "",
     countryOfResidence: "",
     stateOfOrigin: "",
     stateOfResidence: "",
@@ -93,24 +94,30 @@ const ClientSignup = () => {
       ...filteredData
     } = formData;
     try {
-      const response = await postData(filteredData);
+      const response = (await postData(filteredData)) as signupResponse;
 
       if (response) {
         console.log("Signup successful", response);
-        router.push("/successfulRegistration");
+        await AsyncStorage.setItem("verificationToken", response?.token);
+        router.push("/otp");
       }
     } catch (err: any) {
-      alert("Signup failed: " + RegisterError);
+      Alert.alert("Signup failed: " + err.message);
     }
   };
 
   const handleDateChange = (fieldName: string, date: string) => {
-    const validationErrors = validateClientForm(formData);
-    setErrors(validationErrors);
+    console.log("Selected date:", date);
     setFormData((prevData) => ({
       ...prevData,
       [fieldName]: date,
     }));
+
+    const validationErrors = validateClientForm({
+      ...formData,
+      [fieldName]: date,
+    });
+    setErrors(validationErrors);
   };
 
   const handleNext = async () => {
@@ -126,17 +133,19 @@ const ClientSignup = () => {
       !validationErrors.gender &&
       !validationErrors.maritalStatus
     ) {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
       setStep((prevStep) => prevStep + 1);
     }
 
     if (
       step === 2 &&
       !validationErrors.dateOfBirth &&
-      !validationErrors.countryOrigin &&
+      !validationErrors.countryOfOrigin &&
       !validationErrors.countryOfResidence &&
       !validationErrors.stateOfOrigin &&
       !validationErrors.stateOfResidence
     ) {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
       setStep((prevStep) => prevStep + 1);
     }
 
@@ -151,7 +160,6 @@ const ClientSignup = () => {
     ) {
       console.log("formData", formData);
       handleSignup();
-      // router.push("/successfulRegistration");
     }
   };
 
@@ -167,7 +175,12 @@ const ClientSignup = () => {
       onChange: () => {
         if (selectedDate) {
           const formattedDate = selectedDate.toISOString().split("T")[0];
+          setFormData((prevState) => ({
+            ...prevState,
+            dateOfBirth: formattedDate, // Update the dateOfBirth field in formData
+          }));
         }
+        console.log("dating", selectedDate);
       },
       mode: currentMode,
       is24Hour: true,
@@ -188,31 +201,26 @@ const ClientSignup = () => {
   };
 
   useEffect(() => {
-    // Map the country list to the desired format
     const countryList = allcountry.map((country: any) => ({
       label: country.name,
-      value: country.code, // country code will be the value
+      value: country.name,
       key: country.code,
     }));
 
-    // Set the country list
     setCountries(countryList);
 
-    // Find Nigeria and check if it exists in the list
     const nigeria = countryList.find(
       (country) => country.label.toLowerCase() === "nigeria"
     );
     const nigeriaExists = !!nigeria;
 
-    // Default country value (Nigeria if exists, otherwise the first country in the list)
     const defaultCountry = nigeriaExists
       ? nigeria.value
       : countryList[0]?.value || "";
 
-    // Update the form data with the default country
     setFormData((prevData) => ({
       ...prevData,
-      countryOrigin: defaultCountry,
+      countryOfOrigin: defaultCountry,
       countryOfResidence: defaultCountry,
     }));
   }, []);
@@ -231,55 +239,62 @@ const ClientSignup = () => {
   };
 
   return (
-    <SafeAreaView className="flex flex-1 bg-[#fffff0] ">
+    <SafeAreaView
+      className="flex flex-1 bg-[#fffff0] "
+      style={{ paddingTop: Platform.OS === "android" ? 20 : 0 }}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: "#fffff0" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View className="flex flex-col  px-[4%]">
-          {step > 1 && (
-            <Pressable
-              className="flex flex-row items-center gap-[16px] mt-2"
-              onPress={handlePrevious}
-            >
-              <FontAwesome name="angle-left" size={24} color="black" />
+        <ScrollView
+          className=""
+          alwaysBounceVertical={false}
+          showsVerticalScrollIndicator={false}
+          ref={scrollRef}
+        >
+          <View className="flex flex-col  px-[4%]">
+            {step > 1 && (
+              <Pressable
+                className="flex flex-row items-center gap-[16px] mt-2"
+                onPress={handlePrevious}
+              >
+                <FontAwesome name="angle-left" size={24} color="black" />
+                <Text
+                  className="text-[#272757] text-[16px] leading-[20px] text-center "
+                  style={{ fontFamily: "Inter_500Medium" }}
+                >
+                  Back
+                </Text>
+              </Pressable>
+            )}
+            {step === 1 && (
               <Text
-                className="text-[#272757] text-[16px] leading-[20px] text-center "
+                className="text-[#272757] text-[18px] leading-[24px] text-center mt-4"
                 style={{ fontFamily: "Inter_500Medium" }}
               >
-                Back
+                Create Your Account
               </Text>
-            </Pressable>
-          )}
-          {step === 1 && (
-            <Text
-              className="text-[#272757] text-[18px] leading-[24px] text-center mt-4"
-              style={{ fontFamily: "Inter_500Medium" }}
-            >
-              Create Your Account
-            </Text>
-          )}
-          <View className="flex flex-col items-center mt-6 pb-2">
-            <ProfileImagePlaceholder
-              showBorder={true}
-              upload={handleImageUpload}
-              imageUri={imageUri}
-            />
-            {errors.profilePicture && (
-              <View>
-                <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
-                  {errors.profilePicture}
-                </Text>
-              </View>
             )}
-          </View>
+            <View className="flex flex-col items-center mt-6 pb-2">
+              <ProfileImagePlaceholder
+                showBorder={true}
+                upload={handleImageUpload}
+                imageUri={imageUri}
+              />
+              <Text className="font-600 text-[10px] leading-[10px] text-[#000000] mt-1">
+                Use your real Image
+              </Text>
+              {errors.profilePicture && (
+                <View>
+                  <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
+                    {errors.profilePicture}
+                  </Text>
+                </View>
+              )}
+            </View>
 
-          <ScrollView
-            className="h-[60%]"
-            alwaysBounceVertical={false}
-            showsVerticalScrollIndicator={false}
-          >
-            <View className="   bg-[#fffff0] h-screen">
+            <View className="   bg-[#fffff0] ">
               <View className=" mt-8">
                 {step === 1 && (
                   <View className="flex flex-col gap-[16px]">
@@ -349,11 +364,7 @@ const ClientSignup = () => {
                   <View className="flex flex-col gap-[16px]">
                     <CustomDatePicker
                       label="Date of Birth"
-                      selectedDate={
-                        formData.dateOfBirth
-                          ? new Date(formData.dateOfBirth)
-                          : null
-                      }
+                      selectedDate={new Date(formData.dateOfBirth)}
                       showDatePicker={showDatePicker}
                       toggleDatePicker={toggleDatePicker}
                       errorMessage={errors.dateOfBirth}
@@ -365,13 +376,13 @@ const ClientSignup = () => {
 
                     <CountryPicker
                       label="Country of Origin"
-                      value={formData.countryOrigin || ""}
+                      value={formData.countryOfOrigin || ""}
                       onValueChange={(value) =>
-                        handleChange("countryOrigin", value)
+                        handleChange("countryOfOrigin", value)
                       }
                       items={countries}
                       placeholder="Select your Country of Origin"
-                      error={errors.countryOrigin}
+                      error={errors.countryOfOrigin}
                     />
                     <CountryPicker
                       label="Country of Residence"
@@ -477,31 +488,39 @@ const ClientSignup = () => {
                 )}
               </View>
             </View>
-          </ScrollView>
-          <View className="flex-col flex items-center justify-center mt-8  gap-[16px]">
-            <Pressable
-              disabled={isLoading}
-              onPress={handleNext}
-              className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
-            >
-              <Text
-                className="text-white text-[16px]"
-                style={{ fontFamily: "Inter_700Bold" }}
+
+            <View className="flex-col flex items-center justify-center  gap-[16px] my-2">
+              <Pressable
+                disabled={isLoading}
+                onPress={handleNext}
+                className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
               >
-                {isLoading ? "Loading..." : step < totalSteps ? "Next" : "Done"}
-              </Text>
-            </Pressable>
-            <Text
-              onPress={() => {
-                router.push("/login");
-              }}
-              className="text-[16px] leading-[22px]"
-              style={{ fontFamily: "Inter_600SemiBold" }}
-            >
-              Already have an account? Log in
-            </Text>
+                <Text
+                  className="text-white text-[16px]"
+                  style={{ fontFamily: "Inter_700Bold" }}
+                >
+                  {isLoading
+                    ? "Loading..."
+                    : step < totalSteps
+                    ? "Next"
+                    : "Done"}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  router.push("/login");
+                }}
+              >
+                <Text
+                  className="text-[16px] leading-[22px]"
+                  style={{ fontFamily: "Inter_600SemiBold" }}
+                >
+                  Already have an account? Log in
+                </Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

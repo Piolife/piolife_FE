@@ -20,7 +20,10 @@ const AvailableConsultant = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#fffff0]">
+    <SafeAreaView
+      className="flex-1 bg-[#fffff0]"
+      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
+    >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[24px]">
         <Pressable
@@ -58,7 +61,7 @@ const AvailableConsultant = () => {
             <Pressable
               className="rounded-[4px] border-[#DADADA80] border-[1px]  flex flex-row gap-[16px] items-center bg-[#fffff0]"
               onPress={() => {
-                router.push("/clientSignup");
+                router.push("/callDoctor");
               }}
               style={[styles.shadowProp]}
             >

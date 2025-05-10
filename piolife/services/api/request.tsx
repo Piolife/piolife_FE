@@ -1,19 +1,35 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 
-export const useFetchData = <T,>(url: string) => {
+interface FetchOptions {
+  token?: string;
+}
+
+export const useFetchData = <T,>(url: string, options?: FetchOptions) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [reloadFlag, setReloadFlag] = useState<number>(0); // triggers refetch
+
+  const refetch = () => setReloadFlag((prev) => prev + 1);
 
   useEffect(() => {
-    if (!url) return; // Prevent fetching if URL is empty
+    if (!url) return;
 
-    const controller = new AbortController(); // To handle component unmount
+    const controller = new AbortController();
+
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await axios.get<T>(url, { signal: controller.signal });
+        const headers = options?.token
+          ? { Authorization: `Bearer ${options.token}` }
+          : {};
+
+        const response = await axios.get<T>(url, {
+          signal: controller.signal,
+          headers,
+        });
+        console.log("res", response);
         setData(response.data);
       } catch (err: any) {
         if (axios.isCancel(err)) {
@@ -23,6 +39,7 @@ export const useFetchData = <T,>(url: string) => {
         setError(
           err.response?.data?.message || err.message || "An error occurred"
         );
+        console.log("error", err.response?.data?.message);
       } finally {
         setLoading(false);
       }
@@ -30,38 +47,82 @@ export const useFetchData = <T,>(url: string) => {
 
     fetchData();
 
-    return () => controller.abort(); // Cleanup on unmount
-  }, [url]);
+    return () => controller.abort();
+  }, [url, options?.token, reloadFlag]);
 
-  return { data, loading, error };
+  return { data, loading, error, refetch };
 };
 
 export const usePostData = <T,>(url: string) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const postData = async (payload: any) => {
+  const postData = async (payload: any): Promise<T> => {
     setLoading(true);
-    setError(null);
-    console.log("payload", payload);
     try {
       const response = await axios.post<T>(url, payload);
       setData(response.data);
-      console.log("set", response);
-      return response.data; // Return response for further use
+      return response.data;
     } catch (err: any) {
-      setError(
-        err.response?.data?.message || err.message || "An error occurred"
-      );
-      console.log("err", err.response?.data?.message);
-      console.log("url", url);
+      const errorData = err.response?.data;
 
-      throw err; // Rethrow error if needed
+      // Throw full error info including token if it exists
+      throw {
+        message: errorData?.message || "Something went wrong",
+        otpToken: errorData?.otpToken,
+        statusCode: errorData?.statusCode,
+      };
     } finally {
       setLoading(false);
     }
   };
 
-  return { data, loading, error, postData };
+  return { data, loading, postData };
+};
+
+export const useGetData = <T,>(url: string, options?: FetchOptions) => {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const controllerRef = useRef<AbortController | null>(null);
+
+  const getData = useCallback(async () => {
+    if (!url) return;
+
+    controllerRef.current = new AbortController();
+    setLoading(true);
+    setError(null); // Optional: reset error on each fetch
+
+    try {
+      const headers = options?.token
+        ? { Authorization: `Bearer ${options.token}` }
+        : {};
+
+      const response = await axios.get<T>(url, {
+        signal: controllerRef.current.signal,
+        headers,
+      });
+
+      setData(response.data);
+      console.log("response", response.data);
+    } catch (err: any) {
+      if (axios.isCancel(err)) {
+        console.log("Fetch cancelled");
+        return;
+      }
+      const msg =
+        err.response?.data?.message || err.message || "An error occurred";
+      setError(msg);
+      console.log("error", msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [url, options?.token]);
+  console.log("url", url);
+  // Cancel ongoing request on unmount
+  useEffect(() => {
+    return () => controllerRef.current?.abort();
+  }, []);
+
+  return { data, loading, error, refetch: getData };
 };

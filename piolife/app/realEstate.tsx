@@ -23,7 +23,10 @@ const RealEstate = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#fffff0]">
+    <SafeAreaView
+      className="flex-1 bg-[#fffff0]"
+      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
+    >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[24px]">
         <Pressable
@@ -72,9 +75,6 @@ const RealEstate = () => {
             <View className="flex flex-col gap-[16px]">
               <Pressable
                 className="rounded-[4px] p-[16px] border-[#DADADA80] border-[1px] gap-[8px]  flex flex-row justify-between items-center bg-[#fffff0]"
-                onPress={() => {
-                  router.push("/clientSignup");
-                }}
                 style={[styles.shadowProp]}
               >
                 <View className="flex flex-row gap-[8px] items-center flex-1">
@@ -91,7 +91,7 @@ const RealEstate = () => {
               <Pressable
                 className="rounded-[4px] p-[16px] border-[#DADADA80] border-[1px] gap-[8px]  flex flex-row justify-between items-center bg-[#fffff0]"
                 onPress={() => {
-                  router.push("/clientSignup");
+                  router.push("/states");
                 }}
                 style={[styles.shadowProp]}
               >
@@ -108,9 +108,6 @@ const RealEstate = () => {
               </Pressable>
               <Pressable
                 className="rounded-[4px] p-[16px] border-[#DADADA80] border-[1px] gap-[8px]  flex flex-row justify-between items-center bg-[#fffff0]"
-                onPress={() => {
-                  router.push("/clientSignup");
-                }}
                 style={[styles.shadowProp]}
               >
                 <View className="flex flex-row gap-[8px] items-center flex-1">

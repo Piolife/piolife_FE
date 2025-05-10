@@ -1,9 +1,35 @@
 import {
   clientSignupFormData,
   doctorSignupFormData,
+  emergencySignupFormData,
+  LoginFormProps,
 } from "@/services/core/types";
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+export const validateLoginForm = (
+  formData: LoginFormProps
+): Partial<LoginFormProps> => {
+  const newErrors: Partial<LoginFormProps> = {};
+
+  const trimmedEmail = formData.email?.trim();
+  const trimmedPassword = formData.password?.trim();
+
+  if (!formData.role) {
+    newErrors.role = "Role is required";
+  }
+
+  if (!trimmedEmail) {
+    newErrors.email = "Email is required";
+  } else if (!emailRegex.test(trimmedEmail)) {
+    newErrors.email = "Invalid email format";
+  }
+
+  if (!trimmedPassword) {
+    newErrors.password = "Password is required";
+  }
+
+  return newErrors;
+};
 export const validateClientForm = (
   formData: clientSignupFormData
 ): Partial<clientSignupFormData> => {
@@ -13,13 +39,13 @@ export const validateClientForm = (
     newErrors.profilePicture = "Profile Image is required";
   if (!formData.firstName) newErrors.firstName = "First Name is required";
   if (!formData.lastName) newErrors.lastName = "Last Name is required";
-  if (!formData.otherName) newErrors.otherName = "Other Name is required";
+  // if (!formData.otherName) newErrors.otherName = "Other Name is required";
   if (!formData.gender) newErrors.gender = "Gender is required";
   if (!formData.maritalStatus) newErrors.maritalStatus = "Status is required";
   if (!formData.dateOfBirth)
     newErrors.dateOfBirth = "Date Of Birth is required";
-  if (!formData.countryOrigin)
-    newErrors.countryOrigin = "Country Of Origin is required";
+  if (!formData.countryOfOrigin)
+    newErrors.countryOfOrigin = "Country Of Origin is required";
   if (!formData.countryOfResidence)
     newErrors.countryOfResidence = "Country Of Residence is required";
   if (!formData.stateOfOrigin)
@@ -66,17 +92,17 @@ export const validateDoctorForm = (
       bankName: "",
     };
   }
-  if (!formData.profileImage)
-    newErrors.profileImage = "Profile Image is required";
+  if (!formData.profilePicture)
+    newErrors.profilePicture = "Profile Image is required";
   if (!formData.firstName) newErrors.firstName = "First Name is required";
   if (!formData.lastName) newErrors.lastName = "Last Name is required";
-  if (!formData.otherName) newErrors.otherName = "Other Name is required";
+  // if (!formData.otherName) newErrors.otherName = "Other Name is required";
   if (!formData.gender) newErrors.gender = "Gender is required";
   if (!formData.maritalStatus) newErrors.maritalStatus = "Status is required";
   if (!formData.dateOfBirth)
     newErrors.dateOfBirth = "Date Of Birth is required";
-  if (!formData.countryOrigin)
-    newErrors.countryOrigin = "Country Of Origin is required";
+  if (!formData.countryOfOrigin)
+    newErrors.countryOfOrigin = "Country Of Origin is required";
   if (!formData.countryOfResidence)
     newErrors.countryOfResidence = "Country Of Residence is required";
   if (!formData.stateOfOrigin)
@@ -129,5 +155,55 @@ export const validateDoctorForm = (
     newErrors.bankDetails.accountName = "Account name is required";
   if (!formData?.bankDetails?.bankName)
     newErrors.bankDetails.bankName = "Bank name is required";
+  return newErrors;
+};
+export const validateFormEmergencyForm = (
+  formData: emergencySignupFormData
+): Partial<emergencySignupFormData> => {
+  const newErrors: Partial<emergencySignupFormData> = {};
+  if (!newErrors.bankDetails) {
+    newErrors.bankDetails = {
+      accountNumber: "",
+      confirmAccountNumber: "",
+      accountName: "",
+      bankName: "",
+    };
+  }
+  if (!formData?.bankDetails?.accountName)
+    newErrors.bankDetails.accountName = "Account Name is required";
+  if (!formData.bankDetails.accountNumber)
+    newErrors.bankDetails.accountNumber = "Account Number is required";
+  if (!formData.alternatePhoneNumber)
+    newErrors.alternatePhoneNumber = "Alternative Phone is required";
+  if (!formData.bankDetails.bankName)
+    newErrors.bankDetails.bankName = "Bank Name is required";
+  if (!formData.bankDetails.confirmAccountNumber)
+    newErrors.bankDetails.confirmAccountNumber =
+      "confirm Account Number is required";
+  if (
+    formData.bankDetails.confirmAccountNumber !==
+    formData.bankDetails.accountNumber
+  )
+    newErrors.bankDetails.confirmAccountNumber =
+      "confirm Account Number must be same as account number";
+  if (!formData.confirmPassword)
+    newErrors.confirmPassword = "confirm Password is required";
+  if (formData.confirmPassword !== formData.password)
+    newErrors.confirmPassword = "confirm Password must be same as password";
+  if (!formData.email) newErrors.email = "Email is required";
+  if (!formData.hospitalName)
+    newErrors.hospitalName = "Facility name is required";
+  if (!formData.localGovernmentArea)
+    newErrors.localGovernmentArea = "LGA is required";
+  if (!formData.officerInCharge)
+    newErrors.officerInCharge = "Full Name is required";
+  if (!formData.password) {
+    newErrors.password = "Password is required";
+  }
+  if (!formData.phoneNumber) newErrors.phoneNumber = "Phone Number is required";
+  if (!formData.stateOfResidence)
+    newErrors.stateOfResidence = "Business Reg. Number is required";
+  if (!formData.ward) newErrors.ward = "Ward is required";
+
   return newErrors;
 };

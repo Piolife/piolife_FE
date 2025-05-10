@@ -1,11 +1,14 @@
 import { FontAwesome } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
-import { Pressable, SafeAreaView, View, Text } from "react-native";
+import { Pressable, SafeAreaView, View, Text, Platform } from "react-native";
 
 const CreditMe = () => {
   return (
-    <SafeAreaView className="flex-1 bg-[#fffff0]">
+    <SafeAreaView
+      className="flex-1 bg-[#fffff0]"
+      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
+    >
       <StatusBar style="dark" backgroundColor="#ffffff" />
 
       <View className="px-[4%]">

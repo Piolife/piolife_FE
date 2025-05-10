@@ -184,12 +184,40 @@ export default function RootLayout() {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="realEstate" options={{ headerShown: false }} />
+          <Stack.Screen name="states" options={{ headerShown: false }} />
+          <Stack.Screen name="selectPlot" options={{ headerShown: false }} />
+          <Stack.Screen name="selectEstate" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="estateFeatures"
+            options={{ headerShown: false }}
+          />
           <Stack.Screen name="healthIssue" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="pay4Consultation"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="emergencyDetails"
+            options={{ headerShown: false }}
+          />
           <Stack.Screen name="emergencyMenu" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="resetPassword" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="forgotPassword"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="otp" options={{ headerShown: false }} />
+
           <Stack.Screen name="clientSignup" options={{ headerShown: false }} />
           <Stack.Screen
             name="clientWallet"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="collectLoan"
             options={{
               headerShown: false,
             }}

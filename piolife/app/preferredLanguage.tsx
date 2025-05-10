@@ -36,7 +36,10 @@ const PrefferedLanguage = () => {
     []
   );
   return (
-    <SafeAreaView className="flex-1 bg-[#fffff0]">
+    <SafeAreaView
+      className="flex-1 bg-[#fffff0]"
+      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
+    >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="flex flex-col gap-[32px]">
         <View className="py-[16px] px-[4%] gap-[24px]">

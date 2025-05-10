@@ -10,14 +10,17 @@ import {
   Platform,
   ImageBackground,
 } from "react-native";
-const logo = require("../assets/images/splash-icon.png");
+const logo = require("../assets/images/conz.png");
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 const backgroundImage = require("../assets/images/Ellipse 1xxxx.png");
 
 const Welcome = () => {
   return (
-    <SafeAreaView className="flex-1  ">
+    <SafeAreaView
+      className="flex-1  "
+      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
+    >
       <View className="flex items-center justify-center my-32">
         <Image source={logo} className="w-[104px] h-[78px]" />
       </View>
@@ -80,7 +83,9 @@ const Welcome = () => {
 
           <View className=" h-full ">
             <Text
-              className="text-[#ffffff] text-[16px] leading-[24px] text-center mt-32"
+              className={`text-[#ffffff] text-[16px] leading-[24px] text-center ${
+                Platform.OS === "android" ? "mt-16 " : "mt-24 "
+              }`}
               style={{ fontFamily: "Inter_500Medium" }}
             >
               Powered By Piolife

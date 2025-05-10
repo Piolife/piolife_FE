@@ -2,20 +2,17 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   UIManager,
-  Animated,
-  Button,
   Image,
   Alert,
   Pressable,
 } from "react-native";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { doctorSignupFormData, FormData } from "@/services/core/types";
+import { doctorSignupFormData } from "@/services/core/types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
   CountryPicker,
@@ -25,41 +22,36 @@ import {
 import { CustomPicker } from "@/components/reusables";
 import { CustomDatePicker } from "@/components/reusables";
 import { ReusableImageUpload } from "@/components/reusables";
-import { getUserToken } from "@/components/reusables";
 import Checkbox from "expo-checkbox";
 import { router } from "expo-router";
-import { useFetchData, usePostData } from "@/services/api/request";
+import { usePostData } from "@/services/api/request";
 import RadioGroup, { RadioButtonProps } from "react-native-radio-buttons-group";
 import { validateDoctorForm } from "@/hooks/auth";
 import { uploadImageToCloudinary } from "@/components/cloudinary";
+import allcountry from "../countries.json";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const errorImage = require("../assets/images/error.png");
+interface signupResponse {
+  otp: string;
+  token: string;
+}
 const DoctorSignup = () => {
-  const [isChecked, setChecked] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isLoad, setLoading] = useState<boolean>(false);
-
+  const scrollRef = useRef<ScrollView>(null);
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [countries, setCountries] = useState<any>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [errors, setErrors] = useState<Partial<doctorSignupFormData>>({});
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [step, setStep] = useState(1);
-  const { data, loading, error } = useFetchData<any[]>(
-    "https://restcountries.com/v3.1/all"
-  );
+
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([
     "English",
   ]);
 
   const languages = ["English", "Igbo", "Yoruba", "Hausa", "Others"];
 
-  // const toggleCheckbox = (language: string) => {
-  //   setSelectedLanguages((prev) =>
-  //     prev.includes(language)
-  //       ? prev.filter((lang) => lang !== language)
-  //       : [...prev, language]
-  //   );
-  // };
   const toggleCheckbox = (language: string) => {
     setSelectedLanguages((prev) =>
       prev.includes(language)
@@ -69,7 +61,7 @@ const DoctorSignup = () => {
 
     setFormData((prevData) => ({
       ...prevData,
-      language: selectedLanguages.includes(language)
+      languageProficiency: selectedLanguages.includes(language)
         ? selectedLanguages.filter((lang) => lang !== language) // Remove from list
         : [...selectedLanguages, language], // Add to list
     }));
@@ -98,7 +90,6 @@ const DoctorSignup = () => {
   ) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
   }
-  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const [formData, setFormData] = useState<doctorSignupFormData>({
     firstName: "",
@@ -107,10 +98,10 @@ const DoctorSignup = () => {
     gender: "",
     maritalStatus: "",
     dateOfBirth: "",
-    countryOrigin: "",
+    countryOfOrigin: "",
     countryOfResidence: "",
     stateOfOrigin: "",
-    stateofResidence: "",
+    stateOfResidence: "",
     email: "",
     confirmEmail: "",
     phoneNumber: "",
@@ -120,7 +111,7 @@ const DoctorSignup = () => {
     degreeCertificate: "",
     currentPracticeLicense: "",
     specialty: "",
-    language: [],
+    languageProficiency: [],
     role: "medical_practitioner",
     otherLanguage: "",
     bankDetails: {
@@ -140,6 +131,26 @@ const DoctorSignup = () => {
     }));
   };
 
+  const handleNestedChange = (path: string, value: any) => {
+    setFormData((prevData) => {
+      const keys = path.split(".");
+      const updatedData: any = { ...prevData };
+      let current = updatedData;
+
+      for (let i = 0; i < keys.length - 1; i++) {
+        current[keys[i]] = { ...current[keys[i]] };
+        current = current[keys[i]];
+      }
+
+      current[keys[keys.length - 1]] = value;
+
+      return updatedData;
+    });
+
+    const validationErrors = validateDoctorForm(formData);
+    setErrors(validationErrors);
+  };
+
   const handleDateChange = (fieldName: string, date: string) => {
     setFormData((prevData) => ({
       ...prevData,
@@ -148,24 +159,51 @@ const DoctorSignup = () => {
   };
 
   const handleSignup = async () => {
+    const {
+      confirmEmail,
+      confirmPassword,
+      confirmPhoneNumber,
+      bankDetails,
+      otherLanguage,
+      ...filteredData
+    } = formData;
+    // Safely clone and remove confirmAccountNumber from bankDetails
+    const filteredBankDetails = { ...bankDetails };
+    delete filteredBankDetails.confirmAccountNumber;
+    let updatedLanguageProficiency = [...formData.languageProficiency];
+    if (otherLanguage.trim() !== "") {
+      updatedLanguageProficiency.push(otherLanguage.trim());
+    }
+    const payload = {
+      ...filteredData,
+      languageProficiency: updatedLanguageProficiency,
+      bankDetails: filteredBankDetails,
+    };
     try {
-      const response = await postData(formData);
+      const response = (await postData(payload)) as signupResponse;
 
       if (response) {
         console.log("Signup successful", response);
-        router.push("/successfulRegistration");
+        await AsyncStorage.setItem("verificationToken", response?.token);
+        router.push("/otp");
       }
     } catch (err: any) {
-      alert("Signup failed: " + RegisterError);
+      alert("Signup failed: " + err.message);
     }
   };
-
+  const validateSelection = () => {
+    if (selectedId !== "yes") {
+      Alert.alert("You must agree to our policy"); // Show alert if no radio button is selected
+      return false;
+    }
+    return true;
+  };
   const handleNext = async () => {
     const validationErrors = validateDoctorForm(formData);
     setErrors(validationErrors);
     if (
       step === 1 &&
-      !validationErrors.profileImage &&
+      !validationErrors.profilePicture &&
       !validationErrors.firstName &&
       !validationErrors.lastName &&
       !validationErrors.otherName &&
@@ -173,16 +211,18 @@ const DoctorSignup = () => {
       !validationErrors.maritalStatus
     ) {
       setStep((prevStep) => prevStep + 1);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
     }
     if (
       step === 2 &&
       !validationErrors.dateOfBirth &&
-      !validationErrors.countryOrigin &&
+      !validationErrors.countryOfOrigin &&
       !validationErrors.countryOfResidence &&
       !validationErrors.stateOfOrigin &&
-      !validationErrors.stateofResidence
+      !validationErrors.stateOfResidence
     ) {
       setStep((prevStep) => prevStep + 1);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
     }
     if (
       step === 3 &&
@@ -194,6 +234,7 @@ const DoctorSignup = () => {
       !validationErrors.confirmPassword
     ) {
       setStep((prevStep) => prevStep + 1);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
     }
     if (
       step === 4 &&
@@ -202,21 +243,24 @@ const DoctorSignup = () => {
       !validationErrors.specialty
     ) {
       setStep((prevStep) => prevStep + 1);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
     }
     if (
       step === 5 &&
       !validationErrors.bankDetails?.accountNumber &&
       !validationErrors.bankDetails?.confirmAccountNumber &&
       !validationErrors.bankDetails?.accountName &&
-      !validationErrors.bankDetails?.bankName
+      !validationErrors.bankDetails?.bankName &&
+      validateSelection()
     ) {
       handleSignup();
+      console.log("formdata", formData);
     }
   };
   const {
     data: register,
     loading: isLoading,
-    error: RegisterError,
+
     postData,
   } = usePostData("https://piolife-be.onrender.com/api/v12/users/create");
 
@@ -260,73 +304,92 @@ const DoctorSignup = () => {
 
       setFormData((prevData) => ({
         ...prevData,
-        profileImage: imageUrl,
+        profilePicture: imageUrl,
       }));
     } catch (error) {
       console.error("Error uploading image:", error);
     }
   };
-
   useEffect(() => {
-    if (data) {
-      const countryList = data.map((country: any) => ({
-        label: country.name.common,
-        value: country.cca2, // Using country code as value
-      }));
-      setCountries(countryList);
-    }
-  }, [data]);
+    const countryList = allcountry.map((country: any) => ({
+      label: country.name,
+      value: country.name,
+      key: country.code,
+    }));
+
+    setCountries(countryList);
+
+    const nigeria = countryList.find(
+      (country) => country.label.toLowerCase() === "nigeria"
+    );
+    const nigeriaExists = !!nigeria;
+
+    const defaultCountry = nigeriaExists
+      ? nigeria.value
+      : countryList[0]?.value || "";
+
+    setFormData((prevData) => ({
+      ...prevData,
+      countryOfOrigin: defaultCountry,
+      countryOfResidence: defaultCountry,
+    }));
+  }, []);
   return (
-    <SafeAreaView className="flex flex-1 bg-[#fffff0] ">
+    <SafeAreaView
+      className="flex flex-1 bg-[#fffff0] "
+      style={{ paddingTop: Platform.OS === "android" ? 20 : 0 }}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: "#fffff0" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View className="flex flex-col  px-[4%]">
-          {step > 1 && (
-            <Pressable
-              className="flex flex-row items-center gap-[16px] mt-2"
-              onPress={handlePrevious}
-            >
-              <FontAwesome name="angle-left" size={24} color="black" />
+        <ScrollView
+          ref={scrollRef}
+          className={``}
+          alwaysBounceVertical={false}
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="flex flex-col  px-[4%]">
+            {step > 1 && (
+              <Pressable
+                className="flex flex-row items-center gap-[16px] mt-2"
+                onPress={handlePrevious}
+              >
+                <FontAwesome name="angle-left" size={24} color="black" />
+                <Text
+                  className="text-[#272757] text-[16px] leading-[20px] text-center "
+                  style={{ fontFamily: "Inter_500Medium" }}
+                >
+                  Back
+                </Text>
+              </Pressable>
+            )}
+            {step === 1 && (
               <Text
-                className="text-[#272757] text-[16px] leading-[20px] text-center "
+                className="text-[#272757] text-[18px] leading-[24px] text-center mt-4"
                 style={{ fontFamily: "Inter_500Medium" }}
               >
-                Back
+                Create Your Account
               </Text>
-            </Pressable>
-          )}
-          {step === 1 && (
-            <Text
-              className="text-[#272757] text-[18px] leading-[24px] text-center mt-4"
-              style={{ fontFamily: "Inter_500Medium" }}
-            >
-              Create Your Account
-            </Text>
-          )}
-          {step <= 3 && (
-            <View className="flex flex-col items-center mt-6 pb-2">
-              <ProfileImagePlaceholder
-                showBorder={true}
-                upload={handleImageUpload}
-                imageUri={imageUri}
-              />
-              {errors.profileImage && (
-                <View>
-                  <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
-                    {errors.profileImage}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-          <ScrollView
-            className={` ${step <= 3 ? "h-[60%]" : "h-[80%]"}`}
-            alwaysBounceVertical={false}
-            showsVerticalScrollIndicator={false}
-          >
-            <View className="   bg-[#fffff0] h-screen">
+            )}
+            {step <= 3 && (
+              <View className="flex flex-col items-center mt-6 pb-2">
+                <ProfileImagePlaceholder
+                  showBorder={true}
+                  upload={handleImageUpload}
+                  imageUri={formData.profilePicture}
+                />
+                {errors.profilePicture && (
+                  <View>
+                    <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
+                      {errors.profilePicture}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            <View className="   bg-[#fffff0]">
               <View className=" mt-8">
                 {step === 1 && (
                   <View className="flex flex-col gap-[16px]">
@@ -396,11 +459,7 @@ const DoctorSignup = () => {
                   <View className="flex flex-col gap-[16px]">
                     <CustomDatePicker
                       label="Date of Birth"
-                      selectedDate={
-                        formData.dateOfBirth
-                          ? new Date(formData.dateOfBirth)
-                          : null
-                      }
+                      selectedDate={new Date(formData.dateOfBirth)}
                       showDatePicker={showDatePicker}
                       toggleDatePicker={toggleDatePicker}
                       errorMessage={errors.dateOfBirth}
@@ -411,13 +470,13 @@ const DoctorSignup = () => {
                     />
                     <CountryPicker
                       label="Country of Origin"
-                      value={formData.countryOrigin || ""}
+                      value={formData.countryOfOrigin || ""}
                       onValueChange={(value) =>
                         handleChange("countryOrigin", value)
                       }
                       items={countries}
                       placeholder="Select your Country of Origin"
-                      error={errors.countryOrigin}
+                      error={errors.countryOfOrigin}
                     />
                     <CountryPicker
                       label="Country of Residence"
@@ -443,14 +502,14 @@ const DoctorSignup = () => {
 
                     <CustomTextInput
                       label="State/Province/County of Residence"
-                      value={formData.stateofResidence}
+                      value={formData.stateOfResidence}
                       onChangeText={(value) =>
-                        handleChange("stateofResidence", value)
+                        handleChange("stateOfResidence", value)
                       }
                       placeholder="Enter Your state of Residence"
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
-                      errorMessage={errors.stateofResidence}
+                      errorMessage={errors.stateOfResidence}
                     />
                   </View>
                 )}
@@ -530,7 +589,7 @@ const DoctorSignup = () => {
                         Degree certificate
                       </Text>
                       <ReusableImageUpload
-                        fieldName="userHoldingIdCardPhoto"
+                        fieldName="degreeCertificate"
                         handleChange={handleChange}
                         errorMessage={errors.degreeCertificate}
                       />
@@ -543,7 +602,7 @@ const DoctorSignup = () => {
                         Current Praticing license
                       </Text>
                       <ReusableImageUpload
-                        fieldName="userHoldingIdCardPhoto"
+                        fieldName="currentPracticeLicense"
                         handleChange={handleChange}
                         errorMessage={errors.currentPracticeLicense}
                       />
@@ -560,7 +619,7 @@ const DoctorSignup = () => {
                           label=""
                           value={formData.specialty || ""}
                           onValueChange={(value) =>
-                            handleChange("gender", value)
+                            handleChange("specialty", value)
                           }
                           items={[
                             { label: "surgeon", value: "surgeon" },
@@ -631,22 +690,28 @@ const DoctorSignup = () => {
                           label="Account Number"
                           value={formData.bankDetails?.accountNumber}
                           onChangeText={(value) =>
-                            handleChange("accountNumber", value)
+                            handleNestedChange(
+                              "bankDetails.accountNumber",
+                              value
+                            )
                           }
                           placeholder="Enter Your Account Number"
                           placeholderTextColor={"#BABABA"}
-                          keyboardType="default"
+                          keyboardType="number-pad"
                           errorMessage={errors.bankDetails?.accountNumber}
                         />
                         <CustomTextInput
                           label="Confirm Account Number"
                           value={formData.bankDetails?.confirmAccountNumber}
                           onChangeText={(value) =>
-                            handleChange("confirmAccountNumber", value)
+                            handleNestedChange(
+                              "bankDetails.confirmAccountNumber",
+                              value
+                            )
                           }
                           placeholder="Enter Your confirm Account Number"
                           placeholderTextColor={"#BABABA"}
-                          keyboardType="default"
+                          keyboardType="number-pad"
                           errorMessage={
                             errors.bankDetails?.confirmAccountNumber
                           }
@@ -655,7 +720,7 @@ const DoctorSignup = () => {
                           label="Account Name"
                           value={formData.bankDetails?.accountName}
                           onChangeText={(value) =>
-                            handleChange("accountName", value)
+                            handleNestedChange("bankDetails.accountName", value)
                           }
                           placeholder="Enter Your account Name"
                           placeholderTextColor={"#BABABA"}
@@ -666,7 +731,7 @@ const DoctorSignup = () => {
                           label="Bank Name"
                           value={formData.bankDetails?.bankName}
                           onChangeText={(value) =>
-                            handleChange("bankName", value)
+                            handleNestedChange("bankDetails.bankName", value)
                           }
                           placeholder="Enter Your bank Name"
                           placeholderTextColor={"#BABABA"}
@@ -720,30 +785,36 @@ const DoctorSignup = () => {
                 )}
               </View>
             </View>
-          </ScrollView>
-          <View className="flex-col flex items-center justify-center mt-8  gap-[16px]">
-            <Pressable
-              onPress={handleNext}
-              className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
-            >
-              <Text
-                className="text-white text-[16px]"
-                style={{ fontFamily: "Inter_700Bold" }}
+
+            <View className="flex-col flex items-center justify-center my-4  gap-[16px]">
+              <Pressable
+                onPress={handleNext}
+                disabled={isLoading}
+                className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
               >
-                {step < totalSteps ? "Next" : "Done"}
+                <Text
+                  className="text-white text-[16px]"
+                  style={{ fontFamily: "Inter_700Bold" }}
+                >
+                  {isLoading
+                    ? "Loading..."
+                    : step < totalSteps
+                    ? "Next"
+                    : "Done"}
+                </Text>
+              </Pressable>
+              <Text
+                onPress={() => {
+                  router.push("/login");
+                }}
+                className="text-[16px] leading-[22px]"
+                style={{ fontFamily: "Inter_600SemiBold" }}
+              >
+                Already have an account? Log in
               </Text>
-            </Pressable>
-            <Text
-              onPress={() => {
-                router.push("/login");
-              }}
-              className="text-[16px] leading-[22px]"
-              style={{ fontFamily: "Inter_600SemiBold" }}
-            >
-              Already have an account? Log in
-            </Text>
+            </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

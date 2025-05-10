@@ -1,11 +1,14 @@
 import React from "react";
-import { Pressable, SafeAreaView, View, Text } from "react-native";
+import { Pressable, SafeAreaView, View, Text, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { FontAwesome } from "@expo/vector-icons";
 
 const Notification = () => {
   return (
-    <SafeAreaView className="bg-[#0E16FF] ">
+    <SafeAreaView
+      className="bg-[#0E16FF] "
+      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
+    >
       <StatusBar style="light" backgroundColor="#ffffff" />
 
       <View className="">

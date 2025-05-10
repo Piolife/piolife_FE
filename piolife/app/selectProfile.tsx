@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Image,
   Pressable,
+  Platform,
 } from "react-native";
 import { router } from "expo-router";
 const user = require("../assets/images/image 42-2.png");
@@ -14,7 +15,10 @@ const provider = require("../assets/images/User Account.png");
 
 const SelectProfile = () => {
   return (
-    <SafeAreaView className="flex-1 bg-[#fffff0]">
+    <SafeAreaView
+      className="flex-1 bg-[#fffff0]"
+      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
+    >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[32px]">
         <Text
@@ -38,7 +42,7 @@ const SelectProfile = () => {
             style={[styles.shadowProp]}
           >
             <Image source={user} className="h-[40px] w-[40px]" />
-            <View className="flex flex-col gap-[8px]">
+            <View className="flex flex-col gap-[8px] flex-1">
               <Text
                 className="text-[#272757] text-[14px] leading-[20px]  "
                 style={{ fontFamily: "Inter_600SemiBold" }}
@@ -46,8 +50,11 @@ const SelectProfile = () => {
                 Service User (Client)
               </Text>
               <Text
-                className="text-[#272757] text-[12px] leading-[20px]  "
-                style={{ fontFamily: "Inter_400Regular" }}
+                className="text-[#272757] text-[12px] leading-[20px]"
+                style={{
+                  fontFamily: "Inter_400Regular",
+                }}
+                numberOfLines={0}
               >
                 Register to consult with our professionals.
               </Text>
@@ -57,7 +64,7 @@ const SelectProfile = () => {
             className="rounded-[4px] border-[#DADADA80]  border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-[#fffff0]"
             style={[styles.shadowProp]}
             onPress={() => {
-              router.push("/(tabs)");
+              router.push("/selectConsultant");
             }}
           >
             <Image source={provider} className="h-[40px] w-[40px]" />
