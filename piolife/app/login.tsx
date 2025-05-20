@@ -69,6 +69,7 @@ const Login = () => {
 
       if (response?.user) {
         await AsyncStorage.setItem("user", JSON.stringify(response.user));
+        console.log();
         router.push({
           pathname: "/(tabs)",
           params: {

@@ -9,14 +9,20 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kaodinna.piolife"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/splash-icon.png",
         "backgroundColor": "#0E16FF"
       },
-      "permissions": ["android.permission.RECORD_AUDIO"],
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_ADMIN"
+      ],
       "package": "com.kaodinna.piolife"
     },
     "web": {
@@ -41,6 +47,24 @@
           "photosPermission": "Allow CONZOT+ to access your photos",
           "cameraPermission": "Allow CONZOT+ to access your camera"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24
+          }
+        }
+      ],
+      [
+        "@stream-io/video-react-native-sdk",
+        [
+          "@config-plugins/react-native-webrtc",
+          {
+            "cameraPermission": "$(PRODUCT_NAME) requires camera access in order to capture and transmit video",
+            "microphonePermission": "$(PRODUCT_NAME) requires microphone access in order to capture and transmit audio"
+          }
+        ]
       ]
     ],
     "experiments": {

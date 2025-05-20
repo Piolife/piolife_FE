@@ -71,7 +71,7 @@ const CallDoctor = () => {
               </View>
               <View className="flex items-end">
                 <View className="py-[10px] border-[#dadada] border-[1px] rounded-[8px] px-[16px] gap-[16px] flex flex-row">
-                  <Pressable className="p-[8px] rounded-full bg-[##0E16FF] ">
+                  <Pressable className="p-[8px] rounded-full bg-[##0E16FF]" onPress={() => router.push("/call")}>
                     <Feather name="phone" size={16} color="white" />
                   </Pressable>
                   <View className="w-[1px] bg-[#DADADA80]"></View>
