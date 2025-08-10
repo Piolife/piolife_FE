@@ -1,9 +1,9 @@
 package com.kaodinna.piolife
-import expo.modules.splashscreen.SplashScreenManager
 import com.oney.WebRTCModule.WebRTCModuleOptions
 import androidx.lifecycle.Lifecycle
 import android.content.res.Configuration
 import com.streamvideo.reactnative.StreamVideoReactNative
+import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
 import android.os.Bundle

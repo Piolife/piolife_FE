@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { Text, View, SafeAreaView, Pressable } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
@@ -6,24 +6,108 @@ import { router } from "expo-router";
 import { CustomPicker, CustomTextInput } from "@/components/reusables";
 import { ScrollView } from "react-native-gesture-handler";
 import { KeyboardAvoidingView, Platform } from "react-native";
+import RadioGroup, { RadioButtonProps } from "react-native-radio-buttons-group";
+import { callEmergencyFormData } from "@/services/core/types";
+import { validateCallEmergency } from "@/hooks/auth";
 const EmergencyDetails = () => {
   const handlePrevious = () => {
     router.back();
   };
-  const [formData, setFormData] = useState<any>({
-    email: "",
-    password: "",
-    role: "",
+  useEffect(() => {
+    fetch("https://temikeezy.github.io/nigeria-geojson-data/data/full.json")
+      .then((res) => res.json())
+      .then(setNigeriaData)
+      .catch(console.error);
+  }, []);
+  const [errors, setErrors] = useState<Partial<callEmergencyFormData>>({});
+  const [nigeriaData, setNigeriaData] = useState<any>(null);
+  const [selectedId, setSelectedId] = useState<string>("Yes");
+  const [selected, setSelected] = useState<string>("Yes");
+  const radioButtons: RadioButtonProps[] = useMemo(
+    () => [
+      {
+        id: "Yes",
+        label: "Yes",
+        value: "Yes",
+      },
+      {
+        id: "No",
+        label: "No",
+        value: "No",
+      },
+    ],
+    []
+  );
+  const radioOptions: RadioButtonProps[] = useMemo(
+    () => [
+      {
+        id: "Fire",
+        label: "Fire",
+        value: "Fire",
+      },
+      {
+        id: "Acid",
+        label: "Acid",
+        value: "Acid",
+      },
+      {
+        id: "Drawn",
+        label: "Drawn",
+        value: "Drawn",
+      },
+      {
+        id: "Auto Crash",
+        label: "Auto Crash",
+        value: "Auto Crash",
+      },
+      {
+        id: "Others",
+        label: "Others",
+        value: "Others",
+      },
+    ],
+    []
+  );
+  const [formData, setFormData] = useState<callEmergencyFormData>({
+    // name: "",
+    state: "",
+    lga: "",
+    ward: "",
+    address: "",
+    natureOfIncident: "",
+    others: "",
   });
   const handleChange = (name: any, value: any) => {
-    //   const validationErrors = validateLoginForm(formData);
-    //   setErrors(validationErrors);
+    const validationErrors = validateCallEmergency(formData);
+    setErrors(validationErrors);
     setFormData((prevData: any) => ({
       ...prevData,
       [name]: value,
     }));
   };
+  const stateOptions = nigeriaData?.map((item: any) => ({
+    label: item.state,
+    value: item.state,
+  }));
 
+  const selectedState = nigeriaData?.find(
+    (s: any) => s.state === formData.state
+  );
+
+  const lgaOptions = selectedState?.lgas.map((lga: any) => ({
+    label: lga.name,
+    value: lga.name,
+  }));
+
+  // For Ward options
+  const selectedLga = selectedState?.lgas.find(
+    (lga: any) => lga.name === formData.lga
+  );
+
+  const wardOptions = selectedLga?.wards.map((ward: any) => ({
+    label: ward.name,
+    value: ward.name,
+  }));
   const piocoin = require("../assets/images/piocoin_symbol-removebg-preview 1.png");
   return (
     <SafeAreaView
@@ -34,10 +118,11 @@ const EmergencyDetails = () => {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0} // adjust if header exists
+        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
       >
-        <View className=" flex flex-col justify-between px-[4%]">
-          <View className="py-[16px]  gap-[24px]">
+        <View className="flex-1 flex-col justify-between px-[4%]">
+          {/* Top Section */}
+          <View className="py-[16px] gap-[24px]">
             <Pressable
               className="flex flex-row items-center gap-[16px] mt-2"
               onPress={handlePrevious}
@@ -51,72 +136,163 @@ const EmergencyDetails = () => {
               </Text>
             </Pressable>
           </View>
-          <ScrollView className="">
-            <View className="flex flex-col gap-[16px]">
-              <View className="flex flex-col gap-[8px]">
-                <Text
-                  className="text-[#030319] text-[16px] leading-[17px]"
-                  style={{ fontFamily: "Inter_500Medium" }}
-                >
-                  We Are Here To Assist You
-                </Text>
-                <Text
-                  className="text-[#424242] text-[14px] leading-[17px]"
-                  style={{ fontFamily: "Inter_400Regular" }}
-                >
-                  Kindly fill out this form with the appropriate information
-                </Text>
-              </View>
-              <CustomTextInput
-                label="Name of caller"
-                value={""}
-                onChangeText={(value) => handleChange("email", value)}
-                placeholder="Child’s Name"
-                placeholderTextColor={"#BABABA"}
-                keyboardType="default"
-                errorMessage={""}
-              />
-              <CustomPicker
-                label="State of Incident"
-                value={formData.gender || ""}
-                onValueChange={(value) => handleChange("gender", value)}
-                items={[
-                  { label: "Male", value: "male" },
-                  { label: "Female", value: "female" },
-                  { label: "Other", value: "other" },
-                ]}
-                placeholder="Select your gender"
-                // error={errors.gender}
-              />
-              <CustomTextInput
-                label="LGA"
-                value={""}
-                onChangeText={(value) => handleChange("email", value)}
-                placeholder="Enter Age"
-                placeholderTextColor={"#BABABA"}
-                keyboardType="default"
-                errorMessage={""}
-              />
-              <CustomTextInput
-                label="Ward"
-                value={""}
-                onChangeText={(value) => handleChange("email", value)}
-                placeholder="Enter Age"
-                placeholderTextColor={"#BABABA"}
-                keyboardType="default"
-                errorMessage={""}
-              />
-            </View>
 
-            <Pressable className="px-[32px] h-[56px] bg-[#0e16ff] rounded-[8px] flex items-center justify-center mb-[12px] mt-8">
+          {/* Scrollable Form Section */}
+          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+            <View className="flex flex-col gap-[16px] pb-4">
+              <Text
+                className="text-[#030319] text-[16px] leading-[17px]"
+                style={{ fontFamily: "Inter_500Medium" }}
+              >
+                Are you at the scene of the emergency?
+              </Text>
+              <RadioGroup
+                layout="column"
+                containerStyle={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  flexDirection: "row",
+                  rowGap: 16,
+                }}
+                radioButtons={radioButtons}
+                onPress={setSelectedId}
+                selectedId={selectedId}
+              />
+              {selectedId === "No" && (
+                <View className="flex flex-col gap-[8px]">
+                  <Text
+                    className="text-[#424242] text-[14px] leading-[17px]"
+                    style={{ fontFamily: "Inter_400Regular" }}
+                  >
+                    Kindly fill out this form with the appropriate information
+                  </Text>
+
+                  {/* <CustomTextInput
+                    label="Name of caller"
+                    value={formData.name}
+                    onChangeText={(value) => handleChange("name", value)}
+                    placeholder="Enter callers Name"
+                    placeholderTextColor={"#BABABA"}
+                    keyboardType="default"
+                    errorMessage={""}
+                  /> */}
+                  {stateOptions?.length > 0 && (
+                    <CustomPicker
+                      label="State"
+                      value={formData.state}
+                      onValueChange={(value) => {
+                        if (typeof value === "string") {
+                          setFormData((prev: any) => ({
+                            ...prev,
+                            state: value,
+                            lga: "",
+                            ward: "",
+                          }));
+                        }
+                      }}
+                      items={stateOptions}
+                      error={""}
+                      placeholder="Select  State"
+                    />
+                  )}
+
+                  <CustomPicker
+                    label="Local Government Area"
+                    value={formData.lga}
+                    onValueChange={(value) => {
+                      setFormData((prev: any) => ({
+                        ...prev,
+                        lga: value ?? "",
+                        ward: "",
+                      }));
+                    }}
+                    items={lgaOptions}
+                    error={""}
+                    placeholder="Select a LGA"
+                  />
+
+                  <CustomPicker
+                    label="Ward"
+                    value={formData.ward}
+                    onValueChange={(value) => {
+                      setFormData((prev: any) => ({
+                        ...prev,
+                        ward: value ?? "",
+                      }));
+                    }}
+                    items={wardOptions}
+                    error={""}
+                    placeholder="Select a Ward"
+                  />
+                  <CustomTextInput
+                    label="Address of incident"
+                    value={formData.address}
+                    onChangeText={(value) => handleChange("address", value)}
+                    placeholder="Enter callers Name"
+                    placeholderTextColor={"#BABABA"}
+                    keyboardType="default"
+                    errorMessage={""}
+                  />
+                  <View>
+                    <Text
+                      className="text-[#030319] text-[14px] leading-[17px] mb-2"
+                      style={{ fontFamily: "Inter_400Regular" }}
+                    >
+                      Nature of incident
+                    </Text>
+                    <RadioGroup
+                      layout="column"
+                      containerStyle={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        flexDirection: "row",
+                        rowGap: 16,
+                      }}
+                      radioButtons={radioOptions}
+                      onPress={setSelected}
+                      selectedId={selected}
+                    />
+                  </View>
+                  {selected === "Others" && (
+                    <CustomTextInput
+                      label="Name of caller"
+                      value={formData.others}
+                      onChangeText={(value) => handleChange("others", value)}
+                      placeholder="Enter callers Name"
+                      placeholderTextColor={"#BABABA"}
+                      keyboardType="default"
+                      errorMessage={""}
+                    />
+                  )}
+                </View>
+              )}
+            </View>
+          </ScrollView>
+          {selectedId === "Yes" && (
+            <Pressable
+              className="px-[32px] h-[56px] bg-[#0e16ff] rounded-[8px] flex items-center justify-center mb-[12px] mt-4"
+              onPress={() => {
+                router.push("/call");
+              }}
+            >
               <Text
                 className="text-white text-[16px]"
                 style={{ fontFamily: "Inter_700Bold" }}
               >
-                Next
+                Proceed
               </Text>
             </Pressable>
-          </ScrollView>
+          )}
+          {selectedId === "No" && (
+            <Pressable className="px-[32px] h-[56px] bg-[#0e16ff] rounded-[8px] flex items-center justify-center mb-[12px] mt-4">
+              <Text
+                className="text-white text-[16px]"
+                style={{ fontFamily: "Inter_700Bold" }}
+              >
+                Proceed
+              </Text>
+            </Pressable>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

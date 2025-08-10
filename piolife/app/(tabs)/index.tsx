@@ -25,7 +25,9 @@ import {
 import { useFetchData } from "@/services/api/request";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User } from "@/services/core/types";
+import { API_URL } from "@/constants/api";
 const Index = () => {
+  const [user, SetUser] = useState<User>();
   useEffect(() => {
     const loadUser = async () => {
       const userData = await AsyncStorage.getItem("user");
@@ -38,13 +40,14 @@ const Index = () => {
     AsyncStorage.setItem("hasLaunched", "launched");
   }, []);
 
-  const [user, SetUser] = useState<User>();
   const token = user?.token;
   const { data, loading, error } = useFetchData<User>(
-    user ? `https://piolife-be.onrender.com/api/v12/users/${user.id}` : "",
+    user ? `${API_URL}/api/v12/users/${user.id}` : "",
     { token }
   );
-
+  if (data) {
+    console.log("data", data);
+  }
   if (error) {
     Alert.alert(error);
   }
@@ -77,9 +80,6 @@ const Index = () => {
     return (
       <Pressable
         className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-white justify-between"
-        onPress={() => {
-          router.push("/clientSignup");
-        }}
         style={[styles.shadowProp]}
       >
         <View className="flex flex-col gap-[8px]">
@@ -107,12 +107,17 @@ const Index = () => {
     >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[32px]">
-        <View className="flex flex-row items-center justify-between mt-4">
+        <View className="flex flex-row items-center justify-between mt-8">
           <View className="flex w-[80%]">
             <View className="flex flex-row gap-[16px]">
               {data ? (
                 <Image
-                  source={{ uri: data?.profilePicture }}
+                  source={{
+                    uri:
+                      data?.role === "emergency_services"
+                        ? data?.logo
+                        : data?.profilePicture,
+                  }}
                   className="w-[56px] h-[56px] rounded-full"
                 />
               ) : (
@@ -137,9 +142,9 @@ const Index = () => {
           </View>
           <View className="flex w-[20%] flex-row justify-end">
             <Pressable
-              onPress={() => {
-                router.push("/notification");
-              }}
+              // onPress={() => {
+              //   router.push("/notification");
+              // }}
               className="flex flex-col justify-center items-center rounded-[8px] border-[#2727571A] border-[1px] w-[32] h-[32px]"
             >
               <Octicons name="bell" size={24} color="#272757" />
@@ -156,12 +161,133 @@ const Index = () => {
             </Text>
           )}
           {user?.role === "client" && <ClientScreen />}
-          {user?.role === "doctor" && <DoctorScreen balance={3000} />}
-          {user?.role === "doctor" && <Stat />}
+          {user?.role &&
+            [
+              "medical_practitioner",
+              "emergency_services",
+              "pharmacy_services",
+              "medical_lab_services",
+            ].includes(user.role) && <DoctorScreen balance={3000} />}
+
+          {user?.role === "medical_practitioner" && (
+            <Stat text="Consultations" />
+          )}
+          {user?.role === "pharmacy_services" && (
+            <View>
+              <View className="flex flex-row justify-between my-4">
+                <Pressable
+                  onPress={() => {
+                    router.push("/pharmServices");
+                  }}
+                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
+                >
+                  <Text
+                    className="text-[#ffffff] text-[12px] leading-[17px] "
+                    style={{ fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Services
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    router.push("/drugs");
+                  }}
+                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
+                >
+                  <Text
+                    className="text-[#ffffff] text-[12px] leading-[17px] "
+                    style={{ fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Drugs
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    router.push("/addDrug");
+                  }}
+                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
+                >
+                  <Text
+                    className="text-[#ffffff] text-[12px] leading-[17px] "
+                    style={{ fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Add Drug
+                  </Text>
+                </Pressable>
+              </View>
+              <Stat text="Served" />
+            </View>
+          )}
+          {user?.role === "medical_lab_services" && (
+            <View>
+              <View className="flex flex-row justify-between my-4">
+                <Pressable
+                  onPress={() => {
+                    router.push("/medlabServices");
+                  }}
+                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
+                >
+                  <Text
+                    className="text-[#ffffff] text-[12px] leading-[17px] "
+                    style={{ fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Services
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    router.push("/tests");
+                  }}
+                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
+                >
+                  <Text
+                    className="text-[#ffffff] text-[12px] leading-[17px] "
+                    style={{ fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Tests
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    router.push("/addTest");
+                  }}
+                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
+                >
+                  <Text
+                    className="text-[#ffffff] text-[12px] leading-[17px] "
+                    style={{ fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Add Test
+                  </Text>
+                </Pressable>
+              </View>
+              <Stat text="Served" />
+            </View>
+          )}
+          {user?.role === "emergency_services" && (
+            <View>
+              <View className="flex flex-row justify-between my-4">
+                <Pressable
+                  onPress={() => {
+                    router.push("/emergencyServices");
+                  }}
+                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
+                >
+                  <Text
+                    className="text-[#ffffff] text-[12px] leading-[17px] "
+                    style={{ fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Services
+                  </Text>
+                </Pressable>
+              </View>
+              <Stat text="Served" />
+            </View>
+          )}
         </View>
 
         {user?.role === "client" && <ClientMenu />}
-        {user?.role === "doctor" && (
+        {user?.role === "medical_practitioner" && (
           <View className="flex flex-col gap-[20px]">
             <Text
               className="text-[#272757] text-[18px] leading-[17px] "

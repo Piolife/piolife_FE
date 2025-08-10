@@ -11,9 +11,9 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 const doctor = require("../assets/images/First Aid-2.png");
-const insurance = require("../assets/images/Medical Icons.png");
+const lab = require("../assets/images/blood-test.png");
 const ambulance = require("../assets/images/15.png");
-const realtor = require("../assets/images/User-2.png");
+const pharmacy = require("../assets/images/drugs.png");
 
 const SelectConsultant = () => {
   return (
@@ -61,6 +61,52 @@ const SelectConsultant = () => {
           </Pressable>
           <Pressable
             className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-[#fffff0]"
+            onPress={() => {
+              router.push("/pharmacySignup");
+            }}
+            style={[styles.shadowProp]}
+          >
+            <Image source={pharmacy} className="h-[40px] w-[40px]" />
+            <View className="flex flex-col gap-[8px]">
+              <Text
+                className="text-[#272757] text-[14px] leading-[20px]  "
+                style={{ fontFamily: "Inter_600SemiBold" }}
+              >
+                Pharmacy
+              </Text>
+              <Text
+                className="text-[#272757] text-[12px] leading-[20px]  "
+                style={{ fontFamily: "Inter_400Regular" }}
+              >
+                For pharmacists
+              </Text>
+            </View>
+          </Pressable>
+          <Pressable
+            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-[#fffff0]"
+            onPress={() => {
+              router.push("/medLabSignup");
+            }}
+            style={[styles.shadowProp]}
+          >
+            <Image source={lab} className="h-[40px] w-[40px]" />
+            <View className="flex flex-col gap-[8px]">
+              <Text
+                className="text-[#272757] text-[14px] leading-[20px]  "
+                style={{ fontFamily: "Inter_600SemiBold" }}
+              >
+                Medical Laboratory
+              </Text>
+              <Text
+                className="text-[#272757] text-[12px] leading-[20px]  "
+                style={{ fontFamily: "Inter_400Regular" }}
+              >
+                For medical laboratory scientists
+              </Text>
+            </View>
+          </Pressable>
+          <Pressable
+            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-[#fffff0]"
             style={[styles.shadowProp]}
             onPress={() => {
               router.push("/emergencySignup");
@@ -79,49 +125,6 @@ const SelectConsultant = () => {
                 style={{ fontFamily: "Inter_400Regular" }}
               >
                 First response providers
-              </Text>
-            </View>
-          </Pressable>
-          <Pressable
-            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-[#fffff0]"
-            style={[styles.shadowProp]}
-          >
-            <Image source={realtor} className="h-[40px] w-[40px]" />
-            <View className="flex flex-col gap-[8px]">
-              <Text
-                className="text-[#272757] text-[14px] leading-[20px]  "
-                style={{ fontFamily: "Inter_600SemiBold" }}
-              >
-                Real Estate Services
-              </Text>
-              <Text
-                className="text-[#272757] text-[12px] leading-[20px]  "
-                style={{ fontFamily: "Inter_400Regular" }}
-              >
-                Professional Realtors
-              </Text>
-            </View>
-          </Pressable>
-          <Pressable
-            className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-[#fffff0]"
-            style={[styles.shadowProp]}
-            onPress={() => {
-              router.push("/selectConsultant");
-            }}
-          >
-            <Image source={insurance} className="h-[40.36px] w-[32px]" />
-            <View className="flex flex-col gap-[8px]">
-              <Text
-                className="text-[#272757] text-[14px] leading-[20px]  "
-                style={{ fontFamily: "Inter_600SemiBold" }}
-              >
-                Insurance Services
-              </Text>
-              <Text
-                className="text-[#272757] text-[12px] leading-[20px]  "
-                style={{ fontFamily: "Inter_400Regular" }}
-              >
-                Health and life insurance
               </Text>
             </View>
           </Pressable>

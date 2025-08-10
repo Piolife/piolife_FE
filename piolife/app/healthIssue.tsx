@@ -15,10 +15,38 @@ import { FontAwesome } from "@expo/vector-icons";
 import RadioGroup, { RadioButtonProps } from "react-native-radio-buttons-group";
 import { router } from "expo-router";
 import { SelectSickness } from "@/components/flatListItems/items";
-import { useFetchData, useGetData } from "@/services/api/request";
+import { useFetchData } from "@/services/api/request";
 import { HealthIssueType } from "@/services/core/types";
+import { API_URL } from "@/constants/api";
+import { formatNumberToThousands } from "@/components/reusables";
 
 const HealthIssue = () => {
+  const [selectedId, setSelectedId] = useState<string>("English");
+  const radioButtons: RadioButtonProps[] = useMemo(
+    () => [
+      {
+        id: "English",
+        label: "English",
+        value: "English",
+      },
+      {
+        id: "Yoruba",
+        label: "Yoruba",
+        value: "Yoruba",
+      },
+      {
+        id: "Igbo",
+        label: "Igbo",
+        value: "igbo",
+      },
+      {
+        id: "Hausa",
+        label: "Hausa",
+        value: "Hausa",
+      },
+    ],
+    []
+  );
   const handlePrevious = () => {
     router.back();
   };
@@ -27,22 +55,31 @@ const HealthIssue = () => {
     data: newdata,
     loading: isloading,
     error: iserror,
-  } = useFetchData<any>(
-    `https://piolife-be.onrender.com/api/v12/medical-issues`
-  );
+  } = useFetchData<any>(`${API_URL}/api/v12/medical-issues`);
 
   const [selectedItems, setSelectedItems] = useState<{
     [key: string]: boolean;
   }>({});
   const piocoin = require("../assets/images/piocoin_symbol-removebg-preview 1.png");
   const isDisabled = !Object.values(selectedItems).some((value) => value);
+  const selectedIds = Object.keys(selectedItems).filter(
+    (id) => selectedItems[id]
+  );
+  const selectedCount = selectedIds.length;
+
+  const totalCost = selectedIds.reduce((sum, id) => {
+    const item = newdata.find((item: any) => item._id === id);
+    return item ? sum + item.price : sum;
+  }, 0);
 
   const handleNext = () => {
     const selectedArray = newdata?.filter(
       (item: HealthIssueType) => selectedItems[item._id]
     );
     const encoded = encodeURIComponent(JSON.stringify(selectedArray));
-    router.push(`/pay4Consultation?selected=${encoded}`);
+    router.push(
+      `/pay4Consultation?selected=${encoded}&selectedId=${selectedId}&cost=${totalCost}`
+    );
   };
   const toggleSelect = (itemId: string) => {
     setSelectedItems((prev) => ({
@@ -50,7 +87,7 @@ const HealthIssue = () => {
       [itemId]: !prev[itemId],
     }));
   };
-  const selectedCount = Object.values(selectedItems).filter(Boolean).length;
+
   if (isloading) {
     return (
       <View style={styles.loaderContainer}>
@@ -58,22 +95,17 @@ const HealthIssue = () => {
       </View>
     );
   }
-  if (newdata) {
-    console.log("data", newdata);
-  }
-  if (iserror) {
-    console.log("error", iserror);
-  }
+
   return (
     <SafeAreaView
       className="flex-1 bg-[#fffff0]"
       style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
     >
       <StatusBar style="dark" backgroundColor="#ffffff" />
-      <View className="flex-1 flex flex-col justify-between px-[4%]">
+      <View className="flex-1 flex flex-col justify-between px-[4%] pt-12">
         <View className="py-[16px]  gap-[24px]">
           <Pressable
-            className="flex flex-row items-center gap-[16px] mt-2"
+            className="flex flex-row items-center gap-[16px] "
             onPress={handlePrevious}
           >
             <FontAwesome name="angle-left" size={24} color="black" />
@@ -84,7 +116,7 @@ const HealthIssue = () => {
               Back
             </Text>
           </Pressable>
-          <View className="flex flex-col gap-[24px]">
+          <View className="flex flex-col gap-[16px]">
             <View className="py-[4px] flex flex-col gap-[16px]">
               <Text
                 className="text-[#030319] text-[16px] leading-[24px]"
@@ -95,23 +127,27 @@ const HealthIssue = () => {
                 </Text>
                 (select multiple)
               </Text>
-              <View>
-                <Text
-                  className="text-[#424242] text-[14px] leading-[17px]"
-                  style={{ fontFamily: "Inter_400Regular" }}
-                >
-                  NB: A single health issue selected is equivalent to
-                </Text>
-                <View className="flex flex-row items-center gap-[4px]">
-                  <Image source={piocoin} className="h-[33px] w-[16px]" />
-                  <Text
-                    className="text-[#424242] text-[14px] leading-[17px]"
-                    style={{ fontFamily: "Inter_600SemiBold" }}
-                  >
-                    1500
-                  </Text>
-                </View>
-              </View>
+            </View>
+            <View className="flex flex-col gap-[16px]">
+              <Text
+                className="text-[#030319] text-[16px] leading-[24px]"
+                style={{ fontFamily: "Inter_500Medium" }}
+              >
+                Preferred Language (select just one)
+              </Text>
+              <RadioGroup
+                layout="column"
+                containerStyle={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  flexDirection: "row",
+                  gridRowGap: "16px",
+                  rowGap: "16px",
+                }}
+                radioButtons={radioButtons}
+                onPress={setSelectedId}
+                selectedId={selectedId}
+              />
             </View>
             <View className="py-[4px] flex flex-row justify-between">
               <Text
@@ -120,12 +156,15 @@ const HealthIssue = () => {
               >
                 ({selectedCount} Selected)
               </Text>
-              <Text
-                className="text-[#424242] text-[14px] leading-[150%]"
-                style={{ fontFamily: "Inter_400Regular" }}
-              >
-                Total: {selectedCount * 1500}
-              </Text>
+              <View className="flex flex-row items-center gap-2 ">
+                <Image source={piocoin} style={{ width: 10, height: 20 }} />
+                <Text
+                  className="text-[#424242] text-[14px] leading-[150%]"
+                  style={{ fontFamily: "Inter_400Regular" }}
+                >
+                  {formatNumberToThousands(totalCost)}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -142,27 +181,28 @@ const HealthIssue = () => {
             keyExtractor={(item) => item.state}
             numColumns={2}
             columnWrapperStyle={{
-              justifyContent: "space-between", // Push columns to both ends
-              marginHorizontal: 10, // Space between columns
+              justifyContent: "space-between",
+              marginHorizontal: 10,
               columnGap: 12,
             }}
-            // ListFooterComponent={<View style={{ height: 200 }} />}
+            ListFooterComponent={
+              <Pressable
+                disabled={isDisabled}
+                className={`px-[32px] h-[56px] ${
+                  isDisabled ? "bg-[#aaaaaa]" : "bg-[#0e16ff]"
+                } rounded-[8px] flex items-center justify-center mt-[12px]`}
+                onPress={handleNext}
+              >
+                <Text
+                  className="text-white text-[16px]"
+                  style={{ fontFamily: "Inter_700Bold" }}
+                >
+                  Next
+                </Text>
+              </Pressable>
+            }
           />
         </View>
-        <Pressable
-          disabled={isDisabled}
-          className={`px-[32px] h-[56px] ${
-            isDisabled ? "bg-[#aaaaaa]" : "bg-[#0e16ff]"
-          } rounded-[8px] flex items-center justify-center mb-[12px]`}
-          onPress={handleNext}
-        >
-          <Text
-            className="text-white text-[16px]"
-            style={{ fontFamily: "Inter_700Bold" }}
-          >
-            Next
-          </Text>
-        </Pressable>
       </View>
     </SafeAreaView>
   );

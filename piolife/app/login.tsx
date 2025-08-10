@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
   Text,
@@ -11,13 +11,21 @@ import {
   Alert,
 } from "react-native";
 import { router } from "expo-router";
-import { CustomPicker, CustomTextInput } from "@/components/reusables";
+import {
+  CustomPicker,
+  CustomPickerTwo,
+  CustomTextInput,
+} from "@/components/reusables";
 import { LoginFormProps } from "@/services/core/types";
 import { validateLoginForm } from "@/hooks/auth";
 import { usePostData } from "@/services/api/request";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Toast, { BaseToastProps } from "react-native-toast-message";
+import { BaseToast, ErrorToast } from "react-native-toast-message";
+import { getCurrentLocation } from "@/components/reusables";
+import { API_URL } from "@/constants/api";
 
-type LoginResponse = {
+export type LoginResponse = {
   message: string;
   user: {
     id: string;
@@ -30,13 +38,30 @@ type LoginResponse = {
     dateOfBirth: string;
   };
 };
-
+export const toastConfig = {
+  error: (props: React.JSX.IntrinsicAttributes & BaseToastProps) => (
+    <ErrorToast
+      {...props}
+      style={{
+        backgroundColor: "#fff",
+        borderLeftColor: "red",
+        zIndex: 9999,
+        elevation: 9999,
+        position: "absolute", // helps with layering
+        top: 120,
+      }}
+      text1Style={{ color: "black", fontWeight: "bold" }}
+      text2Style={{ color: "black" }}
+    />
+  ),
+  // Add more types (info, success) if needed
+};
 const Login = () => {
   const {
     data: register,
     loading: isLoading,
     postData,
-  } = usePostData("https://piolife-be.onrender.com/api/v12/users/login");
+  } = usePostData(`${API_URL}/api/v12/users/login`);
   const [errors, setErrors] = useState<Partial<LoginFormProps>>({});
   const [formData, setFormData] = useState<LoginFormProps>({
     email: "",
@@ -65,11 +90,11 @@ const Login = () => {
     }
     try {
       const response = (await postData(trimmedData)) as LoginResponse;
-      console.log("SignIn successful", response);
 
       if (response?.user) {
         await AsyncStorage.setItem("user", JSON.stringify(response.user));
-        console.log();
+        AsyncStorage.setItem("hasLaunched", "launched");
+        await AsyncStorage.setItem("userEmail", formData.email);
         router.push({
           pathname: "/(tabs)",
           params: {
@@ -79,19 +104,37 @@ const Login = () => {
         });
       }
     } catch (err: any) {
-      Alert.alert("SignIn failed: " + err.message);
-      console.log("err", err);
+      console.log("error", err);
+      Toast.show({
+        type: "error",
+        text2: err.message,
+        position: "top",
+        topOffset: 80,
+      });
       if (err.otpToken) {
-        // Maybe redirect to a verification screen with the token
         await AsyncStorage.setItem("verificationToken", err.otpToken);
 
         router.push({
           pathname: "/otp",
-          params: { otpToken: err.otpToken },
+          params: { otpToken: err.otpToken, email: formData.email },
         });
       }
     }
   };
+  useEffect(() => {
+    const loadEmail = async () => {
+      const savedEmail = await AsyncStorage.getItem("userEmail");
+      if (savedEmail) {
+        setFormData((prev) => ({
+          ...prev,
+          email: savedEmail,
+        }));
+      }
+    };
+
+    loadEmail();
+  }, []);
+
   return (
     <SafeAreaView
       className="flex-1 bg-white"
@@ -100,7 +143,7 @@ const Login = () => {
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[32px]">
         <Text
-          className="text-[#272757] text-[24px] leading-[24px] text-center mt-4"
+          className="text-[#272757] text-[24px] leading-[24px] text-center mt-10"
           style={{ fontFamily: "Inter_500Medium" }}
         >
           Welcome back!
@@ -112,18 +155,14 @@ const Login = () => {
           Kindly log in to continue
         </Text>
         <View className="flex flex-col ">
-          <CustomPicker
-            label="Role"
+          <CustomPickerTwo
             value={formData.role}
-            onValueChange={(value) => handleChange("role", value)}
-            items={[
-              { label: "Client", value: "client" },
-              { label: "Medical Practitioner", value: "medical_practitioner" },
-              { label: "Emergency Services", value: "emergency_services" },
-            ]}
-            placeholder="Sign-in as"
+            onChange={(value) => handleChange("role", value)}
+            label="Role"
             error={errors.role}
+            placeholder="Sign-in as"
           />
+
           <CustomTextInput
             label="Email"
             value={formData.email}
@@ -142,10 +181,11 @@ const Login = () => {
               placeholderTextColor={"#BABABA"}
               keyboardType="default"
               errorMessage={errors.password}
+              secureTextEntry={true}
             />
             <Pressable
               onPress={() => {
-                router.push("/resetPassword");
+                router.push("/forgotPassword");
               }}
             >
               <Text
@@ -161,7 +201,7 @@ const Login = () => {
           <Pressable
             disabled={isLoading}
             onPress={handleLogin}
-            className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
+            className={`px-[32px] h-[56px] bg-[#0e16ff] w-full rounded-[8px] flex items-center justify-center`}
           >
             <Text
               className="text-white text-[16px]"

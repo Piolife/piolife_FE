@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import axios from "axios";
-
+import axios, { AxiosRequestHeaders } from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 interface FetchOptions {
   token?: string;
 }
@@ -29,17 +29,15 @@ export const useFetchData = <T,>(url: string, options?: FetchOptions) => {
           signal: controller.signal,
           headers,
         });
-        console.log("res", response);
+
         setData(response.data);
       } catch (err: any) {
         if (axios.isCancel(err)) {
-          console.log("Fetch cancelled");
           return;
         }
         setError(
           err.response?.data?.message || err.message || "An error occurred"
         );
-        console.log("error", err.response?.data?.message);
       } finally {
         setLoading(false);
       }
@@ -53,20 +51,32 @@ export const useFetchData = <T,>(url: string, options?: FetchOptions) => {
   return { data, loading, error, refetch };
 };
 
-export const usePostData = <T,>(url: string) => {
+export const usePostData = <T,>(url: string, withAuth: boolean = false) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
   const postData = async (payload: any): Promise<T> => {
     setLoading(true);
+
     try {
-      const response = await axios.post<T>(url, payload);
+      let headers: any = {};
+
+      if (withAuth) {
+        const userString = await AsyncStorage.getItem("user");
+        const user = userString ? JSON.parse(userString) : null;
+        const token = user?.token;
+
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+      }
+
+      const response = await axios.post<T>(url, payload, { headers });
       setData(response.data);
       return response.data;
     } catch (err: any) {
       const errorData = err.response?.data;
 
-      // Throw full error info including token if it exists
       throw {
         message: errorData?.message || "Something went wrong",
         otpToken: errorData?.otpToken,
@@ -79,15 +89,14 @@ export const usePostData = <T,>(url: string) => {
 
   return { data, loading, postData };
 };
-
 export const useGetData = <T,>(url: string, options?: FetchOptions) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
 
-  const getData = useCallback(async () => {
-    if (!url) return;
+  const getData = useCallback(async (): Promise<T | null> => {
+    if (!url) return null;
 
     controllerRef.current = new AbortController();
     setLoading(true);
@@ -104,25 +113,56 @@ export const useGetData = <T,>(url: string, options?: FetchOptions) => {
       });
 
       setData(response.data);
-      console.log("response", response.data);
+
+      return response.data;
     } catch (err: any) {
       if (axios.isCancel(err)) {
-        console.log("Fetch cancelled");
-        return;
+        return null;
       }
       const msg =
         err.response?.data?.message || err.message || "An error occurred";
       setError(msg);
-      console.log("error", msg);
+
+      return null;
     } finally {
       setLoading(false);
     }
   }, [url, options?.token]);
-  console.log("url", url);
-  // Cancel ongoing request on unmount
+
   useEffect(() => {
     return () => controllerRef.current?.abort();
   }, []);
 
   return { data, loading, error, refetch: getData };
+};
+export const usePatchData = <T,>(url: string) => {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const patchData = async (payload: any): Promise<T> => {
+    setLoading(true);
+    try {
+      // Retrieve token from AsyncStorage
+      const user = await AsyncStorage.getItem("user");
+      const token = user ? JSON.parse(user).token : null;
+
+      const response = await axios.patch<T>(url, payload, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+
+      setData(response.data);
+      return response.data;
+    } catch (err: any) {
+      console.log("err", err);
+      const errorData = err.response?.data;
+      throw {
+        message: errorData?.message || "Something went wrong",
+        statusCode: errorData?.statusCode,
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { data, loading, patchData };
 };

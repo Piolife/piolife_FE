@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "piolife",
+    "name": "CONZOT+",
     "slug": "piolife",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/iOSAppIcons.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -12,10 +12,14 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kaodinna.piolife"
     },
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#ffffff"
+    },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/splash-icon.png",
-        "backgroundColor": "#0E16FF"
+        "backgroundColor": "#ffffff"
       },
       "permissions": [
         "android.permission.RECORD_AUDIO",
@@ -33,12 +37,9 @@
     "plugins": [
       "expo-router",
       [
-        "expo-splash-screen",
+        "expo-location",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#0E16FF"
+          "locationAlwaysAndWhenInUsePermission": "Allow CONZOT+ to use your location."
         }
       ],
       [
@@ -71,6 +72,7 @@
       "typedRoutes": true
     },
     "extra": {
+      "API_URL": "http://localhost:8000",
       "router": {
         "origin": false
       },

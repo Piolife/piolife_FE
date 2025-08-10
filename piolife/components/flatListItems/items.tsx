@@ -1,8 +1,22 @@
 import { router } from "expo-router";
-import { View, Text, Pressable, Image } from "react-native";
+import { View, Text, Pressable, Image, StyleSheet } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { HealthIssueType } from "@/services/core/types";
+import {
+  DrugItemType,
+  DrugSoldType,
+  HealthIssueType,
+  HistoryWalletType,
+  TestItemType,
+} from "@/services/core/types";
+import {
+  formatDateTime,
+  formatNumberToThousands,
+  replaceUnderscoresWithSpaces,
+} from "../reusables";
+import React from "react";
+
 const estateView = require("../../assets/images/Rectangle 12-2.png");
+const piocoin = require("../../assets/images/piocoin_symbol-removebg-preview 1.png");
 export const StateSelect = ({
   item,
   onPress,
@@ -37,7 +51,6 @@ export const StateSelect = ({
     </Pressable>
   );
 };
-
 export const SelectSickness = ({
   item,
   onPress,
@@ -56,26 +69,28 @@ export const SelectSickness = ({
             : "bg-[#FFFFFF] shadow-md border border-gray-200 "
         }`}
       >
-        {item.name === "General Practice" ? (
+        <Image
+          source={{
+            uri: item.image,
+          }}
+          style={{ width: 32, height: 32 }}
+          resizeMode="contain"
+        />
+        <View className="flex flex-row items-center gap-2 mt-1">
+          <Image source={piocoin} style={{ width: 10, height: 20 }} />
           <Text
-            className={`text-[14px] leading-[150%] text-[#272757] `}
+            className={`text-[10px] font-[700] ${
+              selected ? "text-[#ffffff]" : "text-[#272757] "
+            }`}
             style={{ fontFamily: "Inter_500Medium" }}
           >
-            {item.name}
+            {formatNumberToThousands(item.price)}
           </Text>
-        ) : (
-          <Image
-            className="h-[32px] w-[32px]"
-            source={
-              typeof item.image === "string" ? { uri: item.image } : item.image
-            }
-          />
-        )}
+        </View>
       </View>
     </Pressable>
   );
 };
-
 export const EstateSelect = ({
   item,
   onPress,
@@ -148,3 +163,150 @@ export const SelectedAilment = ({
     </View>
   );
 };
+export const DrugList = ({ _id, name, description, price }: DrugItemType) => {
+  return (
+    <Pressable
+      className=" border-[#DADADA80] border-b-[1px] p-[16px] flex flex-row gap-[16px] items-center mb-2"
+      onPress={() => {
+        router.push({
+          pathname: "/addDrug",
+          params: { _id }, // 👈 pass id here
+        });
+        console.log("id", _id);
+      }}
+    >
+      <View className="flex flex-row gap-[8px] items-center justify-between w-full">
+        <View className="flex flex-col gap-[8px]">
+          <Text
+            className="text-[#272757] text-[16px] leading-[20px]  uppercase"
+            style={{ fontFamily: "Inter_600SemiBold" }}
+          >
+            {name}
+          </Text>
+          <Text
+            className="text-[#272757] text-[14px] leading-[20px]  "
+            style={{ fontFamily: "Inter_600SemiBold" }}
+          >
+            {description}
+          </Text>
+        </View>
+        <View className="flex flex-row items-center gap-2">
+          <Image source={piocoin} style={{ width: 10, height: 20 }} />
+
+          <Text
+            className="text-[#272757] text-[12px] leading-[20px]  "
+            style={{ fontFamily: "Inter_400Regular" }}
+          >
+            {formatNumberToThousands(price)}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+};
+export const TestList = ({ _id, name, price }: TestItemType) => {
+  return (
+    <Pressable
+      className=" border-[#DADADA80] border-b-[1px] p-[16px] flex flex-row gap-[16px] items-center mb-2"
+      onPress={() => {
+        router.push({
+          pathname: "/addTest",
+          params: { _id }, // 👈 pass id here
+        });
+        console.log("id", _id);
+      }}
+    >
+      <View className="flex flex-row gap-[8px] items-center justify-between w-full">
+        <View className="flex flex-col gap-[8px]">
+          <Text
+            className="text-[#272757] text-[16px] leading-[20px]  uppercase"
+            style={{ fontFamily: "Inter_600SemiBold" }}
+          >
+            {name}
+          </Text>
+        </View>
+        <View className="flex flex-row items-center gap-2">
+          <Image source={piocoin} style={{ width: 10, height: 20 }} />
+
+          <Text
+            className="text-[#272757] text-[12px] leading-[20px]  "
+            style={{ fontFamily: "Inter_400Regular" }}
+          >
+            {formatNumberToThousands(price)}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+};
+export const DrugSold = ({ amount, percentage }: DrugSoldType) => {
+  return (
+    <View className=" border-[#DADADA80] border-b-[1px] p-[16px] flex flex-row gap-[16px] items-center mb-2">
+      <View className="flex flex-row gap-[8px] items-center justify-between w-full">
+        <View className="flex flex-row items-center gap-2">
+          <Image source={piocoin} style={{ width: 10, height: 20 }} />
+          <Text
+            className="text-[#272757] text-[16px] leading-[20px]  uppercase"
+            style={{ fontFamily: "Inter_600SemiBold" }}
+          >
+            {formatNumberToThousands(amount)}
+          </Text>
+        </View>
+
+        <View className="flex flex-row items-center gap-2">
+          <Text
+            className="text-[#272757] text-[12px] leading-[20px]  "
+            style={{ fontFamily: "Inter_400Regular" }}
+          >
+            {percentage}%
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+export const HistoryWallet = ({
+  timestamp,
+  amount,
+  type,
+}: HistoryWalletType) => {
+  return (
+    <View className=" border-[#DADADA80] border-b-[1px] p-[16px] flex flex-row gap-[16px] items-center mb-2">
+      <View className="flex flex-row gap-[8px] items-center justify-between w-full">
+        <View className="flex flex-col gap-[8px]">
+          <Text
+            className="text-[#272757] text-[16px] leading-[20px]  uppercase"
+            style={{ fontFamily: "Inter_600SemiBold" }}
+          >
+            {replaceUnderscoresWithSpaces(type)}
+          </Text>
+          <Text
+            className="text-[#272757] text-[14px] leading-[20px]  "
+            style={{ fontFamily: "Inter_600SemiBold" }}
+          >
+            {formatDateTime(timestamp)}
+          </Text>
+        </View>
+        <View className="flex flex-row items-center gap-2">
+          <Image source={piocoin} style={{ width: 10, height: 20 }} />
+
+          <Text
+            className="text-[#272757] text-[12px] leading-[20px]  "
+            style={{ fontFamily: "Inter_400Regular" }}
+          >
+            {formatNumberToThousands(amount)}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+const styles = StyleSheet.create({
+  shadowProp: {
+    shadowColor: "#171717",
+    shadowOffset: { width: -2, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+});

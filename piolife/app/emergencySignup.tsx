@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,10 +8,6 @@ import {
   Platform,
   ScrollView,
   UIManager,
-  Animated,
-  Button,
-  Image,
-  Alert,
   Pressable,
 } from "react-native";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
@@ -23,17 +19,45 @@ import {
 } from "@/components/reusables";
 import { CustomPicker } from "@/components/reusables";
 import { validateFormEmergencyForm } from "@/hooks/auth";
-
+import { usePostData } from "@/services/api/request";
+import { API_URL } from "@/constants/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getCurrentLocation } from "@/components/reusables";
 import { router } from "expo-router";
+import { uploadImageToCloudinary } from "@/components/cloudinary";
+import Toast from "react-native-toast-message";
+import PhoneInputWithCountryPicker from "@/components/countryPick";
 
+interface signupResponse {
+  otp: string;
+  token: string;
+}
 const EmergencySignup = () => {
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [errors, setErrors] = useState<Partial<emergencySignupFormData>>({});
+  const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [step, setStep] = useState(1);
-
+  const [nigeriaData, setNigeriaData] = useState<any>(null);
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  useEffect(() => {
+    fetch("https://temikeezy.github.io/nigeria-geojson-data/data/full.json")
+      .then((res) => res.json())
+      .then(setNigeriaData)
+      .catch(console.error);
+  }, []);
   const totalSteps = 3;
+  const {
+    data: register,
+    loading: isLoading,
+
+    postData,
+  } = usePostData(`${API_URL}/api/v12/users/create`);
 
   if (
     Platform.OS === "android" &&
@@ -43,12 +67,17 @@ const EmergencySignup = () => {
   }
 
   const [formData, setFormData] = useState<emergencySignupFormData>({
+    longitude: location?.longitude ?? 0,
+    latitude: location?.latitude ?? 0,
     hospitalName: "",
     officerInCharge: "",
+    logo: "",
+    profilePicture: "string",
     phoneNumber: "",
-    alternatePhoneNumber: "",
+    alternativePhoneNumber: "",
     stateOfResidence: "",
     localGovernmentArea: "",
+    role: "emergency_services",
     ward: "",
     email: "",
     password: "",
@@ -61,6 +90,29 @@ const EmergencySignup = () => {
     },
   });
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const coords = await getCurrentLocation();
+        setLocation(coords);
+      } catch (err: any) {
+        setError(err.message || "Location error");
+        Toast.show({
+          type: "error",
+          text2: err.message || "Location error",
+        });
+      }
+    })();
+  }, []);
+  useEffect(() => {
+    if (location) {
+      setFormData((prev) => ({
+        ...prev,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      }));
+    }
+  }, [location]);
   const handleChange = (name: any, value: any) => {
     const validationErrors = validateFormEmergencyForm(formData);
     setErrors(validationErrors);
@@ -70,30 +122,58 @@ const EmergencySignup = () => {
     }));
   };
 
-  const Submit = async (formData: any) => {};
+  const handleSignup = async (formData: any) => {
+    const { confirmPassword, bankDetails, ...filteredData } = formData;
+
+    const { confirmAccountNumber, ...filteredBankDetails } = bankDetails || {};
+
+    const payload = {
+      ...filteredData,
+      bankDetails: filteredBankDetails,
+    };
+    console.log("payload", payload);
+    try {
+      const response = (await postData(payload)) as signupResponse;
+
+      if (response?.token) {
+        try {
+          await AsyncStorage.setItem("verificationToken", response.token);
+        } catch (e) {
+          console.error("Error saving token:", e);
+        }
+
+        router.push(`/otp?email=${encodeURIComponent(formData.email)}`);
+      } else {
+        console.error("No token in signup response");
+      }
+    } catch (err: any) {
+      Toast.show({
+        type: "error",
+        text2: err.message || "Signup failed",
+      });
+    }
+  };
 
   const handleNext = async () => {
     const validationErrors = validateFormEmergencyForm(formData);
     setErrors(validationErrors);
     if (
-      step === 1
-      // &&
-      // !validationErrors.facility &&
-      // !validationErrors.officer &&
-      // !validationErrors.phone &&
-      // !validationErrors.alternativePhone
+      step === 1 &&
+      !validationErrors.hospitalName &&
+      !validationErrors.officerInCharge &&
+      !validationErrors.phoneNumber &&
+      !validationErrors.alternativePhoneNumber
     ) {
       setStep((prevStep) => prevStep + 1);
     }
     if (
-      step === 2
-      // &&
-      // !validationErrors.state &&
-      // !validationErrors.lga &&
-      // !validationErrors.ward &&
-      // !validationErrors.email &&
-      // !validationErrors.password &&
-      // !validationErrors.confirmPassword
+      step === 2 &&
+      !validationErrors.stateOfResidence &&
+      !validationErrors.localGovernmentArea &&
+      !validationErrors.ward &&
+      !validationErrors.email &&
+      !validationErrors.password &&
+      !validationErrors.confirmPassword
     ) {
       setStep((prevStep) => prevStep + 1);
     }
@@ -105,7 +185,7 @@ const EmergencySignup = () => {
       !validationErrors.bankDetails?.accountName &&
       !validationErrors.bankDetails?.bankName
     ) {
-      Submit(formData);
+      handleSignup(formData);
     }
   };
 
@@ -161,6 +241,42 @@ const EmergencySignup = () => {
     const validationErrors = validateFormEmergencyForm(formData);
     setErrors(validationErrors);
   };
+  const handleImageUpload = async () => {
+    try {
+      const imageUrl = await uploadImageToCloudinary(setLoading);
+      setImageUri(imageUrl);
+
+      setFormData((prevData) => ({
+        ...prevData,
+        logo: imageUrl || "",
+      }));
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    }
+  };
+  const stateOptions = nigeriaData?.map((item: any) => ({
+    label: item.state,
+    value: item.state,
+  }));
+
+  const selectedState = nigeriaData?.find(
+    (s: any) => s.state === formData.stateOfResidence
+  );
+
+  const lgaOptions = selectedState?.lgas.map((lga: any) => ({
+    label: lga.name,
+    value: lga.name,
+  }));
+
+  // For Ward options
+  const selectedLga = selectedState?.lgas.find(
+    (lga: any) => lga.name === formData.localGovernmentArea
+  );
+
+  const wardOptions = selectedLga?.wards.map((ward: any) => ({
+    label: ward.name,
+    value: ward.name,
+  }));
   return (
     <SafeAreaView
       className="flex flex-1 bg-[#fffff0] "
@@ -198,12 +314,23 @@ const EmergencySignup = () => {
                 Create Your Account
               </Text>
             )}
-            <View className="flex flex-col items-center mt-6 pb-2">
-              <ProfileImagePlaceholder
-                imageUri={require("../assets/images/ertg6.png")}
-                showBorder={false}
-              />
-            </View>
+            {step <= 3 && (
+              <View className="flex flex-col items-center mt-6 pb-2">
+                <ProfileImagePlaceholder
+                  showBorder={true}
+                  upload={handleImageUpload}
+                  imageUri={formData.logo}
+                />
+                {errors.profilePicture && (
+                  <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
+                    {errors.profilePicture}
+                  </Text>
+                )}
+                <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
+                  Upload Logo
+                </Text>
+              </View>
+            )}
 
             <View className="   bg-[#fffff0] ">
               <View className=" mt-8">
@@ -232,68 +359,78 @@ const EmergencySignup = () => {
                       keyboardType="default"
                       errorMessage={errors.officerInCharge}
                     />
-                    <CustomTextInput
-                      label="Mobile Number"
+                    <PhoneInputWithCountryPicker
+                      label="Phone Numnber"
                       value={formData.phoneNumber}
                       onChangeText={(value) =>
                         handleChange("phoneNumber", value)
                       }
-                      placeholder="Enter Phone number"
-                      placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
+                      placeholder="Enter Your phone number"
                       errorMessage={errors.phoneNumber}
                     />
-                    <CustomTextInput
-                      label="Alternative Mobile Number"
-                      value={formData.alternatePhoneNumber}
+                    <PhoneInputWithCountryPicker
+                      label="Alternative Phone Numnber"
+                      value={formData.alternativePhoneNumber}
                       onChangeText={(value) =>
-                        handleChange("alternatePhoneNumber", value)
+                        handleChange("alternativePhoneNumber", value)
                       }
-                      placeholder=" Enter alternate phone number"
-                      placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
-                      errorMessage={errors.alternatePhoneNumber}
+                      placeholder="Enter Your alternate phone number"
+                      errorMessage={errors.alternativePhoneNumber}
                     />
                   </View>
                 )}
                 {step === 2 && (
                   <View className="flex flex-col gap-[16px]">
-                    <CustomPicker
-                      label="State"
-                      value={formData.stateOfResidence || ""}
-                      onValueChange={(value) =>
-                        handleChange("stateOfResidence", value)
-                      }
-                      items={[
-                        { label: "Male", value: "male" },
-                        { label: "Female", value: "female" },
-                        { label: "Other", value: "other" },
-                      ]}
-                      placeholder="Select your State"
-                      error={errors.stateOfResidence}
-                    />
+                    {stateOptions?.length > 0 && (
+                      <CustomPicker
+                        label="State"
+                        value={formData.stateOfResidence}
+                        onValueChange={(value) => {
+                          if (typeof value === "string") {
+                            setFormData((prev) => ({
+                              ...prev,
+                              stateOfResidence: value,
+                              localGovernmentArea: "",
+                              ward: "",
+                            }));
+                          }
+                        }}
+                        items={stateOptions}
+                        error={errors.stateOfResidence}
+                      />
+                    )}
 
-                    <CustomTextInput
-                      label="LGA"
-                      value={formData.localGovernmentArea}
-                      onChangeText={(value) =>
-                        handleChange("localGovernmentArea", value)
-                      }
-                      placeholder=""
-                      placeholderTextColor={"#BABABA"}
-                      keyboardType="default"
-                      errorMessage={errors.localGovernmentArea}
-                    />
+                    {formData.stateOfResidence && (
+                      <CustomPicker
+                        label="Local Government Area"
+                        value={formData.localGovernmentArea}
+                        onValueChange={(value) => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            localGovernmentArea: value ?? "",
+                            ward: "",
+                          }));
+                        }}
+                        items={lgaOptions}
+                        error={errors.localGovernmentArea}
+                      />
+                    )}
 
-                    <CustomTextInput
-                      label="Ward"
-                      value={formData.ward}
-                      onChangeText={(value) => handleChange("ward", value)}
-                      placeholder=""
-                      placeholderTextColor={"#BABABA"}
-                      keyboardType="default"
-                      errorMessage={errors.ward}
-                    />
+                    {formData.stateOfResidence &&
+                      formData.localGovernmentArea && (
+                        <CustomPicker
+                          label="Ward"
+                          value={formData.ward}
+                          onValueChange={(value) => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              ward: value ?? "",
+                            }));
+                          }}
+                          items={wardOptions}
+                          error={errors.localGovernmentArea}
+                        />
+                      )}
                     <CustomTextInput
                       label="Email"
                       value={formData.email}
@@ -311,6 +448,7 @@ const EmergencySignup = () => {
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
                       errorMessage={errors.password}
+                      secureTextEntry={true}
                     />
                     <CustomTextInput
                       label="Confirm Password"
@@ -322,6 +460,7 @@ const EmergencySignup = () => {
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
                       errorMessage={errors.confirmPassword}
+                      secureTextEntry={true}
                     />
                   </View>
                 )}
@@ -388,7 +527,7 @@ const EmergencySignup = () => {
             <View className="flex-col flex items-center justify-center my-8  gap-[16px]">
               <Pressable
                 onPress={handleNext}
-                className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
+                className={`px-[32px] h-[56px] bg-[#0e16ff] w-full rounded-[8px] flex items-center justify-center`}
               >
                 <Text
                   className="text-white text-[16px]"

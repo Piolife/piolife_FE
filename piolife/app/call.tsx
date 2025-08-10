@@ -9,15 +9,17 @@ import {
   StreamTheme,
   CallControls,
   User,
+  CallContent,
 } from "@stream-io/video-react-native-sdk";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const apiKey = "mmhfdzb5evj2";
-const callId = "ehBhGiwxvfFb";
+const apiKey = "fvct7vwrd7ps";
+const callId = "default_4b0fce27-f468-44de-b5d2-0402710d5adc111";
+// const callId = "ertyuikjyyy";
 
 const CallScreen = () => {
   const [client, setClient] = useState<StreamVideoClient | null>(null);
-  const [call, setCall] = useState<Call | null>(null);
+  const [call, setCall] = useState<any | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -25,32 +27,42 @@ const CallScreen = () => {
       if (!savedUser) return;
 
       const parsedUser = JSON.parse(savedUser);
-      const userId = "Carnor_Jax";
-      const userToken =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL3Byb250by5nZXRzdHJlYW0uaW8iLCJzdWIiOiJ1c2VyL0Nhcm5vcl9KYXgiLCJ1c2VyX2lkIjoiQ2Fybm9yX0pheCIsInZhbGlkaXR5X2luX3NlY29uZHMiOjYwNDgwMCwiaWF0IjoxNzQ3NzQ5MDA0LCJleHAiOjE3NDgzNTM4MDR9.hPs9jNUOArCA35b_eZCzacZsSbB9Hdm2iywkhAFyPg8";
+      const userId = parsedUser.id;
+      const userToken = parsedUser.streamToken;
 
       // User ID must match the ID embedded in the token
       const user: User = {
         id: userId,
-        name: parsedUser.name,
-        image: parsedUser.image,
       };
 
-      const videoClient = new StreamVideoClient({
+      const videoClient = StreamVideoClient.getOrCreateInstance({
         apiKey,
         user,
         token: userToken,
       });
       const activeCall = videoClient.call("default", callId);
 
-      await activeCall.join({ create: true });
+      try {
+        await activeCall.join({ create: true });
+      } catch (error) {
+        console.error("Failed to join call:", error);
+      }
+      // const activeCall = await videoClient.call("default", callId).getOrCreate({
+      //   ring: true,
+      //   video: true,
+      //   data: {
+      //     members: [
+      //       { user_id: userId }, // yourself
+      //       { user_id: userId }, // replace with actual friend's user_id
+      //     ],
+      //   },
+      // });
 
       setClient(videoClient);
       setCall(activeCall);
     };
 
     init();
-
     return () => {
       client?.disconnectUser();
     };
@@ -59,17 +71,13 @@ const CallScreen = () => {
   if (!client || !call) return null;
 
   return (
-    <View className="flex-1 items-center justify-end pb-10">
-      <StreamVideo client={client}>
-        <StreamCall call={call}>
-          <StreamTheme>
-            <View className="w-full">
-              <CallControls />
-            </View>
-          </StreamTheme>
-        </StreamCall>
-      </StreamVideo>
-    </View>
+    <StreamVideo client={client}>
+      <StreamCall call={call}>
+        <StreamTheme>
+          <CallContent />
+        </StreamTheme>
+      </StreamCall>
+    </StreamVideo>
   );
 };
 

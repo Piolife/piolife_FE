@@ -27,7 +27,7 @@ const CallDoctor = () => {
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[24px]">
         <Pressable
-          className="flex flex-row items-center gap-[16px] mt-2"
+          className="flex flex-row items-center gap-[16px] mt-10"
           onPress={handlePrevious}
         >
           <FontAwesome name="angle-left" size={24} color="black" />
@@ -71,7 +71,10 @@ const CallDoctor = () => {
               </View>
               <View className="flex items-end">
                 <View className="py-[10px] border-[#dadada] border-[1px] rounded-[8px] px-[16px] gap-[16px] flex flex-row">
-                  <Pressable className="p-[8px] rounded-full bg-[##0E16FF]" onPress={() => router.push("/call")}>
+                  <Pressable
+                    className="p-[8px] rounded-full bg-[##0E16FF]"
+                    onPress={() => router.push("/call")}
+                  >
                     <Feather name="phone" size={16} color="white" />
                   </Pressable>
                   <View className="w-[1px] bg-[#DADADA80]"></View>
