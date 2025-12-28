@@ -50,7 +50,9 @@ const Pay4Consultation = () => {
 
   if (typeof selected === "string") {
     try {
-      const parsed = JSON.parse(selected); // this is now an array
+      const parsed = JSON.parse(selected);
+      console.log("parsed", parsed);
+      // this is now an array
       if (Array.isArray(parsed)) {
         specialties = parsed.map((item) => item._id);
       }
@@ -87,7 +89,7 @@ const Pay4Consultation = () => {
   const piocoin = require("../assets/images/piocoin_symbol-removebg-preview 1.png");
 
   const [checked, setChecked] = useState(false);
-  const handleLogin = async () => {
+  const handleConsult = async () => {
     const trimmedData: any = {
       specialty: specialties,
       languageProficiency: [selectedId],
@@ -98,15 +100,11 @@ const Pay4Consultation = () => {
       const response = (await postData(trimmedData)) as any;
 
       if (response) {
-        // router.push({
-        //   pathname: "/(tabs)",
-        //   params: {
-        //     userId: response.user.id,
-        //     role: response.user.role,
-        //   },
-        // });
-        console.log("response", response);
         const encoded = encodeURIComponent(JSON.stringify(response));
+
+        router.push(
+          `/availableConsultant?selected=${selected}&selectedId=${selectedId}&doctors=${encoded}`
+        );
       }
     } catch (err: any) {
       console.log("error", err);
@@ -294,7 +292,7 @@ const Pay4Consultation = () => {
             </View>
             <Pressable
               className="px-[32px] h-[56px] bg-[#0e16ff] rounded-[8px] flex items-center justify-center mb-[12px] mt-4"
-              onPress={handleLogin}
+              onPress={handleConsult}
             >
               <Text
                 className="text-white text-[16px]"

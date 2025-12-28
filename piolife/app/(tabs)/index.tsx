@@ -21,10 +21,11 @@ import {
   ClientScreen,
   DoctorScreen,
   Stat,
+  formatNumberToThousands,
 } from "@/components/reusables";
 import { useFetchData } from "@/services/api/request";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User } from "@/services/core/types";
+import { User, wallet } from "@/services/core/types";
 import { API_URL } from "@/constants/api";
 const Index = () => {
   const [user, SetUser] = useState<User>();
@@ -45,9 +46,23 @@ const Index = () => {
     user ? `${API_URL}/api/v12/users/${user.id}` : "",
     { token }
   );
-  if (data) {
-    console.log("data", data);
-  }
+  const {
+    data: walletData,
+    loading: isLoading,
+    error: isError,
+    refetch,
+  } = useFetchData<wallet>(
+    user ? `${API_URL}/api/v12/wallet/${user.id}/balance` : "",
+    { token }
+  );
+  const {
+    data: emergencyData,
+    loading: emergencyLoading,
+    error: emergencyError,
+  } = useFetchData<any>(
+    user ? `${API_URL}/api/v12/emergency-stock/emergencies/${user.id}` : "",
+    { token }
+  );
   if (error) {
     Alert.alert(error);
   }
@@ -65,7 +80,7 @@ const Index = () => {
       callType: "Video call",
     },
   ];
-  if (loading) {
+  if (loading || isLoading) {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
@@ -113,10 +128,13 @@ const Index = () => {
               {data ? (
                 <Image
                   source={{
-                    uri:
-                      data?.role === "emergency_services"
-                        ? data?.logo
-                        : data?.profilePicture,
+                    uri: [
+                      "emergency_services",
+                      "pharmacy_services",
+                      "medical_lab_services",
+                    ].includes(data?.role ?? "")
+                      ? data?.logo
+                      : data?.profilePicture,
                   }}
                   className="w-[56px] h-[56px] rounded-full"
                 />
@@ -124,12 +142,17 @@ const Index = () => {
                 <FontAwesome name="user" size={50} color="#ccc" />
               )}
 
-              <View className="flex flex-col gap-[4px] py-[4px]">
+              <View className="flex flex-col gap-[4px] py-[4px] flex-1">
                 <Text
                   className="text-[#030319] text-[16px] leading-[19px] "
                   style={{ fontFamily: "Inter_500Medium" }}
                 >
-                  Hi, {data?.firstName}
+                  Hi,{" "}
+                  {data?.role === "pharmacy_services"
+                    ? data?.pharmacyName
+                    : data?.role === "medical_lab_services"
+                    ? data?.medicalLabName
+                    : data?.firstName}
                 </Text>
                 <Text
                   className="text-[#2a2a2a] text-[14px] leading-[17px] "
@@ -167,10 +190,14 @@ const Index = () => {
               "emergency_services",
               "pharmacy_services",
               "medical_lab_services",
-            ].includes(user.role) && <DoctorScreen balance={3000} />}
+            ].includes(user.role) && (
+              <DoctorScreen
+                balance={formatNumberToThousands(walletData?.balance)}
+              />
+            )}
 
           {user?.role === "medical_practitioner" && (
-            <Stat text="Consultations" />
+            <Stat text="Consultations" serve={8} />
           )}
           {user?.role === "pharmacy_services" && (
             <View>
@@ -215,7 +242,7 @@ const Index = () => {
                   </Text>
                 </Pressable>
               </View>
-              <Stat text="Served" />
+              <Stat text="Served" serve={data?.consultationCount} />
             </View>
           )}
           {user?.role === "medical_lab_services" && (
@@ -261,27 +288,18 @@ const Index = () => {
                   </Text>
                 </Pressable>
               </View>
-              <Stat text="Served" />
+              <Stat text="Served" serve={9} />
             </View>
           )}
           {user?.role === "emergency_services" && (
-            <View>
-              <View className="flex flex-row justify-between my-4">
-                <Pressable
-                  onPress={() => {
-                    router.push("/emergencyServices");
-                  }}
-                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
-                >
-                  <Text
-                    className="text-[#ffffff] text-[12px] leading-[17px] "
-                    style={{ fontFamily: "Inter_600SemiBold" }}
-                  >
-                    Services
-                  </Text>
-                </Pressable>
-              </View>
-              <Stat text="Served" />
+            <View className="flex flex-row justify-between my-4">
+              <Stat
+                text="Served"
+                serve={emergencyData?.length}
+                onPress={() => {
+                  router.push("/emergencyServices");
+                }}
+              />
             </View>
           )}
         </View>

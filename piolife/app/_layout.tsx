@@ -1,18 +1,32 @@
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useFocusEffect } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
-import { StreamVideoClient, User } from "@stream-io/video-react-native-sdk";
 import "react-native-reanimated";
 import "../global.css";
-import { Platform, View } from "react-native";
+import {
+  Platform,
+  SafeAreaView,
+  View,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { LogBox } from "react-native";
 import { JsStack } from "@/components/JsStack";
 import { io, Socket } from "socket.io-client";
 import { Easing } from "react-native-reanimated";
-import { StreamChat } from "stream-chat";
-
+import {
+  Call,
+  StreamCall,
+  StreamVideo,
+  StreamVideoClient,
+  StreamTheme,
+  CallContent,
+  User,
+  useCalls,
+  RingingCallContent,
+} from "@stream-io/video-react-native-sdk";
 import {
   Inter_100Thin,
   Inter_200ExtraLight,
@@ -26,63 +40,22 @@ import {
 } from "@expo-google-fonts/inter";
 import { PaperProvider } from "react-native-paper";
 import { getSocket } from "./weSocket";
+import { useUser } from "@/components/UserContext";
+import { createStackNavigator } from "@react-navigation/stack";
 const ROTATE_VALUES = ["60deg", "45deg", "30deg", "15deg", "0deg"];
 const ANIMATION_DURATION = 400;
-const STREAM_API_KEY = "fvct7vwrd7ps"; // safer than hardcoding
-const chatClient = StreamChat.getInstance(STREAM_API_KEY);
+
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 import { BaseToast, ErrorToast } from "react-native-toast-message";
 import Toast, { BaseToastProps } from "react-native-toast-message";
 import React from "react";
-import IncomingCallListener from "./IncomingCallHandler";
-type EmergencyCustomEvent = {
-  type: "custom";
-  data: {
-    type: "emergency_request";
-    incidentLocation: { latitude: number; longitude: number };
-    distance: number;
-  };
-};
+import IncomingCallListener from "../components/IncomingCallHandler";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useStreamProvider } from "@/components/reusables";
+import { getStreamClient } from "@/components/streamClient";
+import { UserProvider } from "@/components/UserContext";
 
-export function useStreamProvider(providerId: string, providerToken: string) {
-  useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
-
-    async function connect() {
-      try {
-        await chatClient.connectUser(
-          {
-            id: providerId,
-            name: "Provider Name", // optional
-          },
-          providerToken
-        );
-
-        const listener = chatClient.on("custom", (event) => {
-          const customEvent = event as unknown as EmergencyCustomEvent;
-
-          if (customEvent.data?.type === "emergency_request") {
-            console.log("🚨 Emergency received:", customEvent.data);
-            // You can trigger navigation here
-          }
-        });
-
-        // store only the unsubscribe function
-        unsubscribe = listener.unsubscribe;
-      } catch (error) {
-        console.error("Failed to connect to Stream:", error);
-      }
-    }
-
-    connect();
-
-    return () => {
-      unsubscribe?.();
-      chatClient.disconnectUser();
-    };
-  }, [providerId, providerToken]);
-}
 export const toastConfig = {
   error: (props: React.JSX.IntrinsicAttributes & BaseToastProps) => (
     <ErrorToast
@@ -101,8 +74,58 @@ export const toastConfig = {
   ),
 };
 export default function RootLayout() {
+  return (
+    <UserProvider>
+      <Toast config={toastConfig} />
+      <RootLayoutContent />
+    </UserProvider>
+  );
+}
+function RootLayoutContent() {
+  const { user } = useUser();
   const apiKey = "fvct7vwrd7ps";
   const [appIsReady, setAppIsReady] = useState(false);
+  const [userId, setUserId] = useState<string>("");
+  const [userToken, setUserToken] = useState<string>("");
+  const [client, setClient] = useState<StreamVideoClient | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+
+    if (user) {
+      setUserId(user.id);
+      setUserToken(user.streamToken);
+    }
+  }, [user]);
+  useStreamProvider(userId ?? "", userToken ?? "");
+  useEffect(() => {
+    if (!userId || !userToken) return; // ✅ wait until both exist
+
+    const user: User = { id: userId };
+
+    const videoClient = getStreamClient(apiKey, userToken, user);
+
+    setClient(videoClient);
+  }, [userId, userToken]);
+  console.log("user", user);
+
+  console.log("userId", userId);
+  console.log("userToken", userToken);
+  const RingingCalls = () => {
+    const calls = useCalls().filter((c) => c.ringing);
+
+    const ringingCall = calls[0];
+    if (!ringingCall) return null;
+    if (ringingCall) {
+    }
+    return (
+      <StreamCall call={ringingCall}>
+        <SafeAreaView style={StyleSheet.absoluteFill}>
+          <RingingCallContent />
+        </SafeAreaView>
+      </StreamCall>
+    );
+  };
   const [loaded] = useFonts({
     Inter_600SemiBold,
     Inter_400Regular,
@@ -120,6 +143,7 @@ export default function RootLayout() {
         console.warn(e);
       } finally {
         setAppIsReady(true);
+        await SplashScreen.hideAsync();
       }
     }
 
@@ -127,7 +151,8 @@ export default function RootLayout() {
     getSocket();
   }, []);
 
-  const onLayoutRootView = useCallback(() => {
+  const  ,."|
+" = useCallback(() => {
     if (appIsReady) {
       SplashScreen.hide();
     }
@@ -137,277 +162,444 @@ export default function RootLayout() {
     return null;
   }
   LogBox.ignoreLogs(["CountryModal: Support for defaultProps will be removed"]);
+  // if (!client) {
+  //   return <ActivityIndicator size="large" color="#007AFF" />; // or splash/loading indicator
+  // }
+  const AuthStack = () => (
+    <JsStack
+      screenOptions={{
+        headerShown: false,
+
+        transitionSpec: {
+          open: {
+            animation: "timing",
+            config: {
+              duration: ANIMATION_DURATION,
+              easing: Easing.out(Easing.ease),
+            },
+          },
+          close: {
+            animation: "timing",
+            config: {
+              duration: ANIMATION_DURATION,
+              easing: Easing.in(Easing.ease),
+            },
+          },
+        },
+        cardOverlayEnabled: true,
+        gestureEnabled: Platform.OS === "ios",
+        cardStyleInterpolator: ({ current, next, layouts }) => {
+          const rotate = current.progress.interpolate({
+            inputRange: [0, 0.25, 0.5, 0.75, 1],
+            outputRange: ROTATE_VALUES,
+            extrapolate: "clamp",
+          });
+
+          const INITIAL_SCALE = 1.6;
+          const FINAL_SCALE = 1;
+
+          const OVERLAY_OPACITY_MAX = 0.5;
+          const NEXT_SCREEN_OPACITY_MIN = 0.8;
+
+          const overlayOpacity = current.progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, OVERLAY_OPACITY_MAX],
+            extrapolate: "clamp",
+          });
+
+          const nextScreenOpacity = current.progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [NEXT_SCREEN_OPACITY_MIN, 1],
+            extrapolate: "clamp",
+          });
+
+          const scale = next
+            ? next.progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, FINAL_SCALE],
+                extrapolate: "clamp",
+              })
+            : current.progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [INITIAL_SCALE, 1],
+                extrapolate: "clamp",
+              });
+
+          const INITIAL_TRANSLATE_X_MULTIPLIER = 1.6;
+          const NEXT_TRANSLATE_X_MULTIPLIER = -0.3;
+
+          const translateX = current.progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [
+              INITIAL_TRANSLATE_X_MULTIPLIER * layouts.screen.width,
+              0,
+            ],
+            extrapolate: "clamp",
+          });
+
+          const nextTranslateX = next
+            ? next.progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [
+                  0,
+                  NEXT_TRANSLATE_X_MULTIPLIER * layouts.screen.width,
+                ],
+                extrapolate: "clamp",
+              })
+            : 0;
+
+          const transform = [
+            { translateX },
+            { translateX: nextTranslateX },
+            { perspective: 1000 },
+            { rotateY: rotate },
+            { scale },
+          ];
+
+          return {
+            cardStyle: {
+              transform,
+              opacity: nextScreenOpacity,
+            },
+            overlayStyle: { opacity: overlayOpacity },
+          };
+        },
+      }}
+    >
+      <JsStack.Screen name="login" options={{ header: () => null }} />
+
+      <JsStack.Screen
+        name="successfulRegistration"
+        options={{ headerShown: false }}
+      />
+      <JsStack.Screen name="resetPassword" options={{ headerShown: false }} />
+      <JsStack.Screen name="forgotPassword" options={{ headerShown: false }} />
+      <JsStack.Screen name="otp" options={{ headerShown: false }} />
+      <JsStack.Screen
+        name="passwordResetOTP"
+        options={{ headerShown: false }}
+      />
+      <JsStack.Screen name="clientSignup" options={{ headerShown: false }} />
+      <JsStack.Screen name="doctorSignup" options={{ headerShown: false }} />
+      <JsStack.Screen name="medLabSignup" options={{ headerShown: false }} />
+      <JsStack.Screen name="pharmacySignup" options={{ headerShown: false }} />
+      <JsStack.Screen name="emergencySignup" options={{ headerShown: false }} />
+    </JsStack>
+  );
+
+  const AppStack = ({ client }: { client: StreamVideoClient }) => (
+    <StreamVideo client={client}>
+      <>
+        <PaperProvider>
+          <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+            <JsStack
+              screenOptions={{
+                headerShown: false,
+                transitionSpec: {
+                  open: {
+                    animation: "timing",
+                    config: {
+                      duration: ANIMATION_DURATION,
+                      easing: Easing.out(Easing.ease),
+                    },
+                  },
+                  close: {
+                    animation: "timing",
+                    config: {
+                      duration: ANIMATION_DURATION,
+                      easing: Easing.in(Easing.ease),
+                    },
+                  },
+                },
+                cardOverlayEnabled: true,
+                gestureEnabled: Platform.OS === "ios",
+                cardStyleInterpolator: ({ current, next, layouts }) => {
+                  const rotate = current.progress.interpolate({
+                    inputRange: [0, 0.25, 0.5, 0.75, 1],
+                    outputRange: ROTATE_VALUES,
+                    extrapolate: "clamp",
+                  });
+
+                  const INITIAL_SCALE = 1.6;
+                  const FINAL_SCALE = 1;
+
+                  const OVERLAY_OPACITY_MAX = 0.5;
+                  const NEXT_SCREEN_OPACITY_MIN = 0.8;
+
+                  const overlayOpacity = current.progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, OVERLAY_OPACITY_MAX],
+                    extrapolate: "clamp",
+                  });
+
+                  const nextScreenOpacity = current.progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [NEXT_SCREEN_OPACITY_MIN, 1],
+                    extrapolate: "clamp",
+                  });
+
+                  const scale = next
+                    ? next.progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, FINAL_SCALE],
+                        extrapolate: "clamp",
+                      })
+                    : current.progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [INITIAL_SCALE, 1],
+                        extrapolate: "clamp",
+                      });
+
+                  const INITIAL_TRANSLATE_X_MULTIPLIER = 1.6;
+                  const NEXT_TRANSLATE_X_MULTIPLIER = -0.3;
+
+                  const translateX = current.progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [
+                      INITIAL_TRANSLATE_X_MULTIPLIER * layouts.screen.width,
+                      0,
+                    ],
+                    extrapolate: "clamp",
+                  });
+
+                  const nextTranslateX = next
+                    ? next.progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [
+                          0,
+                          NEXT_TRANSLATE_X_MULTIPLIER * layouts.screen.width,
+                        ],
+                        extrapolate: "clamp",
+                      })
+                    : 0;
+
+                  const transform = [
+                    { translateX },
+                    { translateX: nextTranslateX },
+                    { perspective: 1000 },
+                    { rotateY: rotate },
+                    { scale },
+                  ];
+
+                  return {
+                    cardStyle: {
+                      transform,
+                      opacity: nextScreenOpacity,
+                    },
+                    overlayStyle: { opacity: overlayOpacity },
+                  };
+                },
+              }}
+            >
+              <RingingCalls />
+
+              <JsStack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <JsStack.Screen name="index" options={{ headerShown: false }} />
+              <JsStack.Screen name="welcome" options={{ headerShown: false }} />
+              <JsStack.Screen
+                name="successfulRegistration"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="hospitalOptions"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="creditMe"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="notification"
+                options={{ headerShown: false }}
+              />
+
+              <JsStack.Screen
+                name="callDoctor"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="availableConsultant"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="realEstate"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen name="states" options={{ headerShown: false }} />
+              <JsStack.Screen
+                name="selectPlot"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="selectEstate"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="estateFeatures"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="healthIssue"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="pay4Consultation"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="emergencyDetails"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="emergencyMenu"
+                options={{ headerShown: false }}
+              />
+
+              <JsStack.Screen
+                name="clientWallet"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <JsStack.Screen
+                name="collectLoan"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <JsStack.Screen
+                name="addDrug"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <JsStack.Screen
+                name="addTest"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <JsStack.Screen
+                name="drugs"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <JsStack.Screen
+                name="tests"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <JsStack.Screen
+                name="emergencyServices"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <JsStack.Screen
+                name="pharmServices"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <JsStack.Screen
+                name="medlabServices"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <JsStack.Screen
+                name="consult"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <JsStack.Screen
+                name="medicalHistory"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <JsStack.Screen
+                name="medicalHistoryDetail"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <JsStack.Screen
+                name="walletHistory"
+                options={{
+                  headerShown: true,
+                  headerBackTitle: "",
+                  headerTitleAlign: "left",
+                  headerShadowVisible: false,
+                  headerTitle: "History",
+                }}
+              />
+              <JsStack.Screen
+                name="recentConsultations"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <JsStack.Screen
+                name="nearbyMedLab"
+                options={{
+                  headerShown: true,
+                  headerBackTitle: "",
+                  headerTitleAlign: "left",
+                  headerShadowVisible: false,
+                  headerTitle: "Recomended Med Lab",
+                }}
+              />
+
+              <JsStack.Screen
+                name="NearbyPharmacy"
+                options={{
+                  headerShown: true,
+                  headerBackTitle: "",
+                  headerTitleAlign: "left",
+                  headerShadowVisible: false,
+                  headerTitle: "Recomended Pharmacy",
+                }}
+              />
+              <JsStack.Screen
+                name="medLabTests"
+                options={{
+                  headerShown: true,
+                  headerBackTitle: "",
+                  headerTitleAlign: "left",
+                  headerShadowVisible: false,
+                  headerTitle: "Available Test Listing",
+                }}
+              />
+
+              <JsStack.Screen
+                name="selectProfile"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="selectConsultant"
+                options={{ headerShown: false }}
+              />
+              <StatusBar style="auto" />
+            </JsStack>
+          </View>
+        </PaperProvider>
+      </>
+    </StreamVideo>
+  );
   return (
-    <>
-      <PaperProvider>
-        <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
-          <JsStack
-            screenOptions={{
-              transitionSpec: {
-                open: {
-                  animation: "timing",
-                  config: {
-                    duration: ANIMATION_DURATION,
-                    easing: Easing.out(Easing.ease),
-                  },
-                },
-                close: {
-                  animation: "timing",
-                  config: {
-                    duration: ANIMATION_DURATION,
-                    easing: Easing.in(Easing.ease),
-                  },
-                },
-              },
-              cardOverlayEnabled: true,
-              gestureEnabled: Platform.OS === "ios",
-              cardStyleInterpolator: ({ current, next, layouts }) => {
-                const rotate = current.progress.interpolate({
-                  inputRange: [0, 0.25, 0.5, 0.75, 1],
-                  outputRange: ROTATE_VALUES,
-                  extrapolate: "clamp",
-                });
-
-                const INITIAL_SCALE = 1.6;
-                const FINAL_SCALE = 1;
-
-                const OVERLAY_OPACITY_MAX = 0.5;
-                const NEXT_SCREEN_OPACITY_MIN = 0.8;
-
-                const overlayOpacity = current.progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, OVERLAY_OPACITY_MAX],
-                  extrapolate: "clamp",
-                });
-
-                const nextScreenOpacity = current.progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [NEXT_SCREEN_OPACITY_MIN, 1],
-                  extrapolate: "clamp",
-                });
-
-                const scale = next
-                  ? next.progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, FINAL_SCALE],
-                      extrapolate: "clamp",
-                    })
-                  : current.progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [INITIAL_SCALE, 1],
-                      extrapolate: "clamp",
-                    });
-
-                const INITIAL_TRANSLATE_X_MULTIPLIER = 1.6;
-                const NEXT_TRANSLATE_X_MULTIPLIER = -0.3;
-
-                const translateX = current.progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [
-                    INITIAL_TRANSLATE_X_MULTIPLIER * layouts.screen.width,
-                    0,
-                  ],
-                  extrapolate: "clamp",
-                });
-
-                const nextTranslateX = next
-                  ? next.progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [
-                        0,
-                        NEXT_TRANSLATE_X_MULTIPLIER * layouts.screen.width,
-                      ],
-                      extrapolate: "clamp",
-                    })
-                  : 0;
-
-                const transform = [
-                  { translateX },
-                  { translateX: nextTranslateX },
-                  { perspective: 1000 },
-                  { rotateY: rotate },
-                  { scale },
-                ];
-
-                return {
-                  cardStyle: {
-                    transform,
-                    opacity: nextScreenOpacity,
-                  },
-                  overlayStyle: { opacity: overlayOpacity },
-                };
-              },
-            }}
-          >
-            <IncomingCallListener />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="welcome" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="successfulRegistration"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="hospitalOptions"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="creditMe" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="notification"
-              options={{ headerShown: false }}
-            />
-
-            <Stack.Screen name="callDoctor" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="availableConsultant"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="realEstate" options={{ headerShown: false }} />
-            <Stack.Screen name="states" options={{ headerShown: false }} />
-            <Stack.Screen name="selectPlot" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="selectEstate"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="estateFeatures"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="healthIssue" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="pay4Consultation"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="emergencyDetails"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="emergencyMenu"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="resetPassword"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="forgotPassword"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="otp" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="passwordResetOTP"
-              options={{ headerShown: false }}
-            />
-
-            <Stack.Screen
-              name="clientSignup"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="clientWallet"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="collectLoan"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="addDrug"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="addTest"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="drugs"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="tests"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="emergencyServices"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="pharmServices"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="medlabServices"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="consult"
-              options={{
-                headerShown: true,
-                headerBackTitle: "",
-                headerTitleAlign: "left",
-                headerShadowVisible: false,
-                headerTitle: "Consult",
-              }}
-            />
-            <Stack.Screen
-              name="walletHistory"
-              options={{
-                headerShown: true,
-                headerBackTitle: "",
-                headerTitleAlign: "left",
-                headerShadowVisible: false,
-                headerTitle: "History",
-              }}
-            />
-            <Stack.Screen
-              name="doctorSignup"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="medLabSignup"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="pharmacySignup"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="emergencySignup"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="selectProfile"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="selectConsultant"
-              options={{ headerShown: false }}
-            />
-            <StatusBar style="auto" />
-          </JsStack>
-        </View>
-      </PaperProvider>
-      <Toast config={toastConfig} />
-    </>
+    <UserProvider>
+      {!client ? <AuthStack /> : <AppStack client={client} />}
+    </UserProvider>
   );
 }
+const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});

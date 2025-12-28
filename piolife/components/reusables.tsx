@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   TextInput,
   Text,
@@ -33,6 +33,8 @@ import { router } from "expo-router";
 import * as Location from "expo-location";
 import { FlatListProps } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
+import { StreamChat } from "stream-chat";
+import * as Crypto from "expo-crypto";
 const wallet = require("../assets/images/Cash Wallet.png");
 const consult = require("../assets/images/image 46.png");
 const history = require("../assets/images/image 45-2.png");
@@ -366,9 +368,6 @@ interface CustomDropdownProps {
   value: string;
   onValueChange: (value: string) => void;
   placeholder?: string;
-}
-export const CustomDropdown: React.FC<CustomDropdownProps> = ({
-  label,
   items,
   value,
   onValueChange,
@@ -531,9 +530,18 @@ export const DoctorScreen = ({ balance }: DoctorScreenProps) => {
     </View>
   );
 };
-export const Stat = ({ text }: { text: string }) => {
+export const Stat = ({
+  text,
+  serve,
+  onPress,
+}: {
+  text: string;
+  serve?: number;
+  onPress?: () => void;
+}) => {
   return (
-    <View
+    <Pressable
+      onPress={onPress}
       className="rounded-[4px] border-[#A5A5A566] border-[1px] px-[16px] py-[8px] flex flex-row gap-[16px] items-center bg-white justify-between w-1/2"
       style={[styles.shadowProp]}
     >
@@ -548,10 +556,10 @@ export const Stat = ({ text }: { text: string }) => {
           className="text-[#000000] text-[14px] leading-[150%]  "
           style={{ fontFamily: "Inter_500Medium" }}
         >
-          3
+          {serve}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 };
 export const ClientMenu = () => {
@@ -832,3 +840,69 @@ export default CustomPicker;
 export function replaceUnderscoresWithSpaces(text: string): string {
   return text.replace(/_/g, " ");
 }
+type EmergencyCustomEvent = {
+  type: "custom";
+  data: {
+    type: "emergency_request";
+    incidentLocation: { latitude: number; longitude: number };
+    distance: number;
+  };
+};
+const STREAM_API_KEY = "fvct7vwrd7ps"; // safer than hardcoding
+const chatClient = StreamChat.getInstance(STREAM_API_KEY);
+export function useStreamProvider(providerId: string, providerToken: string) {
+  useEffect(() => {
+    if (!providerId || !providerToken) return;
+    let unsubscribe: (() => void) | undefined;
+
+    async function connect() {
+      try {
+        await chatClient.connectUser(
+          {
+            id: providerId,
+            name: "Provider Name", // optional
+          },
+          providerToken
+        );
+        console.log("Stream user connected:", providerId);
+        chatClient.on("*", (event) => {
+          console.log("Stream event received:", event);
+        });
+
+        const listener = chatClient.on("custom", (event) => {
+          const customEvent = event as unknown as EmergencyCustomEvent;
+
+          if (customEvent.data?.type === "emergency_request") {
+            console.log("🚨 Emergency received:", customEvent.data);
+          }
+        });
+
+        unsubscribe = listener.unsubscribe;
+      } catch (error) {
+        console.error("Failed to connect to Stream:", error);
+      }
+    }
+
+    connect();
+
+    return () => {
+      unsubscribe?.();
+      chatClient.disconnectUser();
+    };
+  }, [providerId, providerToken]);
+}
+
+export async function generateCallId(doctorId: string, userId: string) {
+  // Add randomness (or timestamp) to make it unique per session
+  const sessionKey = `${doctorId}_${userId}_${Date.now()}_${Math.random()}`;
+
+  // Hash it for consistent length + uniqueness
+  const hash = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    sessionKey
+  );
+
+  return hash.slice(0, 16); // shorten for readability
+}
+
+// Example usage

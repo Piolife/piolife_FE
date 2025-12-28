@@ -1,80 +1,117 @@
-/** @format */
 import React, { useEffect, useState } from "react";
-import { View } from "react-native";
 import {
   Call,
   StreamCall,
   StreamVideo,
-  StreamVideoClient,
   StreamTheme,
-  CallControls,
-  User,
   CallContent,
 } from "@stream-io/video-react-native-sdk";
+import { getExistingClient } from "@/components/streamClient";
+import { router, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const apiKey = "fvct7vwrd7ps";
-const callId = "default_4b0fce27-f468-44de-b5d2-0402710d5adc111";
-// const callId = "ertyuikjyyy";
+import { useUser } from "@/components/UserContext";
+import { generateCallId } from "@/components/reusables";
+import { CallControls } from "@stream-io/video-react-native-sdk";
+import { API_URL } from "@/constants/api";
 
 const CallScreen = () => {
-  const [client, setClient] = useState<StreamVideoClient | null>(null);
-  const [call, setCall] = useState<any | null>(null);
+  const [call, setCall] = useState<Call | null>(null);
+  const { doctorId, type, specialtyId } = useLocalSearchParams<{
+    doctorId: string;
+    type: string;
+    specialtyId: string;
+  }>();
+
+  const { user } = useUser();
 
   useEffect(() => {
     const init = async () => {
+      const client = getExistingClient();
+      if (!client) {
+        console.error("Stream client not initialized yet!");
+        return;
+      }
+      const docId = Array.isArray(doctorId) ? doctorId[0] : doctorId;
+      const callId = await generateCallId(docId, user.id);
+      console.log("New Call ID:", callId);
+
       const savedUser = await AsyncStorage.getItem("user");
       if (!savedUser) return;
 
-      const parsedUser = JSON.parse(savedUser);
-      const userId = parsedUser.id;
-      const userToken = parsedUser.streamToken;
+      const userId = user.id;
 
-      // User ID must match the ID embedded in the token
-      const user: User = {
-        id: userId,
-      };
+      const activeCall = client.call("default", callId);
 
-      const videoClient = StreamVideoClient.getOrCreateInstance({
-        apiKey,
-        user,
-        token: userToken,
+      await activeCall.getOrCreate({
+        ring: true,
+        video: type === "video",
+        data: {
+          members: [{ user_id: userId }, { user_id: doctorId }],
+        },
       });
-      const activeCall = videoClient.call("default", callId);
 
       try {
-        await activeCall.join({ create: true });
+        await activeCall.join();
       } catch (error) {
         console.error("Failed to join call:", error);
       }
-      // const activeCall = await videoClient.call("default", callId).getOrCreate({
-      //   ring: true,
-      //   video: true,
-      //   data: {
-      //     members: [
-      //       { user_id: userId }, // yourself
-      //       { user_id: userId }, // replace with actual friend's user_id
-      //     ],
-      //   },
-      // });
 
-      setClient(videoClient);
       setCall(activeCall);
     };
 
     init();
-    return () => {
-      client?.disconnectUser();
-    };
   }, []);
 
-  if (!client || !call) return null;
+  useEffect(() => {
+    if (!call) return;
+
+    const handleParticipantJoined = async (event: any) => {
+      const joinedUserId = event.participant.userId;
+
+      // if it's the doctor that just joined, create consultation
+      if (joinedUserId === doctorId) {
+        try {
+          await fetch(`${API_URL}/consultations`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${user.token}`, // jwt
+            },
+            body: JSON.stringify({
+              practitionerId: doctorId,
+              medicalIssueId: specialtyId, // pass from state or route
+            }),
+          });
+          console.log("Consultation created");
+        } catch (err) {
+          console.error("Failed to create consultation", err);
+        }
+      }
+    };
+
+    call.on("participantJoined", handleParticipantJoined);
+
+    return () => {
+      call.off("participantJoined", handleParticipantJoined);
+    };
+  }, [call]);
+
+  if (!call) return null;
 
   return (
-    <StreamVideo client={client}>
+    <StreamVideo client={getExistingClient()!}>
       <StreamCall call={call}>
         <StreamTheme>
-          <CallContent />
+          <CallContent
+            CallControls={() => (
+              <CallControls
+                onHangupCallHandler={async () => {
+                  await call?.leave();
+                  router.back();
+                }}
+              />
+            )}
+          />
         </StreamTheme>
       </StreamCall>
     </StreamVideo>

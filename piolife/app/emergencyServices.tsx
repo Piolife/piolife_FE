@@ -13,20 +13,12 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { CustomFlatList } from "@/components/reusables";
-import {
-  AddDrugFormProps,
-  DrugItemType,
-  DrugSoldType,
-  HistoryWalletType,
-  LoginFormProps,
-  User,
-} from "@/services/core/types";
-import { validateAddDrugsForm, validateLoginForm } from "@/hooks/auth";
+import { User } from "@/services/core/types";
+
 import { useFetchData, usePostData } from "@/services/api/request";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast, { BaseToastProps } from "react-native-toast-message";
 import { BaseToast, ErrorToast } from "react-native-toast-message";
-import { getCurrentLocation } from "@/components/reusables";
 import { API_URL } from "@/constants/api";
 import { FontAwesome } from "@expo/vector-icons";
 import {
@@ -52,21 +44,17 @@ export const toastConfig = {
     />
   ),
 };
-const drugsSold = [
-  { percentage: 30, amount: 5000 },
-  { percentage: 60, amount: 9000 },
-  { percentage: 10, amount: 9000 },
-  { percentage: 70, amount: 3000 },
-  { percentage: 20, amount: 7000 },
-  { percentage: 5, amount: 4000 },
-];
+
 const EmergencyServices = () => {
-  const handlePrevious = () => {
-    router.back();
-  };
   const [user, SetUser] = useState<User>();
   const token = user?.token;
-
+  const { data, loading, error } = useFetchData<any>(
+    user ? `${API_URL}/api/v12/emergency-stock/emergencies/${user.id}` : "",
+    { token }
+  );
+  if (data) {
+    console.log("data", data);
+  }
   useEffect(() => {
     const loadUser = async () => {
       const userData = await AsyncStorage.getItem("user");
@@ -76,7 +64,18 @@ const EmergencyServices = () => {
       }
     };
     loadUser();
+    AsyncStorage.setItem("hasLaunched", "launched");
   }, []);
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+  const handlePrevious = () => {
+    router.back();
+  };
 
   return (
     <SafeAreaView
@@ -110,9 +109,12 @@ const EmergencyServices = () => {
         </View>
         <View className="flex flex-col ">
           <CustomFlatList
-            data={drugsSold || []}
-            renderItem={({ item }: { item: DrugSoldType }) => (
-              <DrugSold amount={item.amount} percentage={item.percentage} />
+            data={data || []}
+            renderItem={({ item }: { item: any }) => (
+              <DrugSold
+                amount={item.services_amount}
+                percentage={item.percentage_amount}
+              />
             )}
             ListEmptyComponent={() => (
               <Text style={{ textAlign: "center" }}>No items found.</Text>

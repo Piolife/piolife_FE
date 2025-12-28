@@ -223,6 +223,9 @@ export interface User {
   dateOfBirth: string;
   profilePicture: string;
   logo?: string;
+  pharmacyName?: string;
+  medicalLabName?: string;
+  consultationCount?: number;
   username: string;
 }
 export interface wallet {
@@ -254,7 +257,7 @@ export type DrugItemType = {
   description: string;
 };
 export type DrugSoldType = {
-  amount: number;
+  totalAmount: number;
   percentage: number;
 };
 export type TestItemType = {

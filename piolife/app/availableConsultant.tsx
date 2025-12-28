@@ -14,9 +14,10 @@ import { FontAwesome } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { usePostData } from "@/services/api/request";
 import { API_URL } from "@/constants/api";
-import { User } from "@/services/core/types";
+import { HistoryWalletType, User } from "@/services/core/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CustomFlatList } from "@/components/reusables";
+import { AvailableDoc, HistoryWallet } from "@/components/flatListItems/items";
 
 const error = require("../assets/images/error.png");
 const AvailableConsultant = () => {
@@ -29,7 +30,7 @@ const AvailableConsultant = () => {
     postData,
   } = usePostData(`${API_URL}/api/v12/sessions/practitioners`);
 
-  const { selected, selectedId } = useLocalSearchParams();
+  const { selected, selectedId, doctors } = useLocalSearchParams();
 
   const selectedString =
     typeof selected === "string"
@@ -37,6 +38,17 @@ const AvailableConsultant = () => {
       : Array.isArray(selected)
       ? selected[0]
       : "";
+
+  const normalizedDoctors =
+    typeof doctors === "string"
+      ? doctors
+      : Array.isArray(doctors)
+      ? doctors[0] // take the first item if array
+      : "";
+
+  const selectedDoctors = normalizedDoctors
+    ? JSON.parse(decodeURIComponent(normalizedDoctors))
+    : [];
 
   const selectedArray = selectedString
     ? JSON.parse(decodeURIComponent(selectedString))
@@ -70,7 +82,6 @@ const AvailableConsultant = () => {
 
         try {
           const res = await postData(payload);
-          console.log("res", res);
         } catch (err) {
           console.log("err", err);
         }
@@ -128,79 +139,27 @@ const AvailableConsultant = () => {
           </View>
           <View>
             <CustomFlatList
-              data={data?.transactions || []}
-              renderItem={({ item }: { item: HistoryWalletType }) => (
-                <HistoryWallet
-                  amount={item.amount}
-                  type={item.type}
-                  timestamp={item.timestamp}
-                />
-              )}
+              data={selectedArray || []}
+              renderItem={({ item }: any) => {
+                const hasMatch = selectedDoctors.some((doc: any) =>
+                  (doc.specialty ?? []).includes(item._id)
+                );
+
+                return (
+                  <AvailableDoc
+                    specialtyId={item._id}
+                    name={item.name}
+                    hasMatch={hasMatch}
+                    doctors={doctors}
+                  />
+                );
+              }}
               ListEmptyComponent={() => (
                 <Text style={{ textAlign: "center" }}>No items found.</Text>
               )}
               showsVerticalScrollIndicator={false}
               ListFooterComponent={() => <View style={{ height: 32 }} />}
             />
-            <Pressable
-              className="rounded-[4px] border-[#DADADA80] border-[1px]  flex flex-row gap-[16px] items-center bg-[#fffff0]"
-              onPress={() => {
-                router.push("/callDoctor");
-              }}
-              style={[styles.shadowProp]}
-            >
-              <View className="flex flex-col gap-[8px] flex-1">
-                <View className="flex items-end">
-                  <View className="py-[4px] px-[16px] rounded-bl-[8px] bg-[#4CB050]">
-                    <Text
-                      className="text-[#ffffff] text-[12px] leading-[150%]  "
-                      style={{ fontFamily: "Inter_500Medium" }}
-                    >
-                      Available
-                    </Text>
-                  </View>
-                </View>
-                <View className="flex flex-col gap-[8px] px-[16px] pb-[16px]">
-                  <View className=" border-[#dadada80] border-b pb-2 flex w-full">
-                    <Text
-                      className="text-[#030319] text-[14px]   "
-                      style={{ fontFamily: "Inter_500Medium" }}
-                    >
-                      General Practice
-                    </Text>
-                  </View>
-                  <View className="flex flex-row items-center gap-[12px]">
-                    <View className="flex flex-row items-center gap-[4px]">
-                      <View className="w-[4px] h-[4px] bg-[#424242] rounded-full"></View>
-                      <Text
-                        className="text-[#272757] text-[12px] leading-[20px]  "
-                        style={{ fontFamily: "Inter_400Regular" }}
-                      >
-                        Diagnosis
-                      </Text>
-                    </View>
-                    <View className="flex flex-row items-center gap-[4px]">
-                      <View className="w-[4px] h-[4px] bg-[#424242] rounded-full"></View>
-                      <Text
-                        className="text-[#272757] text-[12px] leading-[20px]  "
-                        style={{ fontFamily: "Inter_400Regular" }}
-                      >
-                        Prescriptions
-                      </Text>
-                    </View>
-                    <View className="flex flex-row items-center gap-[4px]">
-                      <View className="w-[4px] h-[4px] bg-[#424242] rounded-full"></View>
-                      <Text
-                        className="text-[#272757] text-[12px] leading-[20px]  "
-                        style={{ fontFamily: "Inter_400Regular" }}
-                      >
-                        Counselling
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </Pressable>
           </View>
         </View>
       </View>

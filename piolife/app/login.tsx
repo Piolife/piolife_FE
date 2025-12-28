@@ -9,6 +9,8 @@ import {
   Pressable,
   Platform,
   Alert,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
 import { router } from "expo-router";
 import {
@@ -24,7 +26,7 @@ import Toast, { BaseToastProps } from "react-native-toast-message";
 import { BaseToast, ErrorToast } from "react-native-toast-message";
 import { getCurrentLocation } from "@/components/reusables";
 import { API_URL } from "@/constants/api";
-
+import { useUser } from "@/components/UserContext";
 export type LoginResponse = {
   message: string;
   user: {
@@ -38,23 +40,40 @@ export type LoginResponse = {
     dateOfBirth: string;
   };
 };
-export const toastConfig = {
-  error: (props: React.JSX.IntrinsicAttributes & BaseToastProps) => (
-    <ErrorToast
-      {...props}
-      style={{
-        backgroundColor: "#fff",
-        borderLeftColor: "red",
-        zIndex: 9999,
-        elevation: 9999,
-        position: "absolute", // helps with layering
-        top: 120,
-      }}
-      text1Style={{ color: "black", fontWeight: "bold" }}
-      text2Style={{ color: "black" }}
-    />
+interface CustomToastProps extends BaseToastProps {
+  text1?: string;
+  text2?: string;
+}
+
+const toastConfig = {
+  error: ({ text1, text2 }: CustomToastProps) => (
+    <View className="flex-col  w-[90%] h-[60px] border border-[#D92D20] bg-[#FEF3F2] p-3 rounded-lg gap-2 z-999">
+      {text1 && (
+        <Text className="text-[#D92D20] text-[12px] font-[700]">{text1}</Text>
+      )}
+      {text2 && <Text style={{ color: "red" }}>{text2}</Text>}
+    </View>
   ),
-  // Add more types (info, success) if needed
+  success: ({ text1, text2 }: CustomToastProps) => (
+    <View className="flex-row items-center justify-start w-[90%] h-[52px] border border-[#ABEFC6] bg-[#ECFDF3] p-3 rounded-lg">
+      {text1 && (
+        <Text className="text-[#067647] text-[12px] font-semibold">
+          {text1}
+        </Text>
+      )}
+      {text2 && <Text style={{ color: "white" }}>{text2}</Text>}
+    </View>
+  ),
+  delete: ({ text1, text2 }: CustomToastProps) => (
+    <View className="flex-row items-center justify-start w-[90%] h-[52px] border border-[#D92D20] bg-[#FEF3F2] p-3 rounded-lg">
+      {text1 && (
+        <Text className="text-[#D92D20] text-[12px] font-semibold">
+          {text1}
+        </Text>
+      )}
+      {text2 && <Text style={{ color: "white" }}>{text2}</Text>}
+    </View>
+  ),
 };
 const Login = () => {
   const {
@@ -62,6 +81,7 @@ const Login = () => {
     loading: isLoading,
     postData,
   } = usePostData(`${API_URL}/api/v12/users/login`);
+  const { setUser } = useUser();
   const [errors, setErrors] = useState<Partial<LoginFormProps>>({});
   const [formData, setFormData] = useState<LoginFormProps>({
     email: "",
@@ -92,7 +112,9 @@ const Login = () => {
       const response = (await postData(trimmedData)) as LoginResponse;
 
       if (response?.user) {
-        await AsyncStorage.setItem("user", JSON.stringify(response.user));
+        // await AsyncStorage.setItem("user", JSON.stringify(response.user));
+        setUser(response.user);
+
         AsyncStorage.setItem("hasLaunched", "launched");
         await AsyncStorage.setItem("userEmail", formData.email);
         router.push({
@@ -107,8 +129,9 @@ const Login = () => {
       console.log("error", err);
       Toast.show({
         type: "error",
+        text1: "Failed",
         text2: err.message,
-        position: "top",
+        position: "bottom",
         topOffset: 80,
       });
       if (err.otpToken) {
@@ -140,90 +163,103 @@ const Login = () => {
       className="flex-1 bg-white"
       style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
     >
-      <StatusBar style="dark" backgroundColor="#ffffff" />
-      <View className="py-[16px] px-[4%] gap-[32px]">
-        <Text
-          className="text-[#272757] text-[24px] leading-[24px] text-center mt-10"
-          style={{ fontFamily: "Inter_500Medium" }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          keyboardShouldPersistTaps="handled"
         >
-          Welcome back!
-        </Text>
-        <Text
-          className="text-[#272757] text-[16px] leading-[22px] text-center "
-          style={{ fontFamily: "Inter_400Regular" }}
-        >
-          Kindly log in to continue
-        </Text>
-        <View className="flex flex-col ">
-          <CustomPickerTwo
-            value={formData.role}
-            onChange={(value) => handleChange("role", value)}
-            label="Role"
-            error={errors.role}
-            placeholder="Sign-in as"
-          />
+          <Toast config={toastConfig} />
 
-          <CustomTextInput
-            label="Email"
-            value={formData.email}
-            onChangeText={(value) => handleChange("email", value)}
-            placeholder="Enter Email"
-            placeholderTextColor={"#BABABA"}
-            keyboardType="default"
-            errorMessage={errors.email}
-          />
-          <View className="flex flex-col">
-            <CustomTextInput
-              label="Password"
-              value={formData.password}
-              onChangeText={(value) => handleChange("password", value)}
-              placeholder="Enter Password"
-              placeholderTextColor={"#BABABA"}
-              keyboardType="default"
-              errorMessage={errors.password}
-              secureTextEntry={true}
-            />
-            <Pressable
-              onPress={() => {
-                router.push("/forgotPassword");
-              }}
+          <StatusBar style="dark" backgroundColor="#ffffff" />
+          <View className="py-[16px] px-[4%] gap-[32px]">
+            <Text
+              className="text-[#272757] text-[24px] leading-[24px] text-center mt-10"
+              style={{ fontFamily: "Inter_500Medium" }}
             >
-              <Text
-                className="text-[#272757] text-[14px] leading-[22px] text-right "
-                style={{ fontFamily: "Inter_500Medium" }}
+              Welcome back!
+            </Text>
+            <Text
+              className="text-[#272757] text-[16px] leading-[22px] text-center "
+              style={{ fontFamily: "Inter_400Regular" }}
+            >
+              Kindly log in to continue
+            </Text>
+            <View className="flex flex-col ">
+              <CustomPickerTwo
+                value={formData.role}
+                onChange={(value) => handleChange("role", value)}
+                label="Role"
+                error={errors.role}
+                placeholder="Sign-in as"
+              />
+
+              <CustomTextInput
+                label="Email"
+                value={formData.email}
+                onChangeText={(value) => handleChange("email", value)}
+                placeholder="Enter Email"
+                placeholderTextColor={"#BABABA"}
+                keyboardType="default"
+                errorMessage={errors.email}
+              />
+              <View className="flex flex-col">
+                <CustomTextInput
+                  label="Password"
+                  value={formData.password}
+                  onChangeText={(value) => handleChange("password", value)}
+                  placeholder="Enter Password"
+                  placeholderTextColor={"#BABABA"}
+                  keyboardType="default"
+                  errorMessage={errors.password}
+                  secureTextEntry={true}
+                />
+                <Pressable
+                  onPress={() => {
+                    router.push("/forgotPassword");
+                  }}
+                >
+                  <Text
+                    className="text-[#272757] text-[14px] leading-[22px] text-right "
+                    style={{ fontFamily: "Inter_500Medium" }}
+                  >
+                    Forgot Password?
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+            <View className="flex-col flex items-center justify-center mt-4  gap-[16px]">
+              <Pressable
+                disabled={isLoading}
+                onPress={handleLogin}
+                className={`px-[32px] h-[56px] bg-[#0e16ff] w-full rounded-[8px] flex items-center justify-center`}
               >
-                Forgot Password?
-              </Text>
-            </Pressable>
+                <Text
+                  className="text-white text-[16px]"
+                  style={{ fontFamily: "Inter_700Bold" }}
+                >
+                  {isLoading ? "Submitting..." : "Log In"}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  router.push("/selectProfile");
+                }}
+              >
+                <Text
+                  className="text-[16px] leading-[22px]"
+                  style={{ fontFamily: "Inter_600SemiBold" }}
+                >
+                  Don’t have an account? Register
+                </Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
-        <View className="flex-col flex items-center justify-center mt-4  gap-[16px]">
-          <Pressable
-            disabled={isLoading}
-            onPress={handleLogin}
-            className={`px-[32px] h-[56px] bg-[#0e16ff] w-full rounded-[8px] flex items-center justify-center`}
-          >
-            <Text
-              className="text-white text-[16px]"
-              style={{ fontFamily: "Inter_700Bold" }}
-            >
-              {isLoading ? "Submitting..." : "Log In"}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              router.push("/selectProfile");
-            }}
-          >
-            <Text
-              className="text-[16px] leading-[22px]"
-              style={{ fontFamily: "Inter_600SemiBold" }}
-            >
-              Don’t have an account? Register
-            </Text>
-          </Pressable>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

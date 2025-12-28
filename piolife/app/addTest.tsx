@@ -124,6 +124,8 @@ const AddTest = () => {
       className="flex-1 bg-white"
       style={{ paddingTop: Platform.OS === "android" ? 30 : 0 }}
     >
+      <Toast config={toastConfig} />
+
       <StatusBar style="dark" backgroundColor="#ffffff" />
 
       <View className="py-[16px] px-[4%] gap-[32px]">

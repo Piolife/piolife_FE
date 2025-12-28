@@ -66,6 +66,10 @@ const PharmServices = () => {
   };
   const [user, SetUser] = useState<User>();
   const token = user?.token;
+  const { data, loading, error } = useFetchData<any>(
+    location ? `${API_URL}/api/v12/pharmacy-stock/sales/${user?.id}` : "",
+    { token }
+  );
 
   useEffect(() => {
     const loadUser = async () => {
@@ -110,9 +114,12 @@ const PharmServices = () => {
         </View>
         <View className="flex flex-col ">
           <CustomFlatList
-            data={drugsSold || []}
+            data={data || []}
             renderItem={({ item }: { item: DrugSoldType }) => (
-              <DrugSold amount={item.amount} percentage={item.percentage} />
+              <DrugSold
+                totalAmount={item.totalAmount}
+                percentage={item.percentage}
+              />
             )}
             ListEmptyComponent={() => (
               <Text style={{ textAlign: "center" }}>No items found.</Text>

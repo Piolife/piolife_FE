@@ -6,6 +6,7 @@ import Toast from "react-native-toast-message";
 import { useEffect, useState } from "react";
 import { User } from "@/services/core/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import React from "react";
 
 export default function TabLayout() {
   const [user, SetUser] = useState<User>();

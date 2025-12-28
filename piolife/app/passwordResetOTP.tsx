@@ -75,11 +75,12 @@ const PasswordOtp = () => {
     const trimmedData: any = {
       otp: otp,
       email: singleEmail,
+      role: singleRole,
     };
 
     try {
       const response = (await postData(trimmedData)) as any;
-
+      console.log("damina", response);
       if (response) {
         router.push({
           pathname: "/resetPassword",

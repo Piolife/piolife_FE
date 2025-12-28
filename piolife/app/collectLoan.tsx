@@ -146,7 +146,7 @@ const CollectLoan = () => {
                     keyboardType="numeric"
                     onChangeText={(value) => handleChange(value)}
                     placeholder="1,200.00"
-                    placeholderTextColor="#030319"
+                    placeholderTextColor="#aaaaaa"
                     style={{
                       fontFamily: "Inter_600SemiBold",
                       textAlignVertical: "center", // Ensure vertical alignment

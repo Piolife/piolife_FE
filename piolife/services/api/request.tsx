@@ -5,7 +5,10 @@ interface FetchOptions {
   token?: string;
 }
 
-export const useFetchData = <T,>(url: string, options?: FetchOptions) => {
+export const useFetchData = <T,>(
+  url: string | null,
+  options?: FetchOptions
+) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,11 +75,12 @@ export const usePostData = <T,>(url: string, withAuth: boolean = false) => {
       }
 
       const response = await axios.post<T>(url, payload, { headers });
+      console.log(response, "responseuuu");
       setData(response.data);
       return response.data;
     } catch (err: any) {
       const errorData = err.response?.data;
-
+      console.log(err, "err");
       throw {
         message: errorData?.message || "Something went wrong",
         otpToken: errorData?.otpToken,

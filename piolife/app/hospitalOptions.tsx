@@ -45,7 +45,7 @@ const HospitalOptions = () => {
       style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
     >
       <StatusBar style="dark" backgroundColor="#ffffff" />
-      <View className="py-[16px] px-[4%] gap-[24px] pt-16">
+      <View className="py-[16px] px-[4%] gap-[24px] pt-8">
         <Pressable
           className="flex flex-row items-center gap-[16px] "
           onPress={handlePrevious}
@@ -149,68 +149,35 @@ const HospitalOptions = () => {
             <FontAwesome name="angle-right" size={24} color="black" />
           </Pressable>
         </View>
-        {/* <View className="flex flex-col gap-[16px]">
-          <View className="flex flex-row justify-between py-[4px] px-[8px] items-center">
+
+        <View className="flex flex-row justify-between my-4">
+          <Pressable
+            onPress={() => {
+              router.push("/medicalHistory");
+            }}
+            className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[48%]"
+          >
             <Text
-              className="text-[#272757] text-[16px] leading-[20px]"
-              style={{ fontFamily: "Inter_500Medium" }}
+              className="text-[#ffffff] text-[12px] leading-[17px] "
+              style={{ fontFamily: "Inter_600SemiBold" }}
             >
               Medical History
             </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              router.push("/recentConsultations");
+            }}
+            className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[48%]"
+          >
             <Text
-              className="text-[#0E16FF] text-[14px] leading-[20px]"
-              style={{ fontFamily: "Inter_400Regular" }}
+              className="text-[#ffffff] text-[12px] leading-[17px] "
+              style={{ fontFamily: "Inter_600SemiBold" }}
             >
-              See more
+              Recent Record
             </Text>
-          </View>
-          <View className="flex flex-col gap-[16px]">
-            <Pressable
-              className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row justify-between items-center bg-[#fffff0]"
-              onPress={() => {
-                router.push("/doctorSignup");
-              }}
-              style={[styles.shadowProp]}
-            >
-              <View className="flex flex-col gap-[8px]">
-                <Text
-                  className="text-[#272757] text-[14px] leading-[20px]  "
-                  style={{ fontFamily: "Inter_600SemiBold" }}
-                >
-                  Doctor’s Reports
-                </Text>
-                <Text
-                  className="text-[#272757] text-[12px] leading-[20px]  "
-                  style={{ fontFamily: "Inter_400Regular" }}
-                >
-                  Dr Mark left a medical report after your call session.
-                </Text>
-              </View>
-            </Pressable>
-            <Pressable
-              className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row justify-between items-center bg-[#fffff0]"
-              onPress={() => {
-                router.push("/doctorSignup");
-              }}
-              style={[styles.shadowProp]}
-            >
-              <View className="flex flex-col gap-[8px]">
-                <Text
-                  className="text-[#272757] text-[14px] leading-[20px]  "
-                  style={{ fontFamily: "Inter_600SemiBold" }}
-                >
-                  Prescribed Drug, Pricing and Delivery
-                </Text>
-                <Text
-                  className="text-[#272757] text-[12px] leading-[20px]  "
-                  style={{ fontFamily: "Inter_400Regular" }}
-                >
-                  Check out your prescription from Dr Mark
-                </Text>
-              </View>
-            </Pressable>
-          </View>
-        </View> */}
+          </Pressable>
+        </View>
       </View>
     </SafeAreaView>
   );

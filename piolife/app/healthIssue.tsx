@@ -71,7 +71,7 @@ const HealthIssue = () => {
     const item = newdata.find((item: any) => item._id === id);
     return item ? sum + item.price : sum;
   }, 0);
-
+  console.log("data", newdata);
   const handleNext = () => {
     const selectedArray = newdata?.filter(
       (item: HealthIssueType) => selectedItems[item._id]
