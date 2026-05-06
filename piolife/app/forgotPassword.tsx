@@ -12,24 +12,18 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { CustomPicker, CustomTextInput } from "@/components/reusables";
-import { LoginFormProps } from "@/services/core/types";
-import { validateLoginForm } from "@/hooks/auth";
+import { LoginFormProps, ResetPasswordFormProps } from "@/services/core/types";
+import { validateForgetPasswordForm, validateLoginForm } from "@/hooks/auth";
 import { usePostData } from "@/services/api/request";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FontAwesome } from "@expo/vector-icons";
+import { API_URL } from "@/constants/api";
+import Toast from "react-native-toast-message";
 
 type LoginResponse = {
   message: string;
-  user: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    token: string;
-    isVerified: boolean;
-    dateOfBirth: string;
-  };
+  token: string;
+  otp: string;
 };
 
 const ForgotPassword = () => {
@@ -37,49 +31,56 @@ const ForgotPassword = () => {
     data: register,
     loading: isLoading,
     postData,
-  } = usePostData("https://piolife-be.onrender.com/api/v12/users/login");
-  const [errors, setErrors] = useState<Partial<LoginFormProps>>({});
-  const [formData, setFormData] = useState<LoginFormProps>({
+  } = usePostData(`${API_URL}/api/v12/users/request-password-reset`);
+  const [errors, setErrors] = useState<Partial<ResetPasswordFormProps>>({});
+  const [formData, setFormData] = useState<ResetPasswordFormProps>({
     email: "",
-    password: "",
     role: "",
   });
   const handleChange = (name: any, value: any) => {
-    const validationErrors = validateLoginForm(formData);
+    const validationErrors = validateForgetPasswordForm(formData);
     setErrors(validationErrors);
     setFormData((prevData) => ({
       ...prevData,
       [name]: value,
     }));
   };
-  const handleLogin = async () => {
-    const trimmedData: LoginFormProps = {
+  const handlePasswordReset = async () => {
+    const trimmedData: ResetPasswordFormProps = {
       email: formData.email.trim(),
-      password: formData.password.trim(),
       role: formData.role.trim(),
     };
 
-    const validationErrors = validateLoginForm(trimmedData);
+    const validationErrors = validateForgetPasswordForm(trimmedData);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
     try {
       const response = (await postData(trimmedData)) as LoginResponse;
-      console.log("SignIn successful", response);
 
-      if (response?.user) {
-        await AsyncStorage.setItem("user", JSON.stringify(response.user));
+      if (response) {
         router.push({
-          pathname: "/(tabs)",
+          pathname: "/passwordResetOTP",
           params: {
-            userId: response.user.id,
-            role: response.user.role,
+            email: formData.email,
+            role: formData.role,
           },
+        });
+        Toast.show({
+          type: "success",
+          text2: response.message,
+          position: "top",
+          topOffset: 80,
         });
       }
     } catch (err: any) {
-      Alert.alert("SignIn failed: " + err.message);
+      Toast.show({
+        type: "error",
+        text2: err.message,
+        position: "top",
+        topOffset: 80,
+      });
     }
   };
   return (
@@ -116,6 +117,23 @@ const ForgotPassword = () => {
           Please enter your email to reset password
         </Text>
         <View className="flex flex-col ">
+          <CustomPicker
+            label="Role"
+            value={formData.role}
+            onValueChange={(value) => handleChange("role", value)}
+            items={[
+              { label: "Client", value: "client" },
+              { label: "Medical Practitioner", value: "medical_practitioner" },
+              { label: "Emergency Services", value: "emergency_services" },
+              { label: "Pharmacy Services", value: "pharmacy_services" },
+              {
+                label: "Medical Laboratory Services",
+                value: "medical_lab_services",
+              },
+            ]}
+            placeholder="Sign-in as"
+            error={errors.role}
+          />
           <CustomTextInput
             label="Email"
             value={formData.email}
@@ -126,11 +144,14 @@ const ForgotPassword = () => {
             errorMessage={errors.email}
           />
         </View>
-        <View className="flex-col flex items-center justify-center mt-4  gap-[16px]">
+        <View className="flex-col flex items-center justify-center mt-4  gap-[16px] w-full">
           <Pressable
             disabled={isLoading}
-            onPress={handleLogin}
-            className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
+            onPress={handlePasswordReset}
+            // onPress={() => {
+            //   router.push("/passwordResetOTP");
+            // }}
+            className={`px-[32px] h-[56px] bg-[#0e16ff] w-full rounded-[8px] flex items-center justify-center`}
           >
             <Text
               className="text-white text-[16px]"

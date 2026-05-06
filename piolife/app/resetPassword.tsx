@@ -10,14 +10,14 @@ import {
   Platform,
   Alert,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { CustomPicker, CustomTextInput } from "@/components/reusables";
 import { LoginFormProps } from "@/services/core/types";
-import { validateLoginForm } from "@/hooks/auth";
+import { NewPasswordValidate, validateLoginForm } from "@/hooks/auth";
 import { usePostData } from "@/services/api/request";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FontAwesome } from "@expo/vector-icons";
-
+import { API_URL } from "@/constants/api";
 type LoginResponse = {
   message: string;
   user: {
@@ -31,21 +31,25 @@ type LoginResponse = {
     dateOfBirth: string;
   };
 };
+export type NewPasswordForm = {
+  password: string;
+  confirmPassword: string;
+};
 
 const ResetPassword = () => {
   const {
     data: register,
     loading: isLoading,
     postData,
-  } = usePostData("https://piolife-be.onrender.com/api/v12/users/login");
-  const [errors, setErrors] = useState<Partial<LoginFormProps>>({});
-  const [formData, setFormData] = useState<LoginFormProps>({
-    email: "",
+  } = usePostData(`${API_URL}/api/v12/users/reset-password`);
+  const { token } = useLocalSearchParams();
+  const [errors, setErrors] = useState<Partial<NewPasswordForm>>({});
+  const [formData, setFormData] = useState<NewPasswordForm>({
     password: "",
-    role: "",
+    confirmPassword: "",
   });
   const handleChange = (name: any, value: any) => {
-    const validationErrors = validateLoginForm(formData);
+    const validationErrors = NewPasswordValidate(formData);
     setErrors(validationErrors);
     setFormData((prevData) => ({
       ...prevData,
@@ -53,29 +57,26 @@ const ResetPassword = () => {
     }));
   };
   const handleLogin = async () => {
-    const trimmedData: LoginFormProps = {
-      email: formData.email.trim(),
+    const trimmedData: NewPasswordForm = {
+      confirmPassword: formData.confirmPassword.trim(),
       password: formData.password.trim(),
-      role: formData.role.trim(),
     };
 
-    const validationErrors = validateLoginForm(trimmedData);
+    const validationErrors = NewPasswordValidate(trimmedData);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
     try {
-      const response = (await postData(trimmedData)) as LoginResponse;
-      console.log("SignIn successful", response);
+      const payload = {
+        ...trimmedData,
+        token: token,
+      };
+      const response = (await postData(payload)) as LoginResponse;
 
-      if (response?.user) {
-        await AsyncStorage.setItem("user", JSON.stringify(response.user));
+      if (response) {
         router.push({
-          pathname: "/(tabs)",
-          params: {
-            userId: response.user.id,
-            role: response.user.role,
-          },
+          pathname: "/login",
         });
       }
     } catch (err: any) {
@@ -118,28 +119,30 @@ const ResetPassword = () => {
         <View className="flex flex-col gap-[24px]">
           <CustomTextInput
             label="Enter New Password"
-            value={formData.email}
-            onChangeText={(value) => handleChange("email", value)}
-            placeholder="Enter Email"
+            value={formData.password}
+            onChangeText={(value) => handleChange("password", value)}
+            placeholder="Enter Password"
             placeholderTextColor={"#BABABA"}
             keyboardType="default"
-            errorMessage={errors.email}
+            errorMessage={errors.password}
+            secureTextEntry={true}
           />
           <CustomTextInput
             label="Confirm Password"
-            value={formData.email}
-            onChangeText={(value) => handleChange("email", value)}
-            placeholder="Enter Email"
+            value={formData.confirmPassword}
+            onChangeText={(value) => handleChange("confirmPassword", value)}
+            placeholder="Enter confirm Password"
             placeholderTextColor={"#BABABA"}
             keyboardType="default"
-            errorMessage={errors.email}
+            errorMessage={errors.confirmPassword}
+            secureTextEntry={true}
           />
         </View>
         <View className="flex-col flex items-center justify-center mt-4  gap-[16px]">
           <Pressable
             disabled={isLoading}
             onPress={handleLogin}
-            className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
+            className={`px-[32px] h-[56px] bg-[#0e16ff] w-full rounded-[8px] flex items-center justify-center`}
           >
             <Text
               className="text-white text-[16px]"

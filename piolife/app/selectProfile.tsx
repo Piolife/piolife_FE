@@ -22,7 +22,7 @@ const SelectProfile = () => {
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[32px]">
         <Text
-          className="text-[#272757] text-[18px] leading-[24px] text-center mt-4"
+          className="text-[#272757] text-[18px] leading-[24px] text-center mt-12"
           style={{ fontFamily: "Inter_500Medium" }}
         >
           Your Profile

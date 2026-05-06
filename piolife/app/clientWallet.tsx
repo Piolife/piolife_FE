@@ -30,6 +30,7 @@ const wallety = require("../assets/images/Cash Wallet.png");
 const piocoin = require("../assets/images/piocoin_symbol-removebg-preview 1.png");
 const fundwallet = require("../assets/images/image 47.png");
 const getloan = require("../assets/images/image 44-2.png");
+import { API_URL } from "@/constants/api";
 const ClientWallet = () => {
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
   const [amount, setAmount] = useState<number>(0);
@@ -47,9 +48,7 @@ const ClientWallet = () => {
   const [user, SetUser] = useState<User>();
   const token = user?.token;
   const { data, loading, error, refetch } = useFetchData<wallet>(
-    user
-      ? `https://piolife-be.onrender.com/api/v12/wallet/${user.id}/balance`
-      : "",
+    user ? `${API_URL}/api/v12/wallet/${user.id}/balance` : "",
     { token }
   );
 
@@ -68,7 +67,6 @@ const ClientWallet = () => {
   };
   const handleAmountChange = (newAmount: number) => {
     setAmount(newAmount);
-    console.log("Amount from modal:", newAmount);
   };
   const handleSubmit = () => {
     handleCloseBottomSheet();

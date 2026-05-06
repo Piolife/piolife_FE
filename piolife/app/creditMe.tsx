@@ -13,7 +13,7 @@ const CreditMe = () => {
 
       <View className="px-[4%]">
         <Pressable
-          className="flex flex-row items-center gap-[16px] mt-2"
+          className="flex flex-row items-center gap-[16px] mt-14"
           // onPress={handlePrevious}
         >
           <FontAwesome name="angle-left" size={24} color="black" />

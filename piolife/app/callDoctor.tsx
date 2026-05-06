@@ -10,14 +10,34 @@ import {
   Image,
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
-import { router } from "expo-router";
-import Feather from "@expo/vector-icons/Feather";
+import { router, useLocalSearchParams } from "expo-router";
+import { CustomFlatList } from "@/components/reusables";
+import { CallDoc } from "@/components/flatListItems/items";
 
-const doctor = require("../assets/images/Mask Group-2.png");
 const CallDoctor = () => {
   const handlePrevious = () => {
     router.back();
   };
+  const { specialtyId, name, doctors } = useLocalSearchParams<{
+    specialtyId: string;
+    name?: string;
+    doctors?: string;
+  }>();
+
+  const normalizedDoctors =
+    typeof doctors === "string"
+      ? doctors
+      : Array.isArray(doctors)
+      ? doctors[0] // take the first item if array
+      : "";
+
+  const selectedDoctors = normalizedDoctors
+    ? JSON.parse(decodeURIComponent(normalizedDoctors))
+    : [];
+
+  const matchedUsers = selectedDoctors.filter((u: any) =>
+    u.specialty.includes(specialtyId)
+  );
 
   return (
     <SafeAreaView
@@ -27,7 +47,7 @@ const CallDoctor = () => {
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[24px]">
         <Pressable
-          className="flex flex-row items-center gap-[16px] mt-2"
+          className="flex flex-row items-center gap-[16px] mt-10"
           onPress={handlePrevious}
         >
           <FontAwesome name="angle-left" size={24} color="black" />
@@ -43,44 +63,28 @@ const CallDoctor = () => {
             className="text-[#000000] text-[16px] leading-[24px]"
             style={{ fontFamily: "Inter_500Medium" }}
           >
-            General Practice
+            {name}
           </Text>
           <View className="py-[4px] flex flex-col gap-[16px]">
-            <Pressable
-              className="border-[#DADADA80] border-[1px] p-[16px] rounded-[4px] bg-[#fffff0]"
-              style={[styles.shadowProp]}
-            >
-              <View className=" flex flex-row gap-[16px] items-center ">
-                <Image source={doctor} className="h-[80px] w-[80px]" />
-                <View className="flex flex-col gap-[8px] flex-1">
-                  <View className=" border-[#dadada80] border-b pb-2 flex w-full">
-                    <Text
-                      className="text-[#272757] text-[14px] leading-[20px]  "
-                      style={{ fontFamily: "Inter_600SemiBold" }}
-                    >
-                      Dr 234789DH
-                    </Text>
-                  </View>
-                  <Text
-                    className="text-[#272757] text-[12px] leading-[20px]  "
-                    style={{ fontFamily: "Inter_400Regular" }}
-                  >
-                    Register
-                  </Text>
-                </View>
-              </View>
-              <View className="flex items-end">
-                <View className="py-[10px] border-[#dadada] border-[1px] rounded-[8px] px-[16px] gap-[16px] flex flex-row">
-                  <Pressable className="p-[8px] rounded-full bg-[##0E16FF] ">
-                    <Feather name="phone" size={16} color="white" />
-                  </Pressable>
-                  <View className="w-[1px] bg-[#DADADA80]"></View>
-                  <Pressable className="p-[8px] rounded-full bg-[##0E16FF] ">
-                    <Feather name="video" size={16} color="white" />
-                  </Pressable>
-                </View>
-              </View>
-            </Pressable>
+            <CustomFlatList
+              data={matchedUsers || []}
+              renderItem={({ item }: any) => {
+                return (
+                  <CallDoc
+                    specialtyId={specialtyId}
+                    username={item.username}
+                    profilePicture={item.profilePicture}
+                    doctorId={item._id}
+                    languageProficiency={item.languageProficiency}
+                  />
+                );
+              }}
+              ListEmptyComponent={() => (
+                <Text style={{ textAlign: "center" }}>No items found.</Text>
+              )}
+              showsVerticalScrollIndicator={false}
+              ListFooterComponent={() => <View style={{ height: 32 }} />}
+            />
           </View>
         </View>
       </View>

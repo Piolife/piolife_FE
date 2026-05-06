@@ -2,8 +2,24 @@ import { Tabs } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Foundation from "@expo/vector-icons/Foundation";
 import Entypo from "@expo/vector-icons/Entypo";
+import Toast from "react-native-toast-message";
+import { useEffect, useState } from "react";
+import { User } from "@/services/core/types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React from "react";
 
 export default function TabLayout() {
+  const [user, SetUser] = useState<User>();
+  useEffect(() => {
+    const loadUser = async () => {
+      const userData = await AsyncStorage.getItem("user");
+      if (userData) {
+        const user = JSON.parse(userData);
+        SetUser(user);
+      }
+    };
+    loadUser();
+  }, []);
   return (
     <Tabs
       screenOptions={{
@@ -14,13 +30,18 @@ export default function TabLayout() {
         },
       }}
     >
+      <Toast />
       <Tabs.Screen
         name="refer"
         options={{
           tabBarShowLabel: false,
           headerShown: false,
           tabBarIcon: ({ color }) => (
-            <Entypo name="share" size={24} color={color} />
+            <Entypo
+              name={user?.role === "medical_practitioner" ? "phone" : "share"}
+              size={24}
+              color={color}
+            />
           ),
         }}
       />

@@ -9,10 +9,11 @@ import {
   Pressable,
   Platform,
 } from "react-native";
-import { router } from "expo-router";
 import { CustomTextInput } from "@/components/reusables";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Entypo from "@expo/vector-icons/Entypo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
 const profile = require("../../assets/images/profile.png");
 const key = require("../../assets/images/key-square.png");
 const call = require("../../assets/images/call-calling.png");
@@ -71,7 +72,14 @@ const Login = () => {
               <Entypo name="chevron-small-right" size={24} color="black" />
             </View>
           </View>
-          <View className="flex flex-row gap-[32px] items-center w-full  ">
+          <Pressable
+            className="flex flex-row gap-[32px] items-center w-full  "
+            onPress={async () => {
+              await AsyncStorage.removeItem("user");
+              await AsyncStorage.removeItem("userEmail");
+              router.push("/login");
+            }}
+          >
             <View className="p-[10px] w-[44px] h-[44px] rounded-[20px] bg-white shadow-md justify-center items-center">
               <Image source={login} className="w-[24px] h-[24px]" />
             </View>
@@ -84,7 +92,7 @@ const Login = () => {
               </Text>
               <Entypo name="chevron-small-right" size={24} color="black" />
             </View>
-          </View>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>

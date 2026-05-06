@@ -54,7 +54,7 @@ const AddFundsModal: React.FC<AddFundsModalProps> = ({
             style={{ fontFamily: "Inter_500Medium" }}
             className="text-[20px] leading-[30px] text-[#000000]"
           >
-            Select a Payment Method
+            Enter Payment Amount
           </Text>
           <Pressable
             onPress={onClose}

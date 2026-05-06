@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   TextInput,
   Text,
@@ -22,23 +22,23 @@ import {
 import RNPickerSelect from "react-native-picker-select";
 import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import { CustomPickerProps } from "@/services/core/types";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePicker, {
+  DateTimePickerAndroid,
+} from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { CustomDatePickerProps } from "@/services/core/types";
 import { uploadImageToCloudinary } from "./cloudinary";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
+import * as Location from "expo-location";
+import { FlatListProps } from "react-native";
+import DropDownPicker from "react-native-dropdown-picker";
+import { StreamChat } from "stream-chat";
+import * as Crypto from "expo-crypto";
 const wallet = require("../assets/images/Cash Wallet.png");
 const consult = require("../assets/images/image 46.png");
 const history = require("../assets/images/image 45-2.png");
-const styles = StyleSheet.create({
-  shadowProp: {
-    shadowColor: "#171717",
-    shadowOffset: { width: -2, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-});
+
 export const CustomTextInput: React.FC<CustomTextInputProps> = ({
   fadeAnim,
   value,
@@ -49,8 +49,11 @@ export const CustomTextInput: React.FC<CustomTextInputProps> = ({
   errorMessage,
   label = "",
   keyboardType,
+  secureTextEntry = false,
   ...props
 }) => {
+  const [isTextHidden, setIsTextHidden] = useState(secureTextEntry);
+
   return (
     <View className="flex flex-col gap-[12px]">
       <Text
@@ -59,17 +62,32 @@ export const CustomTextInput: React.FC<CustomTextInputProps> = ({
       >
         {label}
       </Text>
+
       <View>
-        <TextInput
-          style={{ fontFamily: "Inter_500Medium" }}
-          value={value}
-          keyboardType={keyboardType}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={placeholderTextColor}
-          className={` px-[10px] border-[#a5a5a5] border-[1px] rounded-[8px] text-[14px] leading-[15px] h-[45px] ${className}`}
-          {...props}
-        />
+        <View className="flex-row items-center border border-[#a5a5a5] rounded-[8px] px-[10px] h-[45px]">
+          <TextInput
+            style={{ fontFamily: "Inter_500Medium", flex: 1 }}
+            value={value}
+            keyboardType={keyboardType}
+            onChangeText={onChangeText}
+            placeholder={placeholder}
+            placeholderTextColor={placeholderTextColor}
+            secureTextEntry={isTextHidden}
+            className={`text-[14px] leading-[15px] ${className}`}
+            {...props}
+          />
+
+          {/* Toggle only if secureTextEntry is true */}
+          {secureTextEntry && (
+            <Pressable onPress={() => setIsTextHidden((prev) => !prev)}>
+              <Ionicons
+                name={isTextHidden ? "eye-off" : "eye"}
+                size={20}
+                color="#808080"
+              />
+            </Pressable>
+          )}
+        </View>
 
         <Animated.View style={{ opacity: fadeAnim }}>
           <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
@@ -132,57 +150,7 @@ export const CountryPicker: React.FC<CustomPickerProps> = ({
     </View>
   );
 };
-export const CustomPicker: React.FC<CustomPickerProps> = ({
-  label,
-  value,
-  onValueChange,
-  items,
-  placeholder,
-  fadeAnim,
-  error,
-}) => {
-  return (
-    <View className="flex flex-col gap-[12px]">
-      {label && (
-        <Text
-          className="text-[14px] leading-[25px] text-[#030319]"
-          style={{ fontFamily: "Inter_300Light" }}
-        >
-          {label}
-        </Text>
-      )}
-      <View>
-        <View
-          className={`${
-            Platform.OS === "ios" ? "" : ""
-          } px-[10px] border-[#a5a5a5] border-[1px] rounded-[8px] text-[16px] leading-[24px] h-[45px] flex items-center justify-center`}
-        >
-          <RNPickerSelect
-            Icon={() =>
-              Platform.OS === "ios" ? (
-                <Entypo name="chevron-small-down" size={24} color="black" />
-              ) : null
-            }
-            darkTheme={true}
-            value={value}
-            onValueChange={onValueChange}
-            items={items}
-            placeholder={{
-              label: placeholder || "Select an option",
-              value: "",
-            }}
-          />
-        </View>
 
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
-            {error}
-          </Text>
-        </Animated.View>
-      </View>
-    </View>
-  );
-};
 export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
   label,
   selectedDate,
@@ -190,15 +158,24 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
   toggleDatePicker,
   errorMessage,
   placeholder = "Select Date",
-  // fadeAnim,
   maximumDate = new Date(),
   onDateSelected,
 }) => {
-  const handleDateChange = (event: any, date: Date | undefined) => {
-    if (date) {
-      const formattedDate = date.toISOString().split("T")[0]; // Convert date to YYYY-MM-DD
-      onDateSelected?.(formattedDate); // Pass only the formattedDate
-    }
+  const openAndroidDatePicker = () => {
+    const today = new Date();
+
+    DateTimePickerAndroid.open({
+      value: selectedDate instanceof Date ? selectedDate : new Date(),
+      onChange: (event, date) => {
+        if (event.type === "set" && date) {
+          const formattedDate = date.toISOString().split("T")[0];
+          onDateSelected?.(formattedDate);
+        }
+      },
+      mode: "date",
+      maximumDate: maximumDate,
+      is24Hour: true,
+    });
   };
 
   return (
@@ -209,44 +186,51 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
       >
         {label}
       </Text>
+
       <View>
-        {showDatePicker && (
-          <DateTimePicker
-            textColor="#000000"
-            style={{}}
-            value={selectedDate || new Date()}
-            mode="date"
-            display="spinner"
-            onChange={(event, date) => handleDateChange(event, date)}
-            maximumDate={maximumDate}
-          />
+        {/* iOS inline picker */}
+        {Platform.OS === "ios" && showDatePicker && (
+          <>
+            <DateTimePicker
+              textColor="#000000"
+              value={selectedDate instanceof Date ? selectedDate : new Date()}
+              mode="date"
+              display="spinner"
+              onChange={(event, date) => {
+                if (date) {
+                  const formattedDate = date.toISOString().split("T")[0];
+                  onDateSelected?.(formattedDate);
+                }
+              }}
+              maximumDate={maximumDate}
+            />
+
+            <View className="flex-row justify-around mt-2">
+              <TouchableOpacity
+                onPress={toggleDatePicker}
+                className="px-4 py-2 rounded bg-gray-100"
+              >
+                <Text style={{ color: "#075985" }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={toggleDatePicker}
+                className="px-4 py-2 rounded bg-gray-300"
+              >
+                <Text>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </>
         )}
 
-        {showDatePicker && Platform.OS === "ios" && (
-          <View className="flex-row justify-around mt-2">
-            <TouchableOpacity
-              onPress={toggleDatePicker}
-              className="px-4 py-2 rounded bg-gray-100"
-            >
-              <Text style={{ color: "#075985" }}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={toggleDatePicker}
-              className="px-4 py-2 rounded bg-gray-300"
-            >
-              <Text>Confirm</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {!showDatePicker && (
-          <Pressable onPress={toggleDatePicker}>
+        {/* Android uses native modal picker on press */}
+        {Platform.OS === "android" && (
+          <Pressable onPress={openAndroidDatePicker}>
             <View className="h-[45px] px-[10px] border border-[#a5a5a5] rounded-[8px] flex flex-row justify-between items-center">
               <TextInput
                 value={
-                  selectedDate
-                    ? new Date(selectedDate).toLocaleDateString()
-                    : ""
+                  selectedDate instanceof Date
+                    ? selectedDate.toLocaleDateString()
+                    : undefined
                 }
                 placeholder={placeholder}
                 editable={false}
@@ -384,9 +368,6 @@ interface CustomDropdownProps {
   value: string;
   onValueChange: (value: string) => void;
   placeholder?: string;
-}
-export const CustomDropdown: React.FC<CustomDropdownProps> = ({
-  label,
   items,
   value,
   onValueChange,
@@ -493,7 +474,12 @@ export const ClientScreen = () => {
 
       {/* History */}
       <View className="w-1/3 flex items-center">
-        <Pressable className="flex flex-col items-center">
+        <Pressable
+          className="flex flex-col items-center"
+          onPress={() => {
+            router.push("/walletHistory");
+          }}
+        >
           <Image source={history} className="w-[56px] h-[56px]" />
           <Text
             className="text-[#ffffff] text-[14px] leading-[20px] text-center h-[40px]"
@@ -544,9 +530,18 @@ export const DoctorScreen = ({ balance }: DoctorScreenProps) => {
     </View>
   );
 };
-export const Stat = () => {
+export const Stat = ({
+  text,
+  serve,
+  onPress,
+}: {
+  text: string;
+  serve?: number;
+  onPress?: () => void;
+}) => {
   return (
-    <View
+    <Pressable
+      onPress={onPress}
       className="rounded-[4px] border-[#A5A5A566] border-[1px] px-[16px] py-[8px] flex flex-row gap-[16px] items-center bg-white justify-between w-1/2"
       style={[styles.shadowProp]}
     >
@@ -555,16 +550,16 @@ export const Stat = () => {
           className="text-[#030319] text-[14px] leading-[150%]  "
           style={{ fontFamily: "Inter_500Medium" }}
         >
-          Consultations
+          {text}
         </Text>
         <Text
           className="text-[#000000] text-[14px] leading-[150%]  "
           style={{ fontFamily: "Inter_500Medium" }}
         >
-          3
+          {serve}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 };
 export const ClientMenu = () => {
@@ -597,26 +592,6 @@ export const ClientMenu = () => {
           </View>
           <Feather name="chevron-right" size={24} color="black" />
         </Pressable>
-        <Pressable
-          className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-white justify-between"
-          style={[styles.shadowProp]}
-        >
-          <View className="flex flex-col gap-[8px] flex-1">
-            <Text
-              className="text-[#272757] text-[14px] leading-[20px]  "
-              style={{ fontFamily: "Inter_600SemiBold" }}
-            >
-              Set Up Passcodes
-            </Text>
-            <Text
-              className="text-[#272757] text-[12px] leading-[20px]  "
-              style={{ fontFamily: "Inter_400Regular" }}
-            >
-              Lock the app with passcodes or biometrics
-            </Text>
-          </View>
-          <Feather name="chevron-right" size={24} color="black" />
-        </Pressable>
       </View>
     </View>
   );
@@ -624,3 +599,310 @@ export const ClientMenu = () => {
 export function formatNumberToThousands(number: any) {
   return number?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
+export const getCurrentLocation = async () => {
+  const { status } = await Location.requestForegroundPermissionsAsync();
+  if (status !== "granted") throw new Error("Permission denied");
+
+  const location = await Location.getCurrentPositionAsync({});
+  return {
+    latitude: location.coords.latitude,
+    longitude: location.coords.longitude,
+  };
+};
+// components/CustomFlatList.tsx
+
+type CustomFlatListProps<T> = {
+  data: T[];
+  renderItem: FlatListProps<T>["renderItem"];
+  keyExtractor?: (item: T, index: number) => string;
+  ListEmptyComponent?: React.ComponentType<any> | null;
+  ListHeaderComponent?: React.ComponentType<any> | null;
+  ListFooterComponent?: React.ComponentType<any> | null;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+  onEndReached?: () => void;
+  horizontal?: boolean;
+  numColumns?: number;
+  showsHorizontalScrollIndicator?: boolean;
+  showsVerticalScrollIndicator?: boolean;
+};
+
+export function CustomFlatList<T>({
+  data,
+  renderItem,
+  keyExtractor,
+  ListEmptyComponent,
+  ListHeaderComponent,
+  ListFooterComponent,
+  refreshing,
+  onRefresh,
+  onEndReached,
+  horizontal = false,
+  numColumns = 1,
+  showsHorizontalScrollIndicator = true,
+  showsVerticalScrollIndicator = true,
+}: CustomFlatListProps<T>) {
+  return (
+    <FlatList
+      data={data}
+      renderItem={renderItem}
+      keyExtractor={keyExtractor ?? ((_, index) => index.toString())}
+      ListEmptyComponent={
+        ListEmptyComponent ??
+        (() => (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No data available.</Text>
+          </View>
+        ))
+      }
+      ListHeaderComponent={ListHeaderComponent}
+      ListFooterComponent={ListFooterComponent}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      onEndReached={onEndReached}
+      horizontal={horizontal}
+      numColumns={horizontal ? 1 : numColumns}
+      showsHorizontalScrollIndicator={showsHorizontalScrollIndicator}
+      showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+      contentContainerStyle={data?.length === 0 && styles.flatListContainer}
+    />
+  );
+}
+export function formatDateTime(isoString: string): string {
+  const date = new Date(isoString);
+
+  // Options for month abbreviation, day, year, hour, minute, AM/PM
+  const options: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  };
+
+  return date.toLocaleString("en-US", options);
+}
+
+const styles = StyleSheet.create({
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#999999",
+  },
+  flatListContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+  shadowProp: {
+    shadowColor: "#171717",
+    shadowOffset: { width: -2, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+});
+interface CustomPickerProp {
+  label: string;
+  value: string;
+  placeholder: string;
+  error?: string;
+  onChange: (value: string) => void;
+}
+export const CustomPicker: React.FC<CustomPickerProps> = ({
+  label,
+  value,
+  onValueChange,
+  items,
+  placeholder,
+  fadeAnim,
+  error,
+}) => {
+  return (
+    <View className="flex flex-col gap-[12px]">
+      {label && (
+        <Text
+          className="text-[14px] leading-[25px] text-[#030319]"
+          style={{ fontFamily: "Inter_300Light" }}
+        >
+          {label}
+        </Text>
+      )}
+      <View>
+        <View
+          className={`${
+            Platform.OS === "ios" ? "" : ""
+          } px-[10px] border-[#a5a5a5] border-[1px] rounded-[8px] text-[16px] leading-[24px] h-[45px] flex items-center justify-center`}
+        >
+          <RNPickerSelect
+            Icon={() =>
+              Platform.OS === "ios" ? (
+                <Entypo name="chevron-small-down" size={24} color="black" />
+              ) : null
+            }
+            darkTheme={true}
+            value={value}
+            onValueChange={onValueChange}
+            items={items || []}
+            placeholder={{
+              label: placeholder || "Select an option",
+              value: "",
+            }}
+          />
+        </View>
+
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
+            {error}
+          </Text>
+        </Animated.View>
+      </View>
+    </View>
+  );
+};
+export const CustomPickerTwo: React.FC<CustomPickerProp> = ({
+  value,
+  onChange,
+  label,
+  error,
+  placeholder,
+}) => {
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState([
+    {
+      label: "Client",
+      value: "client",
+      labelStyle: { color: "green" },
+    },
+    {
+      label: "Medical Practitioner",
+      value: "medical_practitioner",
+      labelStyle: { color: "black" },
+    },
+    {
+      label: "Emergency Services",
+      value: "emergency_services",
+      labelStyle: { color: "black" },
+    },
+    {
+      label: "Pharmacy Services",
+      value: "pharmacy_services",
+      labelStyle: { color: "black" },
+    },
+    {
+      label: "Medical Laboratory Services",
+      value: "medical_lab_services",
+      labelStyle: { color: "black" },
+    },
+  ]);
+
+  return (
+    <View className="flex flex-col gap-[12px]">
+      {label && (
+        <Text
+          className="text-[14px] leading-[25px] text-[#030319]"
+          style={{ fontFamily: "Inter_300Light" }}
+        >
+          {label}
+        </Text>
+      )}
+      <DropDownPicker
+        open={open}
+        value={value}
+        items={items}
+        setOpen={setOpen}
+        setValue={(callback) => {
+          const newValue =
+            typeof callback === "function" ? callback(value) : callback;
+          onChange(newValue);
+        }}
+        setItems={setItems}
+        placeholderStyle={{ color: "#A5A5A5" }}
+        placeholder={placeholder}
+        style={{ borderColor: "#a5a5a5" }}
+        textStyle={{ fontSize: 16 }}
+        dropDownContainerStyle={{ borderColor: "#a5a5a5" }}
+      />
+
+      <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
+        {error}
+      </Text>
+    </View>
+  );
+};
+
+export default CustomPicker;
+
+export function replaceUnderscoresWithSpaces(text: string): string {
+  return text.replace(/_/g, " ");
+}
+type EmergencyCustomEvent = {
+  type: "custom";
+  data: {
+    type: "emergency_request";
+    incidentLocation: { latitude: number; longitude: number };
+    distance: number;
+  };
+};
+const STREAM_API_KEY = "fvct7vwrd7ps"; // safer than hardcoding
+const chatClient = StreamChat.getInstance(STREAM_API_KEY);
+export function useStreamProvider(providerId: string, providerToken: string) {
+  useEffect(() => {
+    if (!providerId || !providerToken) return;
+    let unsubscribe: (() => void) | undefined;
+
+    async function connect() {
+      try {
+        await chatClient.connectUser(
+          {
+            id: providerId,
+            name: "Provider Name", // optional
+          },
+          providerToken
+        );
+        console.log("Stream user connected:", providerId);
+        chatClient.on("*", (event) => {
+          console.log("Stream event received:", event);
+        });
+
+        const listener = chatClient.on("custom", (event) => {
+          const customEvent = event as unknown as EmergencyCustomEvent;
+
+          if (customEvent.data?.type === "emergency_request") {
+            console.log("🚨 Emergency received:", customEvent.data);
+          }
+        });
+
+        unsubscribe = listener.unsubscribe;
+      } catch (error) {
+        console.error("Failed to connect to Stream:", error);
+      }
+    }
+
+    connect();
+
+    return () => {
+      unsubscribe?.();
+      chatClient.disconnectUser();
+    };
+  }, [providerId, providerToken]);
+}
+
+export async function generateCallId(doctorId: string, userId: string) {
+  // Add randomness (or timestamp) to make it unique per session
+  const sessionKey = `${doctorId}_${userId}_${Date.now()}_${Math.random()}`;
+
+  // Hash it for consistent length + uniqueness
+  const hash = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    sessionKey
+  );
+
+  return hash.slice(0, 16); // shorten for readability
+}
+
+// Example usage

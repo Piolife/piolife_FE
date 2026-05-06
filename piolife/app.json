@@ -1,22 +1,32 @@
 {
   "expo": {
-    "name": "piolife",
+    "name": "CONZOT+",
     "slug": "piolife",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/iOSAppIcons.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kaodinna.piolife"
+    },
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#ffffff"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/splash-icon.png",
-        "backgroundColor": "#0E16FF"
+        "backgroundColor": "#ffffff"
       },
-      "permissions": ["android.permission.RECORD_AUDIO"],
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_ADMIN"
+      ],
       "package": "com.kaodinna.piolife"
     },
     "web": {
@@ -27,12 +37,9 @@
     "plugins": [
       "expo-router",
       [
-        "expo-splash-screen",
+        "expo-location",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#0E16FF"
+          "locationAlwaysAndWhenInUsePermission": "Allow CONZOT+ to use your location."
         }
       ],
       [
@@ -41,12 +48,31 @@
           "photosPermission": "Allow CONZOT+ to access your photos",
           "cameraPermission": "Allow CONZOT+ to access your camera"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24
+          }
+        }
+      ],
+      [
+        "@stream-io/video-react-native-sdk",
+        [
+          "@config-plugins/react-native-webrtc",
+          {
+            "cameraPermission": "$(PRODUCT_NAME) requires camera access in order to capture and transmit video",
+            "microphonePermission": "$(PRODUCT_NAME) requires microphone access in order to capture and transmit audio"
+          }
+        ]
       ]
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
+      "API_URL": "http://localhost:8000",
       "router": {
         "origin": false
       },

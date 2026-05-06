@@ -26,7 +26,8 @@ import { validateClientForm } from "@/hooks/auth";
 import { uploadImageToCloudinary } from "@/components/cloudinary";
 import allcountry from "../countries.json";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import PhoneInputWithCountryPicker from "@/components/countryPick";
+import { API_URL } from "@/constants/api";
 interface signupResponse {
   otp: string;
   token: string;
@@ -39,15 +40,25 @@ const ClientSignup = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [step, setStep] = useState(1);
   const [isLoad, setLoading] = useState<boolean>(false);
+  const [tempDate, setTempDate] = useState<Date>(new Date());
 
   const [imageUri, setImageUri] = useState<string>("");
+  const [defaultCountry, setDefaultCountry] = useState<string>("");
+  const [nigeriaData, setNigeriaData] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("https://temikeezy.github.io/nigeria-geojson-data/data/full.json")
+      .then((res) => res.json())
+      .then(setNigeriaData)
+      .catch(console.error);
+  }, []);
 
   const {
     data: register,
     loading: isLoading,
 
     postData,
-  } = usePostData("https://piolife-be.onrender.com/api/v12/users/create");
+  } = usePostData(`${API_URL}/api/v12/users/create`);
 
   const totalSteps = 3;
 
@@ -76,6 +87,7 @@ const ClientSignup = () => {
     password: "",
     confirmPassword: "",
     profilePicture: "",
+    referralCode: "",
     role: "client",
   });
   const handleChange = (name: any, value: any) => {
@@ -99,7 +111,7 @@ const ClientSignup = () => {
       if (response) {
         console.log("Signup successful", response);
         await AsyncStorage.setItem("verificationToken", response?.token);
-        router.push("/otp");
+        router.push(`/otp?email=${encodeURIComponent(formData.email)}`);
       }
     } catch (err: any) {
       Alert.alert("Signup failed: " + err.message);
@@ -107,7 +119,6 @@ const ClientSignup = () => {
   };
 
   const handleDateChange = (fieldName: string, date: string) => {
-    console.log("Selected date:", date);
     setFormData((prevData) => ({
       ...prevData,
       [fieldName]: date,
@@ -129,7 +140,6 @@ const ClientSignup = () => {
       !validationErrors.profilePicture &&
       !validationErrors.firstName &&
       !validationErrors.lastName &&
-      !validationErrors.otherName &&
       !validationErrors.gender &&
       !validationErrors.maritalStatus
     ) {
@@ -158,7 +168,6 @@ const ClientSignup = () => {
       !validationErrors.password &&
       !validationErrors.confirmPassword
     ) {
-      console.log("formData", formData);
       handleSignup();
     }
   };
@@ -169,24 +178,25 @@ const ClientSignup = () => {
 
   const showMode = (currentMode: any) => {
     const today = new Date();
-    DateTimePickerAndroid.open({
-      value: selectedDate,
 
-      onChange: () => {
-        if (selectedDate) {
-          const formattedDate = selectedDate.toISOString().split("T")[0];
+    DateTimePickerAndroid.open({
+      value: selectedDate || new Date(),
+      onChange: (event, date) => {
+        if (event.type === "set" && date) {
+          const formattedDate = date.toISOString().split("T")[0];
+
           setFormData((prevState) => ({
             ...prevState,
-            dateOfBirth: formattedDate, // Update the dateOfBirth field in formData
+            dateOfBirth: formattedDate,
           }));
         }
-        console.log("dating", selectedDate);
       },
       mode: currentMode,
       is24Hour: true,
       maximumDate: today,
     });
   };
+
   const showDatepicker = () => {
     showMode("date");
   };
@@ -217,7 +227,7 @@ const ClientSignup = () => {
     const defaultCountry = nigeriaExists
       ? nigeria.value
       : countryList[0]?.value || "";
-
+    setDefaultCountry(defaultCountry);
     setFormData((prevData) => ({
       ...prevData,
       countryOfOrigin: defaultCountry,
@@ -227,16 +237,20 @@ const ClientSignup = () => {
   const handleImageUpload = async () => {
     try {
       const imageUrl = await uploadImageToCloudinary(setLoading);
-      setImageUri(imageUrl || ""); // Use an empty string if imageUrl is null
+      setImageUri(imageUrl || "");
 
       setFormData((prevData) => ({
         ...prevData,
-        profilePicture: imageUrl || "", // Use an empty string if imageUrl is null
+        profilePicture: imageUrl || "",
       }));
     } catch (error) {
       console.error("Error uploading image:", error);
     }
   };
+  const stateOptions = nigeriaData?.map((item: any) => ({
+    label: item.state,
+    value: item.state,
+  }));
 
   return (
     <SafeAreaView
@@ -253,10 +267,10 @@ const ClientSignup = () => {
           showsVerticalScrollIndicator={false}
           ref={scrollRef}
         >
-          <View className="flex flex-col  px-[4%]">
+          <View className="flex flex-col  px-[4%] pt-12">
             {step > 1 && (
               <Pressable
-                className="flex flex-row items-center gap-[16px] mt-2"
+                className="flex flex-row items-center gap-[16px] "
                 onPress={handlePrevious}
               >
                 <FontAwesome name="angle-left" size={24} color="black" />
@@ -270,7 +284,7 @@ const ClientSignup = () => {
             )}
             {step === 1 && (
               <Text
-                className="text-[#272757] text-[18px] leading-[24px] text-center mt-4"
+                className="text-[#272757] text-[18px] leading-[24px] text-center "
                 style={{ fontFamily: "Inter_500Medium" }}
               >
                 Create Your Account
@@ -358,20 +372,33 @@ const ClientSignup = () => {
                       placeholder="Select your marital status"
                       error={errors.maritalStatus}
                     />
+                    <CustomTextInput
+                      label="Referral Code"
+                      value={formData.referralCode}
+                      onChangeText={(value) =>
+                        handleChange("referralCode", value)
+                      }
+                      placeholder="Enter Referral Code if available"
+                      placeholderTextColor={"#BABABA"}
+                      keyboardType="default"
+                      errorMessage={errors.referralCode}
+                    />
                   </View>
                 )}
                 {step === 2 && (
                   <View className="flex flex-col gap-[16px]">
                     <CustomDatePicker
                       label="Date of Birth"
-                      selectedDate={new Date(formData.dateOfBirth)}
+                      selectedDate={tempDate}
                       showDatePicker={showDatePicker}
                       toggleDatePicker={toggleDatePicker}
                       errorMessage={errors.dateOfBirth}
                       placeholder="Select Date of Birth"
-                      onDateSelected={(date) =>
-                        handleDateChange("dateOfBirth", date)
-                      }
+                      onDateSelected={(dateStr) => {
+                        console.log("dude", dateStr);
+                        handleDateChange("dateOfBirth", dateStr); // update form string
+                        setTempDate(new Date(dateStr)); // update tempDate
+                      }}
                     />
 
                     <CountryPicker
@@ -384,6 +411,36 @@ const ClientSignup = () => {
                       placeholder="Select your Country of Origin"
                       error={errors.countryOfOrigin}
                     />
+                    {formData.countryOfResidence !== defaultCountry && (
+                      <CustomTextInput
+                        label="State/Province/County of Origin"
+                        value={formData.stateOfOrigin}
+                        onChangeText={(value) =>
+                          handleChange("stateOfOrigin", value)
+                        }
+                        placeholder="Enter Your State of Origin"
+                        placeholderTextColor={"#BABABA"}
+                        keyboardType="default"
+                        errorMessage={errors.stateOfOrigin}
+                      />
+                    )}
+
+                    {formData.countryOfResidence === defaultCountry && (
+                      <CustomPicker
+                        label="State/Province/County of Origin"
+                        value={formData.stateOfOrigin}
+                        onValueChange={(value) => {
+                          if (typeof value === "string") {
+                            setFormData((prev) => ({
+                              ...prev,
+                              stateOfOrigin: value,
+                            }));
+                          }
+                        }}
+                        items={stateOptions}
+                        error={errors.stateOfOrigin}
+                      />
+                    )}
                     <CountryPicker
                       label="Country of Residence"
                       value={formData.countryOfResidence || ""}
@@ -395,29 +452,35 @@ const ClientSignup = () => {
                       error={errors.countryOfResidence}
                     />
 
-                    <CustomTextInput
-                      label="State of Origin"
-                      value={formData.stateOfOrigin}
-                      onChangeText={(value) =>
-                        handleChange("stateOfOrigin", value)
-                      }
-                      placeholder="Enter Your State of Origin"
-                      placeholderTextColor={"#BABABA"}
-                      keyboardType="default"
-                      errorMessage={errors.stateOfOrigin}
-                    />
-
-                    <CustomTextInput
-                      label="State/Province/County of Residence"
-                      value={formData.stateOfResidence}
-                      onChangeText={(value) =>
-                        handleChange("stateOfResidence", value)
-                      }
-                      placeholder="Enter Your State of Residence"
-                      placeholderTextColor={"#BABABA"}
-                      keyboardType="default"
-                      errorMessage={errors.stateOfResidence}
-                    />
+                    {formData.countryOfResidence === defaultCountry && (
+                      <CustomPicker
+                        label="State/Province/County of Residence"
+                        value={formData.stateOfResidence}
+                        onValueChange={(value) => {
+                          if (typeof value === "string") {
+                            setFormData((prev) => ({
+                              ...prev,
+                              stateOfResidence: value,
+                            }));
+                          }
+                        }}
+                        items={stateOptions}
+                        error={errors.stateOfResidence}
+                      />
+                    )}
+                    {formData.countryOfResidence !== defaultCountry && (
+                      <CustomTextInput
+                        label="State/Province/County of Residence"
+                        value={formData.stateOfResidence}
+                        onChangeText={(value) =>
+                          handleChange("stateOfResidence", value)
+                        }
+                        placeholder="Enter Your State of Residence"
+                        placeholderTextColor={"#BABABA"}
+                        keyboardType="default"
+                        errorMessage={errors.stateOfResidence}
+                      />
+                    )}
                   </View>
                 )}
                 {step === 3 && (
@@ -442,28 +505,26 @@ const ClientSignup = () => {
                       keyboardType="default"
                       errorMessage={errors.confirmEmail}
                     />
-                    <CustomTextInput
-                      label="Phone No"
+
+                    <PhoneInputWithCountryPicker
+                      label="Phone Numnber"
                       value={formData.phoneNumber}
                       onChangeText={(value) =>
                         handleChange("phoneNumber", value)
                       }
-                      placeholder="Enter Your Phone"
-                      placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
+                      placeholder="Enter Your phone number"
                       errorMessage={errors.phoneNumber}
                     />
-                    <CustomTextInput
-                      label="Confirm Phone No"
+                    <PhoneInputWithCountryPicker
+                      label="Confirm Phone Numnber"
                       value={formData.confirmPhoneNumber}
                       onChangeText={(value) =>
                         handleChange("confirmPhoneNumber", value)
                       }
-                      placeholder="Enter Your Phone"
-                      placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
+                      placeholder="Enter Your phone number"
                       errorMessage={errors.confirmPhoneNumber}
                     />
+
                     <CustomTextInput
                       label="Create Password"
                       value={formData.password}
@@ -472,6 +533,7 @@ const ClientSignup = () => {
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
                       errorMessage={errors.password}
+                      secureTextEntry={true}
                     />
                     <CustomTextInput
                       label="Confirm Password"
@@ -483,6 +545,7 @@ const ClientSignup = () => {
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
                       errorMessage={errors.confirmPassword}
+                      secureTextEntry={true}
                     />
                   </View>
                 )}
@@ -493,7 +556,7 @@ const ClientSignup = () => {
               <Pressable
                 disabled={isLoading}
                 onPress={handleNext}
-                className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
+                className={`px-[32px] h-[56px] bg-[#0e16ff] w-full rounded-[8px] flex items-center justify-center`}
               >
                 <Text
                   className="text-white text-[16px]"

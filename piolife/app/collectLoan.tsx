@@ -25,9 +25,9 @@ import { wallet, User, eligibility } from "@/services/core/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { formatNumberToThousands } from "@/components/reusables";
-
 const piocoin = require("../assets/images/piocoin_symbol-removebg-preview 1.png");
 const getloan = require("../assets/images/image 44-2.png");
+import { API_URL } from "@/constants/api";
 
 const CollectLoan = () => {
   const [amount, setAmount] = useState<number>(0);
@@ -48,9 +48,7 @@ const CollectLoan = () => {
   const [user, SetUser] = useState<User>();
   const token = user?.token;
   const { data, loading, error } = useFetchData<eligibility>(
-    user
-      ? `https://piolife-be.onrender.com/api/v12/loans/${user.id}/eligibility`
-      : "",
+    user ? `${API_URL}/api/v12/loans/${user.id}/eligibility` : "",
     { token }
   );
   function isErrorWithMessage(error: unknown): error is { message: string } {
@@ -74,9 +72,7 @@ const CollectLoan = () => {
     data: register,
     loading: isLoading,
     postData,
-  } = usePostData(
-    `https://piolife-be.onrender.com/api/v12/loans/${user?.id}/request`
-  );
+  } = usePostData(`${API_URL}/api/v12/loans/${user?.id}/request`);
   if (loading || isLoading) {
     return (
       <View style={styles.loaderContainer}>
@@ -93,7 +89,7 @@ const CollectLoan = () => {
       }
     } catch (error) {
       if (isErrorWithMessage(error)) {
-        Alert.alert("Signup failed: " + error.message);
+        Alert.alert(error.message);
       } else {
         Alert.alert("Signup failed: An unknown error occurred");
       }
@@ -150,7 +146,7 @@ const CollectLoan = () => {
                     keyboardType="numeric"
                     onChangeText={(value) => handleChange(value)}
                     placeholder="1,200.00"
-                    placeholderTextColor="#030319"
+                    placeholderTextColor="#aaaaaa"
                     style={{
                       fontFamily: "Inter_600SemiBold",
                       textAlignVertical: "center", // Ensure vertical alignment

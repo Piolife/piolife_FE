@@ -9,7 +9,8 @@ export interface CustomTextInputProps extends TextInputProps {
   errorMessage?: string;
   label: string;
   placeholderTextColor: string;
-  keyboardType: KeyboardTypeOptions;
+  keyboardType?: KeyboardTypeOptions;
+  secureTextEntry?: boolean;
 }
 interface PickerItem {
   label: string;
@@ -40,10 +41,15 @@ export type FormData = {
   businessRegDocuments: string;
 };
 export type emergencySignupFormData = {
+  latitude: number;
+  longitude: number;
   hospitalName: string;
   officerInCharge: string;
   phoneNumber: string;
-  alternatePhoneNumber: string;
+  logo: string;
+  role: string;
+  profilePicture: string;
+  alternativePhoneNumber: string;
   stateOfResidence: string;
   localGovernmentArea: string;
   ward: string;
@@ -76,6 +82,16 @@ export type clientSignupFormData = {
   confirmPassword: string;
   role: string;
   profilePicture: string;
+  referralCode: string;
+};
+export type callEmergencyFormData = {
+  // name: string;
+  state: string;
+  lga: string;
+  ward: string;
+  address: string;
+  natureOfIncident: string;
+  others: string;
 };
 export type doctorSignupFormData = {
   otherLanguage: string;
@@ -101,6 +117,52 @@ export type doctorSignupFormData = {
   languageProficiency: string[];
   profilePicture?: string | null;
   role: string;
+  bankDetails?: {
+    accountNumber: string;
+    confirmAccountNumber: string;
+    accountName: string;
+    bankName: string;
+  };
+};
+export type pharmacySignupFormData = {
+  email: string;
+  pharmacyName: string;
+  logo: string;
+  // profilePicture:string;
+  officerInCharge: string;
+  phoneNumber: string;
+  alternativePhoneNumber: string;
+  stateOfResidence: string;
+  ward: string;
+  localGovernmentArea: string;
+  password: string;
+  confirmPassword: string;
+  role: string;
+  latitude: number;
+  longitude: number;
+  bankDetails?: {
+    accountNumber: string;
+    confirmAccountNumber: string;
+    accountName: string;
+    bankName: string;
+  };
+};
+export type medLabSignupFormData = {
+  email: string;
+  medicalLabName: string;
+  logo: string;
+  // profilePicture:string;
+  officerInCharge: string;
+  phoneNumber: string;
+  alternativePhoneNumber: string;
+  stateOfResidence: string;
+  ward: string;
+  localGovernmentArea: string;
+  password: string;
+  confirmPassword: string;
+  role: string;
+  latitude: number;
+  longitude: number;
   bankDetails?: {
     accountNumber: string;
     confirmAccountNumber: string;
@@ -136,6 +198,20 @@ export interface LoginFormProps {
   email: string;
   password: string;
 }
+export interface AddDrugFormProps {
+  name: string;
+  description: string;
+  price: string;
+  quantity: string;
+}
+export interface AddTestFormProps {
+  name: string;
+  price: string;
+}
+export interface ResetPasswordFormProps {
+  role: string;
+  email: string;
+}
 export interface User {
   id: string;
   email: string;
@@ -146,6 +222,10 @@ export interface User {
   isVerified: boolean;
   dateOfBirth: string;
   profilePicture: string;
+  logo?: string;
+  pharmacyName?: string;
+  medicalLabName?: string;
+  consultationCount?: number;
   username: string;
 }
 export interface wallet {
@@ -165,3 +245,23 @@ export interface HealthIssueType {
   price: number;
   __v: number;
 }
+export type HistoryWalletType = {
+  timestamp: string;
+  amount: number;
+  type: string;
+};
+export type DrugItemType = {
+  _id?: string;
+  name: string;
+  price: number;
+  description: string;
+};
+export type DrugSoldType = {
+  totalAmount: number;
+  percentage: number;
+};
+export type TestItemType = {
+  _id?: string;
+  name: string;
+  price: number;
+};

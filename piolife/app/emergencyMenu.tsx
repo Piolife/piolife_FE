@@ -50,7 +50,7 @@ const EmergencyMenu = () => {
               className="text-[#424242] text-[12px] leading-[17px]"
               style={{ fontFamily: "Inter_400Regular" }}
             >
-              You will charged automatically from your wallet
+              You will be charged automatically from your wallet
             </Text>
           </View>
           <View className="flex items-center">

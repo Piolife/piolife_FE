@@ -17,11 +17,12 @@ import React, { useState, useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FontAwesome } from "@expo/vector-icons";
 import { usePostData, useFetchData, useGetData } from "@/services/api/request";
+import { API_URL } from "@/constants/api";
 
 // const verify = require("../assets/images/verfiymail.png");
 const Otp = () => {
   const [otp, setOtp] = React.useState("");
-  const params = useLocalSearchParams();
+  const { email } = useLocalSearchParams();
   const [token, setToken] = useState("");
   useEffect(() => {
     const loadToken = async () => {
@@ -32,28 +33,28 @@ const Otp = () => {
       }
     };
     loadToken();
+    console.log("error4");
   }, []);
   const { data, loading, error, refetch } = useGetData<any>(
-    `https://piolife-be.onrender.com/api/v12/users/verify-email?token=${token}&otp=${otp}`
+    `${API_URL}/api/v12/users/verify-email?token=${token}&otp=${otp}`
   );
-
+  if (error) {
+    console.log("erro", error);
+  }
+  if (data) {
+    console.log("data", data);
+  }
   const verifyEmail = async () => {
-    try {
-      const response = await refetch(); // <- await here is important
-      console.log("SignIn successful", response);
+    const result = await refetch(); // returns T | null
 
-      if (error) {
-        console.log("error4", error);
-        Alert.alert(error);
-      }
-      if (data) {
-        router.push("/login");
-        setOtp("");
-      }
-    } catch (err: any) {
-      Alert.alert("SignIn failed: " + (err.message || "Unknown error"));
+    if (result) {
+      router.push("/login");
+      setOtp("");
+    } else {
+      Alert.alert("Verification failed. Please try again.");
     }
   };
+
   useEffect(() => {
     if (otp.length === 6) {
       console.log("OTP entered:", otp);
@@ -67,8 +68,17 @@ const Otp = () => {
       </View>
     );
   }
+  const obfuscateEmail = (email: string): string => {
+    const [username, domain] = email.split("@");
+    const firstPart = username.slice(0, 3);
+    return `${firstPart}....@${domain}`;
+  };
+  const singleEmail = Array.isArray(email) ? email[0] : email;
+
+  if (!singleEmail || typeof singleEmail !== "string") return null;
+
   return (
-    <SafeAreaView style={styles.container} >
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <View className="p-4 flex  flex-col flex-1">
         <Pressable
@@ -96,8 +106,8 @@ const Otp = () => {
             className="text-[#272757] text-[14px] leading-[22px] text-center "
             style={{ fontFamily: "Inter_400Regular" }}
           >
-            Please enter the 4 digit code sent to Kel....@gmail.com reset
-            password
+            Please enter the 6 digit code sent to {obfuscateEmail(singleEmail)}{" "}
+            reset password
           </Text>
         </View>
         <View className="flex items-center mt-8">

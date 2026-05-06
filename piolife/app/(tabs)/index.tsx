@@ -21,11 +21,14 @@ import {
   ClientScreen,
   DoctorScreen,
   Stat,
+  formatNumberToThousands,
 } from "@/components/reusables";
 import { useFetchData } from "@/services/api/request";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User } from "@/services/core/types";
+import { User, wallet } from "@/services/core/types";
+import { API_URL } from "@/constants/api";
 const Index = () => {
+  const [user, SetUser] = useState<User>();
   useEffect(() => {
     const loadUser = async () => {
       const userData = await AsyncStorage.getItem("user");
@@ -38,13 +41,28 @@ const Index = () => {
     AsyncStorage.setItem("hasLaunched", "launched");
   }, []);
 
-  const [user, SetUser] = useState<User>();
   const token = user?.token;
   const { data, loading, error } = useFetchData<User>(
-    user ? `https://piolife-be.onrender.com/api/v12/users/${user.id}` : "",
+    user ? `${API_URL}/api/v12/users/${user.id}` : "",
     { token }
   );
-
+  const {
+    data: walletData,
+    loading: isLoading,
+    error: isError,
+    refetch,
+  } = useFetchData<wallet>(
+    user ? `${API_URL}/api/v12/wallet/${user.id}/balance` : "",
+    { token }
+  );
+  const {
+    data: emergencyData,
+    loading: emergencyLoading,
+    error: emergencyError,
+  } = useFetchData<any>(
+    user ? `${API_URL}/api/v12/emergency-stock/emergencies/${user.id}` : "",
+    { token }
+  );
   if (error) {
     Alert.alert(error);
   }
@@ -62,7 +80,7 @@ const Index = () => {
       callType: "Video call",
     },
   ];
-  if (loading) {
+  if (loading || isLoading) {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
@@ -77,9 +95,6 @@ const Index = () => {
     return (
       <Pressable
         className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-white justify-between"
-        onPress={() => {
-          router.push("/clientSignup");
-        }}
         style={[styles.shadowProp]}
       >
         <View className="flex flex-col gap-[8px]">
@@ -107,24 +122,37 @@ const Index = () => {
     >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[32px]">
-        <View className="flex flex-row items-center justify-between mt-4">
+        <View className="flex flex-row items-center justify-between mt-8">
           <View className="flex w-[80%]">
             <View className="flex flex-row gap-[16px]">
               {data ? (
                 <Image
-                  source={{ uri: data?.profilePicture }}
+                  source={{
+                    uri: [
+                      "emergency_services",
+                      "pharmacy_services",
+                      "medical_lab_services",
+                    ].includes(data?.role ?? "")
+                      ? data?.logo
+                      : data?.profilePicture,
+                  }}
                   className="w-[56px] h-[56px] rounded-full"
                 />
               ) : (
                 <FontAwesome name="user" size={50} color="#ccc" />
               )}
 
-              <View className="flex flex-col gap-[4px] py-[4px]">
+              <View className="flex flex-col gap-[4px] py-[4px] flex-1">
                 <Text
                   className="text-[#030319] text-[16px] leading-[19px] "
                   style={{ fontFamily: "Inter_500Medium" }}
                 >
-                  Hi, {data?.firstName}
+                  Hi,{" "}
+                  {data?.role === "pharmacy_services"
+                    ? data?.pharmacyName
+                    : data?.role === "medical_lab_services"
+                    ? data?.medicalLabName
+                    : data?.firstName}
                 </Text>
                 <Text
                   className="text-[#2a2a2a] text-[14px] leading-[17px] "
@@ -137,9 +165,9 @@ const Index = () => {
           </View>
           <View className="flex w-[20%] flex-row justify-end">
             <Pressable
-              onPress={() => {
-                router.push("/notification");
-              }}
+              // onPress={() => {
+              //   router.push("/notification");
+              // }}
               className="flex flex-col justify-center items-center rounded-[8px] border-[#2727571A] border-[1px] w-[32] h-[32px]"
             >
               <Octicons name="bell" size={24} color="#272757" />
@@ -156,12 +184,128 @@ const Index = () => {
             </Text>
           )}
           {user?.role === "client" && <ClientScreen />}
-          {user?.role === "doctor" && <DoctorScreen balance={3000} />}
-          {user?.role === "doctor" && <Stat />}
+          {user?.role &&
+            [
+              "medical_practitioner",
+              "emergency_services",
+              "pharmacy_services",
+              "medical_lab_services",
+            ].includes(user.role) && (
+              <DoctorScreen
+                balance={formatNumberToThousands(walletData?.balance)}
+              />
+            )}
+
+          {user?.role === "medical_practitioner" && (
+            <Stat text="Consultations" serve={8} />
+          )}
+          {user?.role === "pharmacy_services" && (
+            <View>
+              <View className="flex flex-row justify-between my-4">
+                <Pressable
+                  onPress={() => {
+                    router.push("/pharmServices");
+                  }}
+                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
+                >
+                  <Text
+                    className="text-[#ffffff] text-[12px] leading-[17px] "
+                    style={{ fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Services
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    router.push("/drugs");
+                  }}
+                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
+                >
+                  <Text
+                    className="text-[#ffffff] text-[12px] leading-[17px] "
+                    style={{ fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Drugs
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    router.push("/addDrug");
+                  }}
+                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
+                >
+                  <Text
+                    className="text-[#ffffff] text-[12px] leading-[17px] "
+                    style={{ fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Add Drug
+                  </Text>
+                </Pressable>
+              </View>
+              <Stat text="Served" serve={data?.consultationCount} />
+            </View>
+          )}
+          {user?.role === "medical_lab_services" && (
+            <View>
+              <View className="flex flex-row justify-between my-4">
+                <Pressable
+                  onPress={() => {
+                    router.push("/medlabServices");
+                  }}
+                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
+                >
+                  <Text
+                    className="text-[#ffffff] text-[12px] leading-[17px] "
+                    style={{ fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Services
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    router.push("/tests");
+                  }}
+                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
+                >
+                  <Text
+                    className="text-[#ffffff] text-[12px] leading-[17px] "
+                    style={{ fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Tests
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    router.push("/addTest");
+                  }}
+                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
+                >
+                  <Text
+                    className="text-[#ffffff] text-[12px] leading-[17px] "
+                    style={{ fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Add Test
+                  </Text>
+                </Pressable>
+              </View>
+              <Stat text="Served" serve={9} />
+            </View>
+          )}
+          {user?.role === "emergency_services" && (
+            <View className="flex flex-row justify-between my-4">
+              <Stat
+                text="Served"
+                serve={emergencyData?.length}
+                onPress={() => {
+                  router.push("/emergencyServices");
+                }}
+              />
+            </View>
+          )}
         </View>
 
         {user?.role === "client" && <ClientMenu />}
-        {user?.role === "doctor" && (
+        {user?.role === "medical_practitioner" && (
           <View className="flex flex-col gap-[20px]">
             <Text
               className="text-[#272757] text-[18px] leading-[17px] "

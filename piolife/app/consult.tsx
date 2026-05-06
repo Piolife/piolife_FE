@@ -10,6 +10,7 @@ import {
   Platform,
 } from "react-native";
 import { router } from "expo-router";
+import { FontAwesome } from "@expo/vector-icons";
 const consult = require("../assets/images/image 48-2.png");
 
 const Consult = () => {
@@ -32,15 +33,26 @@ const Consult = () => {
     { id: 11, text: "Media House", link: "/hospitalOptions" },
     { id: 12, text: "Government", link: "/hospitalOptions" },
   ];
-
+  const handlePrevious = () => {
+    router.back();
+  };
   return (
-    <SafeAreaView
-      className="flex-1 bg-white"
-      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
-    >
+    <SafeAreaView className="flex-1 bg-white">
       <StatusBar style="dark" backgroundColor="#ffffff" />
-      <View className="py-[16px] px-[4%] gap-[32px]">
-        <View className="flex flex-col gap-[8px]">
+      <View className="py-[16px] px-[4%] gap-[32px] mt-8">
+        <Pressable
+          className="flex flex-row items-center gap-[16px] "
+          onPress={handlePrevious}
+        >
+          <FontAwesome name="angle-left" size={24} color="black" />
+          <Text
+            className="text-[#272757] text-[16px] leading-[20px] text-center "
+            style={{ fontFamily: "Inter_500Medium" }}
+          >
+            Consult
+          </Text>
+        </Pressable>
+        <View className="flex flex-col gap-[8px] ">
           <View className="flex items-center flex-col gap-[8px]">
             <Image source={consult} className="w-[125px] h-[88px]" />
             <Text
@@ -84,12 +96,4 @@ const Consult = () => {
     </SafeAreaView>
   );
 };
-const styles = StyleSheet.create({
-  shadowProp: {
-    shadowColor: "#171717",
-    shadowOffset: { width: -2, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-});
 export default Consult;

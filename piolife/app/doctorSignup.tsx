@@ -10,6 +10,8 @@ import {
   Image,
   Alert,
   Pressable,
+  StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { doctorSignupFormData } from "@/services/core/types";
@@ -24,12 +26,14 @@ import { CustomDatePicker } from "@/components/reusables";
 import { ReusableImageUpload } from "@/components/reusables";
 import Checkbox from "expo-checkbox";
 import { router } from "expo-router";
-import { usePostData } from "@/services/api/request";
+import { useFetchData, usePostData } from "@/services/api/request";
 import RadioGroup, { RadioButtonProps } from "react-native-radio-buttons-group";
 import { validateDoctorForm } from "@/hooks/auth";
 import { uploadImageToCloudinary } from "@/components/cloudinary";
 import allcountry from "../countries.json";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import PhoneInputWithCountryPicker from "@/components/countryPick";
+import { API_URL } from "@/constants/api";
 const errorImage = require("../assets/images/error.png");
 interface signupResponse {
   otp: string;
@@ -44,14 +48,31 @@ const DoctorSignup = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [errors, setErrors] = useState<Partial<doctorSignupFormData>>({});
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [tempDate, setTempDate] = useState<Date>(new Date());
+
   const [step, setStep] = useState(1);
 
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([
     "English",
   ]);
+  const [defaultCountry, setDefaultCountry] = useState<string>("");
+  const [nigeriaData, setNigeriaData] = useState<any>(null);
 
+  useEffect(() => {
+    fetch("https://temikeezy.github.io/nigeria-geojson-data/data/full.json")
+      .then((res) => res.json())
+      .then(setNigeriaData)
+      .catch(console.error);
+  }, []);
+  const {
+    data: newdata,
+    loading: isloading,
+    error: iserror,
+  } = useFetchData<any>(`${API_URL}/api/v12/medical-issues`);
   const languages = ["English", "Igbo", "Yoruba", "Hausa", "Others"];
-
+  if (newdata) {
+    console.log("newdata", newdata);
+  }
   const toggleCheckbox = (language: string) => {
     setSelectedLanguages((prev) =>
       prev.includes(language)
@@ -156,8 +177,13 @@ const DoctorSignup = () => {
       ...prevData,
       [fieldName]: date,
     }));
-  };
 
+    const validationErrors = validateDoctorForm({
+      ...formData,
+      [fieldName]: date,
+    });
+    setErrors(validationErrors);
+  };
   const handleSignup = async () => {
     const {
       confirmEmail,
@@ -167,15 +193,20 @@ const DoctorSignup = () => {
       otherLanguage,
       ...filteredData
     } = formData;
-    // Safely clone and remove confirmAccountNumber from bankDetails
+
     const filteredBankDetails = { ...bankDetails };
     delete filteredBankDetails.confirmAccountNumber;
     let updatedLanguageProficiency = [...formData.languageProficiency];
     if (otherLanguage.trim() !== "") {
       updatedLanguageProficiency.push(otherLanguage.trim());
     }
+    const specialtiesArray = formData.specialty
+      ? formData.specialty.split(",").map((s) => s.trim())
+      : [];
+
     const payload = {
       ...filteredData,
+      specialty: specialtiesArray,
       languageProficiency: updatedLanguageProficiency,
       bankDetails: filteredBankDetails,
     };
@@ -183,9 +214,8 @@ const DoctorSignup = () => {
       const response = (await postData(payload)) as signupResponse;
 
       if (response) {
-        console.log("Signup successful", response);
         await AsyncStorage.setItem("verificationToken", response?.token);
-        router.push("/otp");
+        router.push(`/otp?email=${encodeURIComponent(formData.email)}`);
       }
     } catch (err: any) {
       alert("Signup failed: " + err.message);
@@ -206,7 +236,6 @@ const DoctorSignup = () => {
       !validationErrors.profilePicture &&
       !validationErrors.firstName &&
       !validationErrors.lastName &&
-      !validationErrors.otherName &&
       !validationErrors.gender &&
       !validationErrors.maritalStatus
     ) {
@@ -254,7 +283,6 @@ const DoctorSignup = () => {
       validateSelection()
     ) {
       handleSignup();
-      console.log("formdata", formData);
     }
   };
   const {
@@ -262,7 +290,7 @@ const DoctorSignup = () => {
     loading: isLoading,
 
     postData,
-  } = usePostData("https://piolife-be.onrender.com/api/v12/users/create");
+  } = usePostData(`${API_URL}/api/v12/users/create`);
 
   const handlePrevious = () => {
     setStep((prevStep) => Math.max(prevStep - 1, 1));
@@ -270,15 +298,20 @@ const DoctorSignup = () => {
 
   const showMode = (currentMode: any) => {
     const today = new Date();
-    DateTimePickerAndroid.open({
-      value: selectedDate,
 
-      onChange: () => {
-        if (selectedDate) {
-          // Convert the Date object to a string (you can choose the format)
-          const formattedDate = selectedDate.toISOString().split("T")[0]; // YYYY-MM-DD format
-          // setValue("dateOfBirth", formattedDate); // Now it's a string
+    DateTimePickerAndroid.open({
+      value: selectedDate || new Date(), // make sure selectedDate is defined and a Date
+      onChange: (event, date) => {
+        if (event.type === "set" && date) {
+          // User confirmed date selection
+          const formattedDate = date.toISOString().split("T")[0];
+
+          setFormData((prevState) => ({
+            ...prevState,
+            dateOfBirth: formattedDate,
+          }));
         }
+        // if dismissed, do nothing
       },
       mode: currentMode,
       is24Hour: true,
@@ -327,13 +360,24 @@ const DoctorSignup = () => {
     const defaultCountry = nigeriaExists
       ? nigeria.value
       : countryList[0]?.value || "";
-
+    setDefaultCountry(defaultCountry);
     setFormData((prevData) => ({
       ...prevData,
       countryOfOrigin: defaultCountry,
       countryOfResidence: defaultCountry,
     }));
   }, []);
+  const stateOptions = nigeriaData?.map((item: any) => ({
+    label: item.state,
+    value: item.state,
+  }));
+  if (isloading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
   return (
     <SafeAreaView
       className="flex flex-1 bg-[#fffff0] "
@@ -349,10 +393,10 @@ const DoctorSignup = () => {
           alwaysBounceVertical={false}
           showsVerticalScrollIndicator={false}
         >
-          <View className="flex flex-col  px-[4%]">
+          <View className="flex flex-col  px-[4%] pt-12">
             {step > 1 && (
               <Pressable
-                className="flex flex-row items-center gap-[16px] mt-2"
+                className="flex flex-row items-center gap-[16px] "
                 onPress={handlePrevious}
               >
                 <FontAwesome name="angle-left" size={24} color="black" />
@@ -366,7 +410,7 @@ const DoctorSignup = () => {
             )}
             {step === 1 && (
               <Text
-                className="text-[#272757] text-[18px] leading-[24px] text-center mt-4"
+                className="text-[#272757] text-[18px] leading-[24px] text-center "
                 style={{ fontFamily: "Inter_500Medium" }}
               >
                 Create Your Account
@@ -380,12 +424,13 @@ const DoctorSignup = () => {
                   imageUri={formData.profilePicture}
                 />
                 {errors.profilePicture && (
-                  <View>
-                    <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
-                      {errors.profilePicture}
-                    </Text>
-                  </View>
+                  <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
+                    {errors.profilePicture}
+                  </Text>
                 )}
+                <Text className="font-600 text-[10px] leading-[10px] text-[#FF0000] mt-1">
+                  Use your real image.
+                </Text>
               </View>
             )}
 
@@ -459,14 +504,15 @@ const DoctorSignup = () => {
                   <View className="flex flex-col gap-[16px]">
                     <CustomDatePicker
                       label="Date of Birth"
-                      selectedDate={new Date(formData.dateOfBirth)}
+                      selectedDate={tempDate}
                       showDatePicker={showDatePicker}
                       toggleDatePicker={toggleDatePicker}
                       errorMessage={errors.dateOfBirth}
                       placeholder="Select Date of Birth"
-                      onDateSelected={(date) =>
-                        handleDateChange("dateOfBirth", date)
-                      }
+                      onDateSelected={(dateStr) => {
+                        handleDateChange("dateOfBirth", dateStr);
+                        setTempDate(new Date(dateStr));
+                      }}
                     />
                     <CountryPicker
                       label="Country of Origin"
@@ -478,6 +524,35 @@ const DoctorSignup = () => {
                       placeholder="Select your Country of Origin"
                       error={errors.countryOfOrigin}
                     />
+                    {formData.countryOfResidence !== defaultCountry && (
+                      <CustomTextInput
+                        label="State/Province/County of Origin"
+                        value={formData.stateOfOrigin}
+                        onChangeText={(value) =>
+                          handleChange("stateOfOrigin", value)
+                        }
+                        placeholder="Enter Your State of Origin"
+                        placeholderTextColor={"#BABABA"}
+                        keyboardType="default"
+                        errorMessage={errors.stateOfOrigin}
+                      />
+                    )}
+                    {formData.countryOfResidence === defaultCountry && (
+                      <CustomPicker
+                        label="State/Province/County of Origin"
+                        value={formData.stateOfOrigin}
+                        onValueChange={(value) => {
+                          if (typeof value === "string") {
+                            setFormData((prev) => ({
+                              ...prev,
+                              stateOfOrigin: value,
+                            }));
+                          }
+                        }}
+                        items={stateOptions}
+                        error={errors.stateOfOrigin}
+                      />
+                    )}
                     <CountryPicker
                       label="Country of Residence"
                       value={formData.countryOfResidence || ""}
@@ -488,29 +563,36 @@ const DoctorSignup = () => {
                       placeholder="Select your Country of Residence"
                       error={errors.countryOfResidence}
                     />
-                    <CustomTextInput
-                      label="State of Origin"
-                      value={formData.stateOfOrigin}
-                      onChangeText={(value) =>
-                        handleChange("stateOfOrigin", value)
-                      }
-                      placeholder="Enter Your state Of Origin"
-                      placeholderTextColor={"#BABABA"}
-                      keyboardType="default"
-                      errorMessage={errors.stateOfOrigin}
-                    />
 
-                    <CustomTextInput
-                      label="State/Province/County of Residence"
-                      value={formData.stateOfResidence}
-                      onChangeText={(value) =>
-                        handleChange("stateOfResidence", value)
-                      }
-                      placeholder="Enter Your state of Residence"
-                      placeholderTextColor={"#BABABA"}
-                      keyboardType="default"
-                      errorMessage={errors.stateOfResidence}
-                    />
+                    {formData.countryOfResidence === defaultCountry && (
+                      <CustomPicker
+                        label="State/Province/County of Residence"
+                        value={formData.stateOfResidence}
+                        onValueChange={(value) => {
+                          if (typeof value === "string") {
+                            setFormData((prev) => ({
+                              ...prev,
+                              stateOfResidence: value,
+                            }));
+                          }
+                        }}
+                        items={stateOptions}
+                        error={errors.stateOfResidence}
+                      />
+                    )}
+                    {formData.countryOfResidence !== defaultCountry && (
+                      <CustomTextInput
+                        label="State/Province/County of Residence"
+                        value={formData.stateOfResidence}
+                        onChangeText={(value) =>
+                          handleChange("stateOfResidence", value)
+                        }
+                        placeholder="Enter Your State of Residence"
+                        placeholderTextColor={"#BABABA"}
+                        keyboardType="default"
+                        errorMessage={errors.stateOfResidence}
+                      />
+                    )}
                   </View>
                 )}
                 {step === 3 && (
@@ -535,28 +617,25 @@ const DoctorSignup = () => {
                       keyboardType="default"
                       errorMessage={errors.confirmEmail}
                     />
-                    <CustomTextInput
-                      label="Phone No"
+                    <PhoneInputWithCountryPicker
+                      label="Phone Numnber"
                       value={formData.phoneNumber}
                       onChangeText={(value) =>
                         handleChange("phoneNumber", value)
                       }
                       placeholder="Enter Your phone number"
-                      placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
                       errorMessage={errors.phoneNumber}
                     />
-                    <CustomTextInput
-                      label="Confirm Phone No"
+                    <PhoneInputWithCountryPicker
+                      label="Confirm Phone Numnber"
                       value={formData.confirmPhoneNumber}
                       onChangeText={(value) =>
                         handleChange("confirmPhoneNumber", value)
                       }
                       placeholder="Enter Your phone number"
-                      placeholderTextColor={"#BABABA"}
-                      keyboardType="numeric"
                       errorMessage={errors.confirmPhoneNumber}
                     />
+
                     <CustomTextInput
                       label="Create Password"
                       value={formData.password}
@@ -565,6 +644,7 @@ const DoctorSignup = () => {
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
                       errorMessage={errors.password}
+                      secureTextEntry={true}
                     />
                     <CustomTextInput
                       label="Confirm Password"
@@ -576,6 +656,7 @@ const DoctorSignup = () => {
                       placeholderTextColor={"#BABABA"}
                       keyboardType="default"
                       errorMessage={errors.confirmPassword}
+                      secureTextEntry={true}
                     />
                   </View>
                 )}
@@ -615,17 +696,21 @@ const DoctorSignup = () => {
                         >
                           Specialty (If general medicine, kindly Indicate)
                         </Text>
+
                         <CustomPicker
                           label=""
                           value={formData.specialty || ""}
                           onValueChange={(value) =>
                             handleChange("specialty", value)
                           }
-                          items={[
-                            { label: "surgeon", value: "surgeon" },
-                            { label: "Eye ", value: "Eye" },
-                            { label: "Nose ", value: "nose" },
-                          ]}
+                          items={
+                            newdata
+                              ? newdata.map((item: any) => ({
+                                  label: item.name,
+                                  value: item._id,
+                                }))
+                              : []
+                          }
                           placeholder="Select your Specialty"
                           error={errors.specialty}
                         />
@@ -790,7 +875,7 @@ const DoctorSignup = () => {
               <Pressable
                 onPress={handleNext}
                 disabled={isLoading}
-                className={`px-[32px] h-[56px] bg-[#0e16ff] w-[283px] rounded-[8px] flex items-center justify-center`}
+                className={`px-[32px] h-[56px] bg-[#0e16ff] w-full rounded-[8px] flex items-center justify-center`}
               >
                 <Text
                   className="text-white text-[16px]"
@@ -819,5 +904,20 @@ const DoctorSignup = () => {
     </SafeAreaView>
   );
 };
-
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    paddingTop: Platform.OS === "android" ? 10 : 0,
+  },
+  text: {
+    fontSize: 25,
+    fontWeight: "500",
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});
 export default DoctorSignup;

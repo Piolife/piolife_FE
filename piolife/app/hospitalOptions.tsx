@@ -19,15 +19,35 @@ const HospitalOptions = () => {
   const handlePrevious = () => {
     router.back();
   };
+  type ButtonType = {
+    id: number;
+    text: string;
+    link?: any;
+  };
+  const buttons: ButtonType[] = [
+    { id: 1, text: "Hospital", link: "/hospitalOptions" },
+    { id: 2, text: "Emergency", link: "/emergencyMenu" },
+    { id: 3, text: "Real Estate", link: "/realEstate" },
+    { id: 4, text: "Flight Booking", link: "/hospitalOptions" },
+    { id: 5, text: "E-Commerce", link: "/hospitalOptions" },
+    { id: 6, text: "Hotel Booking", link: "/hospitalOptions" },
+    { id: 7, text: "Insurance", link: "/hospitalOptions" },
+    { id: 8, text: "Entertainment", link: "/hospitalOptions" },
+    { id: 9, text: "Transport", link: "/hospitalOptions" },
+    { id: 10, text: "Chambers", link: "/hospitalOptions" },
+    { id: 11, text: "Media House", link: "/hospitalOptions" },
+    { id: 12, text: "Government", link: "/hospitalOptions" },
+  ];
+
   return (
     <SafeAreaView
       className="flex-1 bg-[#fffff0]"
       style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
     >
       <StatusBar style="dark" backgroundColor="#ffffff" />
-      <View className="py-[16px] px-[4%] gap-[24px]">
+      <View className="py-[16px] px-[4%] gap-[24px] pt-8">
         <Pressable
-          className="flex flex-row items-center gap-[16px] mt-2"
+          className="flex flex-row items-center gap-[16px] "
           onPress={handlePrevious}
         >
           <FontAwesome name="angle-left" size={24} color="black" />
@@ -56,7 +76,7 @@ const HospitalOptions = () => {
           <Pressable
             className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row justify-between items-center bg-[#fffff0]"
             onPress={() => {
-              router.push("/preferredLanguage");
+              router.push("/healthIssue");
             }}
             style={[styles.shadowProp]}
           >
@@ -129,67 +149,34 @@ const HospitalOptions = () => {
             <FontAwesome name="angle-right" size={24} color="black" />
           </Pressable>
         </View>
-        <View className="flex flex-col gap-[16px]">
-          <View className="flex flex-row justify-between py-[4px] px-[8px] items-center">
+
+        <View className="flex flex-row justify-between my-4">
+          <Pressable
+            onPress={() => {
+              router.push("/medicalHistory");
+            }}
+            className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[48%]"
+          >
             <Text
-              className="text-[#272757] text-[16px] leading-[20px]"
-              style={{ fontFamily: "Inter_500Medium" }}
+              className="text-[#ffffff] text-[12px] leading-[17px] "
+              style={{ fontFamily: "Inter_600SemiBold" }}
             >
               Medical History
             </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              router.push("/recentConsultations");
+            }}
+            className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[48%]"
+          >
             <Text
-              className="text-[#0E16FF] text-[14px] leading-[20px]"
-              style={{ fontFamily: "Inter_400Regular" }}
+              className="text-[#ffffff] text-[12px] leading-[17px] "
+              style={{ fontFamily: "Inter_600SemiBold" }}
             >
-              See more
+              Recent Record
             </Text>
-          </View>
-          <View className="flex flex-col gap-[16px]">
-            <Pressable
-              className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row justify-between items-center bg-[#fffff0]"
-              onPress={() => {
-                router.push("/doctorSignup");
-              }}
-              style={[styles.shadowProp]}
-            >
-              <View className="flex flex-col gap-[8px]">
-                <Text
-                  className="text-[#272757] text-[14px] leading-[20px]  "
-                  style={{ fontFamily: "Inter_600SemiBold" }}
-                >
-                  Doctor’s Reports
-                </Text>
-                <Text
-                  className="text-[#272757] text-[12px] leading-[20px]  "
-                  style={{ fontFamily: "Inter_400Regular" }}
-                >
-                  Dr Mark left a medical report after your call session.
-                </Text>
-              </View>
-            </Pressable>
-            <Pressable
-              className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row justify-between items-center bg-[#fffff0]"
-              onPress={() => {
-                router.push("/doctorSignup");
-              }}
-              style={[styles.shadowProp]}
-            >
-              <View className="flex flex-col gap-[8px]">
-                <Text
-                  className="text-[#272757] text-[14px] leading-[20px]  "
-                  style={{ fontFamily: "Inter_600SemiBold" }}
-                >
-                  Prescribed Drug, Pricing and Delivery
-                </Text>
-                <Text
-                  className="text-[#272757] text-[12px] leading-[20px]  "
-                  style={{ fontFamily: "Inter_400Regular" }}
-                >
-                  Check out your prescription from Dr Mark
-                </Text>
-              </View>
-            </Pressable>
-          </View>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>
