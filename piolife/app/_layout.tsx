@@ -151,10 +151,9 @@ function RootLayoutContent() {
     getSocket();
   }, []);
 
-  const  ,."|
-" = useCallback(() => {
+  const onLayoutRootView = useCallback(() => {
     if (appIsReady) {
-      SplashScreen.hide();
+      SplashScreen.hideAsync();
     }
   }, [appIsReady]);
 
@@ -466,6 +465,30 @@ function RootLayoutContent() {
                 options={{
                   headerShown: false,
                 }}
+              />
+              <JsStack.Screen
+                name="piolandStates"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="piolandEstates"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="piolandPlots"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="piolandPayment"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="piolandTracker"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="piolandDashboard"
+                options={{ headerShown: false }}
               />
               <JsStack.Screen
                 name="addDrug"
