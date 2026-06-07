@@ -1,314 +1,624 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { StatusBar } from "expo-status-bar";
+/**
+ * app/pay4Consultation.tsx — REWRITTEN
+ *
+ * FIXES:
+ *  1. Balance check before allowing payment (was missing)
+ *  2. Wallet deduction actually happens before navigating to call
+ *  3. Privacy warning shown AFTER successful payment per prototype
+ *  4. Specialty indicators with availability (green/red dot)
+ *  5. ₦1,500 per health issue selected (per prototype)
+ */
+import React, { useEffect, useState } from "react";
 import {
-  Text,
   View,
+  Text,
   SafeAreaView,
-  Pressable,
   Platform,
-  FlatList,
-  Image,
+  Pressable,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { StateSelect, SelectedAilment } from "@/components/flatListItems/items";
-import {
-  CustomPicker,
-  CustomTextInput,
-  formatNumberToThousands,
-} from "@/components/reusables";
-import { useLocalSearchParams } from "expo-router";
-import Checkbox from "expo-checkbox";
-import { usePostData } from "@/services/api/request";
-import { API_URL } from "@/constants/api";
-import Toast from "react-native-toast-message";
-import { LoginResponse } from "./login";
+import { router, useLocalSearchParams } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFetchData, usePostData } from "@/services/api/request";
+import { API_URL } from "@/constants/api";
+import { formatNumberToThousands } from "@/components/reusables";
+import Toast from "react-native-toast-message";
+
+const COST_PER_ISSUE = 1500;
 
 const Pay4Consultation = () => {
-  const handlePrevious = () => {
-    router.back();
-  };
-  const { selected, selectedId, cost } = useLocalSearchParams();
-  const [userId, setUserId] = useState<string | null>(null);
+  const params = useLocalSearchParams<{
+    issues: string;
+    issueIds: string;
+    callType: string;
+    language: string;
+  }>();
+
+  const [user, setUser] = useState<any>(null);
+  const [paid, setPaid] = useState(false);
+  const [paying, setPaying] = useState(false);
+
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const savedUser = await AsyncStorage.getItem("user");
-        if (savedUser) {
-          const parsed = JSON.parse(savedUser);
-          setUserId(parsed.id);
-        }
-      } catch (error) {
-        console.error("Failed to load user:", error);
-      }
-    };
-
-    fetchUser();
+    AsyncStorage.getItem("user").then((u) => {
+      if (u) setUser(JSON.parse(u));
+    });
   }, []);
-  let specialties: string[] = [];
 
-  if (typeof selected === "string") {
-    try {
-      const parsed = JSON.parse(selected);
-      console.log("parsed", parsed);
-      // this is now an array
-      if (Array.isArray(parsed)) {
-        specialties = parsed.map((item) => item._id);
-      }
-    } catch (e) {
-      console.error("Failed to parse specialties", e);
+  const token = user?.token;
+
+  const issueNames: string[] = params.issues ? JSON.parse(params.issues) : [];
+  const issueIds: string[] = params.issueIds ? JSON.parse(params.issueIds) : [];
+  const callType = params.callType ?? "video";
+  const language = params.language ?? "English";
+
+  const totalCost = issueNames.length * COST_PER_ISSUE;
+
+  const { data: wallet, refetch: refetchWallet } = useFetchData<any>(
+    user ? `${API_URL}/api/v12/wallet/${user.id}/balance` : "",
+    { token }
+  );
+
+  // Find matching practitioners for these issues
+  const { data: practitioners, loading: loadingDocs } = useFetchData<any[]>(
+    user
+      ? `${API_URL}/api/v12/sessions/practitioners?issueIds=${issueIds.join(
+          ","
+        )}&language=${language}`
+      : "",
+    { token }
+  );
+
+  const { postData: deductWallet } = usePostData(
+    `${API_URL}/api/v12/wallet/${user?.id}/deduct`
+  );
+
+  const handlePay = async () => {
+    if (!wallet || wallet.balance < totalCost) {
+      Alert.alert(
+        "Insufficient Balance",
+        `You need ₦${formatNumberToThousands(
+          totalCost
+        )} for this consultation.\nYour wallet: ₦${formatNumberToThousands(
+          wallet?.balance ?? 0
+        )}`,
+        [
+          { text: "Fund Wallet", onPress: () => router.push("/clientWallet") },
+          { text: "Collect Loan", onPress: () => router.push("/collectLoan") },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+      return;
     }
-  }
 
-  const {
-    data: register,
-    loading: isLoading,
-    postData,
-  } = usePostData(`${API_URL}/api/v12/sessions/practitioners`);
-  const selectedItems = (() => {
-    const param = Array.isArray(selected) ? selected[0] : selected;
-    try {
-      return param ? JSON.parse(decodeURIComponent(param)) : [];
-    } catch {
-      return [];
-    }
-  })();
-  const [formData, setFormData] = useState<any>({
-    email: "",
-    password: "",
-    role: "",
-  });
-  const handleChange = (name: any, value: any) => {
-    setFormData((prevData: any) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
-
-  const piocoin = require("../assets/images/piocoin_symbol-removebg-preview 1.png");
-
-  const [checked, setChecked] = useState(false);
-  const handleConsult = async () => {
-    const trimmedData: any = {
-      specialty: specialties,
-      languageProficiency: [selectedId],
-      userId: userId,
-    };
-
-    try {
-      const response = (await postData(trimmedData)) as any;
-
-      if (response) {
-        const encoded = encodeURIComponent(JSON.stringify(response));
-
-        router.push(
-          `/availableConsultant?selected=${selected}&selectedId=${selectedId}&doctors=${encoded}`
-        );
-      }
-    } catch (err: any) {
-      console.log("error", err);
-      Toast.show({
-        type: "error",
-        text2: err.message,
-        position: "top",
-        topOffset: 80,
-      });
-    }
-  };
-  const dataForForm = checked
-    ? [
+    Alert.alert(
+      "Confirm Payment",
+      `₦${formatNumberToThousands(totalCost)} will be deducted for ${
+        issueNames.length
+      } health issue(s). Proceed?`,
+      [
+        { text: "Cancel", style: "cancel" },
         {
-          key: "pediatricInfo",
-          type: "info",
-          text: "For pediatric/children related issues, please fill the form below.",
-        },
-        {
-          key: "childName",
-          type: "input",
-          label: "Child’s Name",
-          placeholder: "Child’s Name",
-          keyboardType: "default",
-          value: formData.name,
-          fieldName: "name",
-        },
-        {
-          key: "age",
-          type: "input",
-          label: "Age",
-          placeholder: "Enter Age",
-          keyboardType: "numeric",
-          value: formData.age,
-          fieldName: "age",
-        },
-        {
-          key: "gender",
-          type: "picker",
-          label: "Gender",
-          value: formData.gender || "",
-          fieldName: "gender",
-          items: [
-            { label: "Male", value: "male" },
-            { label: "Female", value: "female" },
-            { label: "Other", value: "other" },
-          ],
-        },
-        {
-          key: "summary",
-          type: "summary",
+          text: "Pay Now",
+          onPress: async () => {
+            setPaying(true);
+            try {
+              await deductWallet({
+                amount: totalCost,
+                description: `Consultation: ${issueNames.join(", ")}`,
+              });
+              refetchWallet();
+              setPaid(true);
+
+              // Per prototype: privacy warning after successful payment
+              Alert.alert(
+                "⚠️ Privacy Notice",
+                "Do NOT disclose your mobile number, email, or residential address to the consultant. Piolife will not be held responsible for any eventuality resulting from sharing your personal data.",
+                [{ text: "I Understand", style: "default" }]
+              );
+            } catch (err: any) {
+              Toast.show({
+                type: "error",
+                text1: "Payment failed",
+                text2: err?.message,
+                position: "bottom",
+              });
+            } finally {
+              setPaying(false);
+            }
+          },
         },
       ]
-    : [];
-  const renderFormItem = ({ item }: any) => {
-    switch (item.type) {
-      case "info":
-        return (
-          <Text
-            className="text-[#424242] text-[14px] leading-[17px]"
-            style={{ fontFamily: "Inter_400Regular" }}
-          >
-            {item.text}
-          </Text>
-        );
-
-      case "input":
-        return (
-          <CustomTextInput
-            label={item.label}
-            value={item.value}
-            onChangeText={(value) => handleChange(item.fieldName, value)}
-            placeholder={item.placeholder}
-            placeholderTextColor="#BABABA"
-            keyboardType={item.keyboardType}
-            errorMessage=""
-          />
-        );
-
-      case "picker":
-        return (
-          <CustomPicker
-            label={item.label}
-            value={item.value}
-            onValueChange={(value) => handleChange(item.fieldName, value)}
-            items={item.items}
-            placeholder="Select your gender"
-          />
-        );
-
-      default:
-        return null;
-    }
+    );
   };
+
   return (
-    <SafeAreaView
-      className="flex-1 bg-[#fffff0]"
-      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
-    >
-      <StatusBar style="dark" backgroundColor="#ffffff" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fffff0" }}>
+      <StatusBar style="dark" backgroundColor="#fffff0" />
+      <Toast />
 
-      <FlatList
-        ListHeaderComponent={
-          <View className="flex flex-col justify-between px-[4%] pt-12">
-            <View className="py-[16px] gap-[24px]">
-              <Pressable
-                className="flex flex-row items-center gap-[16px]"
-                onPress={handlePrevious}
-              >
-                <FontAwesome name="angle-left" size={24} color="black" />
-                <Text
-                  className="text-[#272757] text-[16px] leading-[20px] text-center"
-                  style={{ fontFamily: "Inter_500Medium" }}
-                >
-                  Back
-                </Text>
-              </Pressable>
-
-              <View className="py-[4px] flex flex-col gap-[16px]">
-                <Text
-                  className="text-[#030319] text-[16px] leading-[24px]"
-                  style={{ fontFamily: "Inter_400Regular" }}
-                >
-                  ({selectedItems?.length} Selected)
-                </Text>
-
-                <FlatList
-                  data={selectedItems}
-                  renderItem={({ item }) => <SelectedAilment item={item} />}
-                  horizontal
-                  keyExtractor={(item) => item._id}
-                  showsHorizontalScrollIndicator={false}
-                />
-              </View>
-            </View>
-
-            {/* The checkbox */}
-            <Pressable
-              onPress={() => setChecked(!checked)}
-              className="py-[8px] px-[4px] flex flex-row gap-[16px] items-center"
-            >
-              <Checkbox
-                value={checked}
-                onValueChange={() => setChecked(!checked)}
-              />
-              <Text
-                className="text-[14px] leading-[22px] text-[#030319]"
-                style={{ fontFamily: "Inter_400Regular" }}
-              >
-                Pediatrics
-              </Text>
-            </Pressable>
-          </View>
-        }
-        data={dataForForm}
-        renderItem={renderFormItem}
-        keyExtractor={(item) => item.key}
-        ListFooterComponent={
-          <View>
-            <View className="flex flex-col gap-[16px]">
-              <View className="flex flex-row justify-between items-center py-[8px] border-[#DADADA] border-b-[1px]">
-                <Text
-                  className="text-[#030319] text-[18px]"
-                  style={{ fontFamily: "Inter_700Bold" }}
-                >
-                  Total:
-                </Text>
-                <View className="flex flex-row items-center gap-[4px]">
-                  <Image source={piocoin} className="h-[33px] w-[16px]" />
-                  <Text
-                    className="text-[#030319] text-[18px]"
-                    style={{ fontFamily: "Inter_700Bold" }}
-                  >
-                    Total: {formatNumberToThousands(cost)}
-                  </Text>
-                </View>
-              </View>
-              <Text
-                className="text-[#424242] text-[16px]"
-                style={{ fontFamily: "Inter_700Bold" }}
-              >
-                NB: The total amount will automatically be deducted from your
-                wallet
-              </Text>
-            </View>
-            <Pressable
-              className="px-[32px] h-[56px] bg-[#0e16ff] rounded-[8px] flex items-center justify-center mb-[12px] mt-4"
-              onPress={handleConsult}
-            >
-              <Text
-                className="text-white text-[16px]"
-                style={{ fontFamily: "Inter_700Bold" }}
-              >
-                {isLoading ? "Loading...." : "Confirm Payment"}
-              </Text>
-            </Pressable>
-          </View>
-        }
-        contentContainerStyle={{
-          paddingHorizontal: "4%",
-          paddingBottom: 40,
+      {/* Header */}
+      <View
+        style={{
+          backgroundColor: "#0E16FF",
+          paddingTop: Platform.OS === "android" ? 30 : 16,
+          paddingBottom: 32,
+          paddingHorizontal: 24,
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
         }}
+      >
+        <Pressable onPress={() => router.back()} style={{ marginBottom: 20 }}>
+          <Feather name="arrow-left" size={24} color="#fffff0" />
+        </Pressable>
+        <Text
+          style={{
+            fontFamily: "Inter_700Bold",
+            fontSize: 24,
+            color: "#fffff0",
+          }}
+        >
+          Confirm & Pay
+        </Text>
+        <Text
+          style={{
+            fontFamily: "Inter_400Regular",
+            fontSize: 13,
+            color: "rgba(255,255,240,0.7)",
+            marginTop: 4,
+          }}
+        >
+          Review your consultation details below
+        </Text>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={{ padding: 20, paddingBottom: paid ? 40 : 100 }}
         showsVerticalScrollIndicator={false}
-      />
+      >
+        {/* Summary card */}
+        <View
+          style={{
+            backgroundColor: "#fff",
+            borderRadius: 20,
+            padding: 20,
+            marginBottom: 16,
+            shadowColor: "#272757",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.07,
+            shadowRadius: 14,
+            elevation: 5,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: "Inter_600SemiBold",
+              fontSize: 14,
+              color: "#888",
+              marginBottom: 12,
+            }}
+          >
+            CONSULTATION SUMMARY
+          </Text>
+
+          {/* Selected issues */}
+          <View style={{ gap: 8, marginBottom: 16 }}>
+            {issueNames.map((name, i) => (
+              <View
+                key={i}
+                style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+              >
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: "#0E16FF",
+                  }}
+                />
+                <Text
+                  style={{
+                    fontFamily: "Inter_500Medium",
+                    fontSize: 14,
+                    color: "#272757",
+                    flex: 1,
+                  }}
+                >
+                  {name}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: "Inter_600SemiBold",
+                    fontSize: 13,
+                    color: "#0E16FF",
+                  }}
+                >
+                  ₦{formatNumberToThousands(COST_PER_ISSUE)}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View
+            style={{ height: 1, backgroundColor: "#F0F0F0", marginBottom: 12 }}
+          />
+
+          <View
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
+          >
+            <Text
+              style={{
+                fontFamily: "Inter_500Medium",
+                fontSize: 13,
+                color: "#888",
+              }}
+            >
+              Call Type
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 13,
+                color: "#272757",
+              }}
+            >
+              {callType === "video" ? "📹 Video" : "📞 Voice"}
+            </Text>
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginTop: 8,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Inter_500Medium",
+                fontSize: 13,
+                color: "#888",
+              }}
+            >
+              Language
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 13,
+                color: "#272757",
+              }}
+            >
+              {language}
+            </Text>
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginTop: 8,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Inter_500Medium",
+                fontSize: 13,
+                color: "#888",
+              }}
+            >
+              Wallet Balance
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 13,
+                color: "#272757",
+              }}
+            >
+              ₦{formatNumberToThousands(wallet?.balance ?? 0)}
+            </Text>
+          </View>
+          <View
+            style={{
+              height: 1,
+              backgroundColor: "#F0F0F0",
+              marginVertical: 12,
+            }}
+          />
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Inter_700Bold",
+                fontSize: 16,
+                color: "#272757",
+              }}
+            >
+              Total
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Inter_800ExtraBold",
+                fontSize: 22,
+                color: "#0E16FF",
+              }}
+            >
+              ₦{formatNumberToThousands(totalCost)}
+            </Text>
+          </View>
+        </View>
+
+        {paid ? (
+          <>
+            {/* After payment: show available practitioners */}
+            <View
+              style={{
+                backgroundColor: "#ECFDF5",
+                borderRadius: 14,
+                padding: 14,
+                marginBottom: 16,
+                borderLeftWidth: 4,
+                borderLeftColor: "#16A34A",
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: "Inter_600SemiBold",
+                  fontSize: 14,
+                  color: "#166534",
+                }}
+              >
+                ✅ Payment successful! Select a doctor below.
+              </Text>
+            </View>
+
+            {/* Issue tags with availability dots */}
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 8,
+                marginBottom: 16,
+              }}
+            >
+              {issueNames.map((name, i) => {
+                const hasDoctors =
+                  Array.isArray(practitioners) && practitioners.length > 0;
+                return (
+                  <Pressable
+                    key={i}
+                    onPress={() => (hasDoctors ? null : null)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      backgroundColor: "#fff",
+                      borderRadius: 20,
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderWidth: 1,
+                      borderColor: "#E0E0E0",
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: hasDoctors ? "#16A34A" : "#B91C1C",
+                      }}
+                    />
+                    <Text
+                      style={{
+                        fontFamily: "Inter_500Medium",
+                        fontSize: 13,
+                        color: "#272757",
+                      }}
+                    >
+                      {name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Available practitioners */}
+            {loadingDocs ? (
+              <ActivityIndicator color="#0E16FF" />
+            ) : !practitioners || practitioners.length === 0 ? (
+              <View
+                style={{
+                  backgroundColor: "#FEF2F2",
+                  borderRadius: 14,
+                  padding: 16,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: "Inter_600SemiBold",
+                    fontSize: 14,
+                    color: "#B91C1C",
+                    marginBottom: 4,
+                  }}
+                >
+                  🔴 No doctors available right now
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: "Inter_400Regular",
+                    fontSize: 13,
+                    color: "#7F1D1D",
+                  }}
+                >
+                  All doctors for your specialty are currently busy. Please
+                  check back shortly.
+                </Text>
+              </View>
+            ) : (
+              practitioners.map((doc: any) => (
+                <Pressable
+                  key={doc._id}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/call",
+                      params: {
+                        doctorId: doc._id,
+                        type: callType,
+                        specialtyId: issueIds[0],
+                      },
+                    })
+                  }
+                  style={({ pressed }) => ({
+                    backgroundColor: "#fff",
+                    borderRadius: 16,
+                    padding: 16,
+                    marginBottom: 10,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 14,
+                    shadowColor: "#272757",
+                    shadowOffset: { width: 0, height: 3 },
+                    shadowOpacity: 0.06,
+                    shadowRadius: 8,
+                    elevation: 3,
+                    opacity: pressed ? 0.92 : 1,
+                  })}
+                >
+                  <View style={{ position: "relative" }}>
+                    <View
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 24,
+                        backgroundColor: "#EEF0FF",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Feather name="user" size={24} color="#0E16FF" />
+                    </View>
+                    <View
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        right: 0,
+                        width: 12,
+                        height: 12,
+                        borderRadius: 6,
+                        backgroundColor: doc.isOnline ? "#16A34A" : "#B91C1C",
+                        borderWidth: 2,
+                        borderColor: "#fff",
+                      }}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontFamily: "Inter_700Bold",
+                        fontSize: 15,
+                        color: "#272757",
+                      }}
+                    >
+                      Dr. {doc.firstName} {doc.lastName}
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: "Inter_400Regular",
+                        fontSize: 12,
+                        color: "#888",
+                        marginTop: 2,
+                      }}
+                    >
+                      ID: {doc.username ?? "—"}
+                    </Text>
+                    {Array.isArray(doc.languageProficiency) && (
+                      <Text
+                        style={{
+                          fontFamily: "Inter_400Regular",
+                          fontSize: 11,
+                          color: "#0E16FF",
+                          marginTop: 2,
+                        }}
+                      >
+                        {doc.languageProficiency.join(", ")}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={{ alignItems: "center", gap: 4 }}>
+                    {callType === "video" ? (
+                      <Feather name="video" size={20} color="#0E16FF" />
+                    ) : (
+                      <Feather name="phone" size={20} color="#0E16FF" />
+                    )}
+                    <Text
+                      style={{
+                        fontFamily: "Inter_600SemiBold",
+                        fontSize: 10,
+                        color: "#0E16FF",
+                      }}
+                    >
+                      {doc.isOnline ? "Available" : "Busy"}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))
+            )}
+          </>
+        )}
+      </ScrollView>
+
+      {/* Sticky Pay button — always visible at bottom */}
+      {!paid && (
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: "#fffff0",
+            paddingHorizontal: 20,
+            paddingBottom: Platform.OS === "android" ? 20 : 30,
+            paddingTop: 12,
+            borderTopWidth: 1,
+            borderTopColor: "rgba(39,39,87,0.08)",
+          }}
+        >
+          <Pressable
+            onPress={handlePay}
+            disabled={paying}
+            style={({ pressed }) => ({
+              backgroundColor: paying ? "#7B83FF" : "#0E16FF",
+              borderRadius: 14,
+              height: 56,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.88 : 1,
+              shadowColor: "#0E16FF",
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.3,
+              shadowRadius: 12,
+              elevation: 6,
+            })}
+          >
+            {paying ? (
+              <ActivityIndicator color="#fffff0" />
+            ) : (
+              <Text
+                style={{ fontFamily: "Inter_700Bold", fontSize: 16, color: "#fffff0" }}
+              >
+                Pay ₦{formatNumberToThousands(totalCost)}
+              </Text>
+            )}
+          </Pressable>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
