@@ -12,11 +12,18 @@ import {
   SafeAreaView,
   Pressable,
   Platform,
-  FlatList,
+  ScrollView,
+  Dimensions,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
+
+const { width: SCREEN_W } = Dimensions.get("window");
+const PADDING = 16;
+const GAP = 10;
+const COLS = 3;
+const ITEM_W = (SCREEN_W - PADDING * 2 - GAP * (COLS - 1)) / COLS;
 
 // States with property availability. Toggle to false when no listings exist.
 const ALL_STATES = [
@@ -115,14 +122,19 @@ const PiolandStates = () => {
         </Text>
       </View>
 
-      <FlatList
-        data={ALL_STATES}
-        keyExtractor={(item) => item.name}
-        numColumns={3}
-        contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
-        columnWrapperStyle={{ gap: 10, marginBottom: 10 }}
-        renderItem={({ item }) => (
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          padding: PADDING,
+          gap: GAP,
+          paddingBottom: 60,
+        }}
+      >
+        {ALL_STATES.map((item) => (
           <Pressable
+            key={item.name}
             disabled={!item.available}
             onPress={() =>
               router.push({
@@ -131,7 +143,7 @@ const PiolandStates = () => {
               })
             }
             style={({ pressed }) => ({
-              flex: 1,
+              width: ITEM_W,
               height: 52,
               borderRadius: 12,
               alignItems: "center",
@@ -143,7 +155,7 @@ const PiolandStates = () => {
             <Text
               style={{
                 fontFamily: "Inter_600SemiBold",
-                fontSize: item.name.length > 8 ? 10 : 12,
+                fontSize: 11,
                 color: item.available ? "#fffff0" : "#999",
                 textAlign: "center",
                 paddingHorizontal: 4,
@@ -152,8 +164,8 @@ const PiolandStates = () => {
               {item.name}
             </Text>
           </Pressable>
-        )}
-      />
+        ))}
+      </ScrollView>
     </SafeAreaView>
   );
 };
