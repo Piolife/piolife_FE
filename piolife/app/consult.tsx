@@ -4,96 +4,170 @@ import {
   Text,
   View,
   SafeAreaView,
-  StyleSheet,
-  Image,
   Pressable,
   Platform,
+  Alert,
+  ScrollView,
+  Dimensions,
 } from "react-native";
 import { router } from "expo-router";
-import { FontAwesome } from "@expo/vector-icons";
-const consult = require("../assets/images/image 48-2.png");
+import { Feather } from "@expo/vector-icons";
+
+const { width: SCREEN_W } = Dimensions.get("window");
+const COLS = 3;
+const PAD = 16;
+const GAP = 10;
+const CARD_W = (SCREEN_W - PAD * 2 - GAP * (COLS - 1)) / COLS;
+const CARD_H = 90;
+
+type OfficeButton = {
+  id: number;
+  text: string;
+  emoji: string;
+  link?: string;
+  comingSoon?: boolean;
+};
+
+const buttons: OfficeButton[] = [
+  { id: 1,  text: "Hospital",      emoji: "🏥", link: "/hospitalOptions" },
+  { id: 2,  text: "Emergency",     emoji: "🚨", link: "/emergencyMenu" },
+  { id: 3,  text: "Real Estate",   emoji: "🏠", link: "/realEstate" },
+  { id: 4,  text: "Flight Booking",emoji: "✈️", comingSoon: true },
+  { id: 5,  text: "E-Commerce",    emoji: "🛒", comingSoon: true },
+  { id: 6,  text: "Hotel Booking", emoji: "🏨", comingSoon: true },
+  { id: 7,  text: "Insurance",     emoji: "🛡️", comingSoon: true },
+  { id: 8,  text: "Entertainment", emoji: "🎬", comingSoon: true },
+  { id: 9,  text: "Transport",     emoji: "🚗", comingSoon: true },
+  { id: 10, text: "Chambers",      emoji: "⚖️", comingSoon: true },
+  { id: 11, text: "Media House",   emoji: "📺", comingSoon: true },
+  { id: 12, text: "Government",    emoji: "🏛️", comingSoon: true },
+];
 
 const Consult = () => {
-  type ButtonType = {
-    id: number;
-    text: string;
-    link?: any;
+  const handlePress = (button: OfficeButton) => {
+    if (button.comingSoon || !button.link) {
+      Alert.alert(
+        "Coming Soon",
+        `${button.text} will be available in a future update.`,
+        [{ text: "OK" }]
+      );
+      return;
+    }
+    router.push(button.link as any);
   };
-  const buttons: ButtonType[] = [
-    { id: 1, text: "Hospital", link: "/hospitalOptions" },
-    { id: 2, text: "Emergency", link: "/emergencyMenu" },
-    { id: 3, text: "Real Estate", link: "/realEstate" },
-    { id: 4, text: "Flight Booking", link: "/hospitalOptions" },
-    { id: 5, text: "E-Commerce", link: "/hospitalOptions" },
-    { id: 6, text: "Hotel Booking", link: "/hospitalOptions" },
-    { id: 7, text: "Insurance", link: "/hospitalOptions" },
-    { id: 8, text: "Entertainment", link: "/hospitalOptions" },
-    { id: 9, text: "Transport", link: "/hospitalOptions" },
-    { id: 10, text: "Chambers", link: "/hospitalOptions" },
-    { id: 11, text: "Media House", link: "/hospitalOptions" },
-    { id: 12, text: "Government", link: "/hospitalOptions" },
-  ];
-  const handlePrevious = () => {
-    router.back();
-  };
+
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <StatusBar style="dark" backgroundColor="#ffffff" />
-      <View className="py-[16px] px-[4%] gap-[32px] mt-8">
-        <Pressable
-          className="flex flex-row items-center gap-[16px] "
-          onPress={handlePrevious}
-        >
-          <FontAwesome name="angle-left" size={24} color="black" />
-          <Text
-            className="text-[#272757] text-[16px] leading-[20px] text-center "
-            style={{ fontFamily: "Inter_500Medium" }}
-          >
-            Consult
-          </Text>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#fffff0",
+        paddingTop: Platform.OS === "android" ? 10 : 0,
+      }}
+    >
+      <StatusBar style="light" backgroundColor="#0E16FF" />
+
+      {/* Compact header */}
+      <View
+        style={{
+          backgroundColor: "#0E16FF",
+          paddingTop: Platform.OS === "android" ? 24 : 12,
+          paddingBottom: 20,
+          paddingHorizontal: 20,
+          borderBottomLeftRadius: 24,
+          borderBottomRightRadius: 24,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 14,
+        }}
+      >
+        <Pressable onPress={() => router.back()}>
+          <Feather name="arrow-left" size={22} color="#fffff0" />
         </Pressable>
-        <View className="flex flex-col gap-[8px] ">
-          <View className="flex items-center flex-col gap-[8px]">
-            <Image source={consult} className="w-[125px] h-[88px]" />
-            <Text
-              className="text-[#272757] text-[18px] leading-[20px]  "
-              style={{ fontFamily: "Inter_600SemiBold" }}
-            >
-              Offices
-            </Text>
-          </View>
-          <View className="flex flex-wrap flex-row justify-between mt-4">
-            {buttons.map((button, index) => (
-              <Pressable
-                onPress={() => router.push(button.link)}
-                key={button.id}
-                className={`w-[48%] py-[16px]  rounded-lg items-center relative overflow-hidden ${
-                  button.text === "Hospital" ||
-                  button.text === "Emergency" ||
-                  button.text === "Real Estate"
-                    ? "bg-[#0e16ff]"
-                    : "bg-[#ffffff]"
-                } ${index < buttons.length - 2 ? "mb-4" : ""}`}
-              >
-                <View className="absolute top-0 left-0 right-0 bottom-0 bg-black opacity-10 rounded-lg" />
-                <Text
-                  className={` text-[16px] leading-[24px] ${
-                    button.text === "Hospital" ||
-                    button.text === "Emergency" ||
-                    button.text === "Real Estate"
-                      ? "text-[#ffffff]"
-                      : "text-[#272757]"
-                  }`}
-                  style={{ fontFamily: "Inter_600SemiBold" }}
-                >
-                  {button.text}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+        <View>
+          <Text
+            style={{ fontFamily: "Inter_700Bold", fontSize: 20, color: "#fffff0" }}
+          >
+            Offices
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Inter_400Regular",
+              fontSize: 12,
+              color: "rgba(255,255,240,0.7)",
+              marginTop: 2,
+            }}
+          >
+            Select a service to get started
+          </Text>
         </View>
       </View>
+
+      {/* 3-column grid */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          padding: PAD,
+          gap: GAP,
+          paddingBottom: 40,
+        }}
+      >
+        {buttons.map((button) => {
+          const active = !!button.link && !button.comingSoon;
+          return (
+            <Pressable
+              key={button.id}
+              onPress={() => handlePress(button)}
+              style={({ pressed }) => ({
+                width: CARD_W,
+                height: CARD_H,
+                borderRadius: 14,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: active ? "#0E16FF" : "#fff",
+                borderWidth: 1.5,
+                borderColor: active ? "#0E16FF" : "#E8E8E8",
+                opacity: pressed ? 0.85 : 1,
+                shadowColor: "#272757",
+                shadowOffset: { width: 0, height: active ? 4 : 1 },
+                shadowOpacity: active ? 0.16 : 0.04,
+                shadowRadius: active ? 10 : 4,
+                elevation: active ? 5 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 26, marginBottom: 4 }}>{button.emoji}</Text>
+              <Text
+                numberOfLines={1}
+                style={{
+                  fontFamily: "Inter_600SemiBold",
+                  fontSize: 11,
+                  color: active ? "#fffff0" : "#272757",
+                  textAlign: "center",
+                  paddingHorizontal: 4,
+                }}
+              >
+                {button.text}
+              </Text>
+              {button.comingSoon && (
+                <Text
+                  style={{
+                    fontFamily: "Inter_400Regular",
+                    fontSize: 8,
+                    color: "#BBBBBB",
+                    marginTop: 2,
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  COMING SOON
+                </Text>
+              )}
+            </Pressable>
+          );
+        })}
+      </ScrollView>
     </SafeAreaView>
   );
 };
+
 export default Consult;
