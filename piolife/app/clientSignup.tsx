@@ -401,30 +401,6 @@ const ClientSignup = () => {
                       }}
                     />
 
-                    <CountryPicker
-                      label="Country of Origin"
-                      value={formData.countryOfOrigin || ""}
-                      onValueChange={(value) =>
-                        handleChange("countryOfOrigin", value)
-                      }
-                      items={countries}
-                      placeholder="Select your Country of Origin"
-                      error={errors.countryOfOrigin}
-                    />
-                    {formData.countryOfResidence !== defaultCountry && (
-                      <CustomTextInput
-                        label="State/Province/County of Origin"
-                        value={formData.stateOfOrigin}
-                        onChangeText={(value) =>
-                          handleChange("stateOfOrigin", value)
-                        }
-                        placeholder="Enter Your State of Origin"
-                        placeholderTextColor={"#BABABA"}
-                        keyboardType="default"
-                        errorMessage={errors.stateOfOrigin}
-                      />
-                    )}
-
                     {formData.countryOfResidence === defaultCountry && (
                       <CustomPicker
                         label="State/Province/County of Origin"
@@ -441,15 +417,28 @@ const ClientSignup = () => {
                         error={errors.stateOfOrigin}
                       />
                     )}
+                    {formData.countryOfResidence !== defaultCountry && (
+                      <CustomTextInput
+                        label="State/Province/County of Origin"
+                        value={formData.stateOfOrigin}
+                        onChangeText={(value) =>
+                          handleChange("stateOfOrigin", value)
+                        }
+                        placeholder="Enter Your State of Origin"
+                        placeholderTextColor={"#BABABA"}
+                        keyboardType="default"
+                        errorMessage={errors.stateOfOrigin}
+                      />
+                    )}
                     <CountryPicker
-                      label="Country of Residence"
-                      value={formData.countryOfResidence || ""}
+                      label="Country of Origin"
+                      value={formData.countryOfOrigin || ""}
                       onValueChange={(value) =>
-                        handleChange("countryOfResidence", value)
+                        handleChange("countryOfOrigin", value)
                       }
                       items={countries}
-                      placeholder="Select your Country of Residence"
-                      error={errors.countryOfResidence}
+                      placeholder="Select your Country of Origin"
+                      error={errors.countryOfOrigin}
                     />
 
                     {formData.countryOfResidence === defaultCountry && (
@@ -481,6 +470,16 @@ const ClientSignup = () => {
                         errorMessage={errors.stateOfResidence}
                       />
                     )}
+                    <CountryPicker
+                      label="Country of Residence"
+                      value={formData.countryOfResidence || ""}
+                      onValueChange={(value) =>
+                        handleChange("countryOfResidence", value)
+                      }
+                      items={countries}
+                      placeholder="Select your Country of Residence"
+                      error={errors.countryOfResidence}
+                    />
                   </View>
                 )}
                 {step === 3 && (
