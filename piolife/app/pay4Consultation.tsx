@@ -136,7 +136,7 @@ const Pay4Consultation = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#fffff0" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fffff0", flexDirection: "column" }}>
       <StatusBar style="dark" backgroundColor="#fffff0" />
       <Toast />
 
@@ -176,7 +176,7 @@ const Pay4Consultation = () => {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: paid ? 40 : 100 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 20 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Summary card */}
@@ -574,17 +574,13 @@ const Pay4Consultation = () => {
         )}
       </ScrollView>
 
-      {/* Sticky Pay button — always visible at bottom */}
+      {/* Pay button — flex child, always at bottom, no absolute positioning */}
       {!paid && (
         <View
           style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
             backgroundColor: "#fffff0",
             paddingHorizontal: 20,
-            paddingBottom: Platform.OS === "android" ? 20 : 30,
+            paddingBottom: Platform.OS === "android" ? 16 : 28,
             paddingTop: 12,
             borderTopWidth: 1,
             borderTopColor: "rgba(39,39,87,0.08)",
