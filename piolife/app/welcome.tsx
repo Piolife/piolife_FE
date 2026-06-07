@@ -53,7 +53,31 @@ const Welcome = () => {
           >
             We give hope for the best
           </Text>
-          <View className="flex flex-col items-center justify-center mt-[64px]">
+          {/* PRD: show signup bonus on welcome screen */}
+          <View
+            style={{
+              marginTop: 24,
+              marginHorizontal: 24,
+              backgroundColor: "rgba(255,255,255,0.15)",
+              borderRadius: 12,
+              paddingVertical: 10,
+              paddingHorizontal: 16,
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 13,
+                color: "#fffff0",
+                textAlign: "center",
+              }}
+            >
+              🎁 Sign up now & get 200 PioCoins FREE
+            </Text>
+          </View>
+
+          <View className="flex flex-col items-center justify-center mt-[40px]">
             <Pressable
               className="h-[56px] bg-white w-[283px] rounded-[8px] justify-center"
               onPress={() => {
