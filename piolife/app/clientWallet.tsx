@@ -26,6 +26,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import AddFundsModal from "@/components/addFundsModal";
 import { BlurView } from "expo-blur";
 import { formatNumberToThousands } from "@/components/reusables";
+import axios from "axios";
 const wallety = require("../assets/images/Cash Wallet.png");
 const piocoin = require("../assets/images/piocoin_symbol-removebg-preview 1.png");
 const fundwallet = require("../assets/images/image 47.png");
@@ -207,12 +208,31 @@ const ClientWallet = () => {
         paystackKey="pk_test_10f0bf166cf0c44bfa35b7f7f0ea72f24c01a60c"
         billingEmail={user?.email ?? ""}
         amount={amount}
-        onCancel={(e) => {
-          Alert.alert("Funding unsucessful");
+        onCancel={() => {
+          Alert.alert("Funding cancelled", "Your payment was not completed.");
         }}
-        onSuccess={(res) => {
-          Alert.alert("Funding sucessful");
-          refetch();
+        onSuccess={async (res) => {
+          try {
+            const reference =
+              res?.transactionRef?.reference ??
+              res?.data?.reference ??
+              String(res?.transactionRef?.trans ?? "");
+            if (reference && user?.id) {
+              await axios.post(
+                `${API_URL}/api/v12/wallet/${user.id}/deposit`,
+                { reference },
+                { headers: { Authorization: `Bearer ${user.token}` } }
+              );
+            }
+            Alert.alert("Funding successful", "Your wallet has been credited.");
+            refetch();
+          } catch {
+            Alert.alert(
+              "Funding successful",
+              "Payment received. Balance will update shortly."
+            );
+            refetch();
+          }
         }}
         ref={paystackWebViewRef as unknown as LegacyRef<ReactNode>}
       />

@@ -72,17 +72,24 @@ const AddFundsModal: React.FC<AddFundsModalProps> = ({
             placeholderTextColor={"#BABABA"}
             keyboardType="numeric"
           />
+          {amount > 0 && amount < 100 && (
+            <Text style={{ color: "#B91C1C", fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 4 }}>
+              Minimum deposit is ₦100
+            </Text>
+          )}
           <Pressable
-            disabled={amount < 1000}
+            disabled={amount < 100}
             onPress={() => onSubmit(amount)}
-            className={`px-[32px] h-[56px] bg-[#0e16ff] ${
-              amount < 1000 ? "bg-[#aaaaaa] " : "bg-[#0e16ff] "
-            } w-full rounded-[8px] flex items-center justify-center mt-4`}
+            style={{
+              height: 56,
+              borderRadius: 8,
+              alignItems: "center",
+              justifyContent: "center",
+              marginTop: 16,
+              backgroundColor: amount < 100 ? "#aaaaaa" : "#0e16ff",
+            }}
           >
-            <Text
-              className="text-white text-[16px]"
-              style={{ fontFamily: "Inter_700Bold" }}
-            >
+            <Text style={{ fontFamily: "Inter_700Bold", fontSize: 16, color: "#fff" }}>
               Submit
             </Text>
           </Pressable>
