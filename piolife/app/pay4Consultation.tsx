@@ -355,7 +355,7 @@ const Pay4Consultation = () => {
           </View>
         </View>
 
-        {paid ? (
+        {paid && (
           <>
             {/* After payment: show available practitioners */}
             <View
