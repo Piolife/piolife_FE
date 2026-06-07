@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import RadioGroup, { RadioButtonProps } from "react-native-radio-buttons-group";
 import { router } from "expo-router";
 import { SelectSickness } from "@/components/flatListItems/items";
@@ -22,31 +22,18 @@ import { formatNumberToThousands } from "@/components/reusables";
 
 const HealthIssue = () => {
   const [selectedId, setSelectedId] = useState<string>("English");
+  const [callType, setCallType] = useState<"video" | "voice">("video");
+
   const radioButtons: RadioButtonProps[] = useMemo(
     () => [
-      {
-        id: "English",
-        label: "English",
-        value: "English",
-      },
-      {
-        id: "Yoruba",
-        label: "Yoruba",
-        value: "Yoruba",
-      },
-      {
-        id: "Igbo",
-        label: "Igbo",
-        value: "igbo",
-      },
-      {
-        id: "Hausa",
-        label: "Hausa",
-        value: "Hausa",
-      },
+      { id: "English", label: "English", value: "English" },
+      { id: "Yoruba", label: "Yoruba", value: "Yoruba" },
+      { id: "Igbo", label: "Igbo", value: "Igbo" },
+      { id: "Hausa", label: "Hausa", value: "Hausa" },
     ],
     []
   );
+
   const handlePrevious = () => {
     router.back();
   };
@@ -54,33 +41,41 @@ const HealthIssue = () => {
   const {
     data: newdata,
     loading: isloading,
-    error: iserror,
   } = useFetchData<any>(`${API_URL}/api/v12/medical-issues`);
 
-  const [selectedItems, setSelectedItems] = useState<{
-    [key: string]: boolean;
-  }>({});
+  const [selectedItems, setSelectedItems] = useState<{ [key: string]: boolean }>({});
+  const [othersText, setOthersText] = useState("");
   const piocoin = require("../assets/images/piocoin_symbol-removebg-preview 1.png");
   const isDisabled = !Object.values(selectedItems).some((value) => value);
-  const selectedIds = Object.keys(selectedItems).filter(
-    (id) => selectedItems[id]
-  );
+
+  const selectedIds = Object.keys(selectedItems).filter((id) => selectedItems[id]);
   const selectedCount = selectedIds.length;
 
   const totalCost = selectedIds.reduce((sum, id) => {
-    const item = newdata.find((item: any) => item._id === id);
+    const item = newdata?.find((item: any) => item._id === id);
     return item ? sum + item.price : sum;
   }, 0);
-  console.log("data", newdata);
+
   const handleNext = () => {
     const selectedArray = newdata?.filter(
       (item: HealthIssueType) => selectedItems[item._id]
     );
-    const encoded = encodeURIComponent(JSON.stringify(selectedArray));
+    const issueNames = selectedArray?.map((item: HealthIssueType) =>
+      item.name === "Others" && othersText.trim()
+        ? `Others (${othersText.trim()})`
+        : item.name
+    );
+    const issueIds = selectedArray?.map((item: HealthIssueType) => item._id);
+
     router.push(
-      `/pay4Consultation?selected=${encoded}&selectedId=${selectedId}&cost=${totalCost}`
+      `/pay4Consultation?issues=${encodeURIComponent(
+        JSON.stringify(issueNames)
+      )}&issueIds=${encodeURIComponent(
+        JSON.stringify(issueIds)
+      )}&callType=${callType}&language=${selectedId}`
     );
   };
+
   const toggleSelect = (itemId: string) => {
     setSelectedItems((prev) => ({
       ...prev,
@@ -91,7 +86,7 @@ const HealthIssue = () => {
   if (isloading) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color="#0E16FF" />
       </View>
     );
   }
@@ -101,126 +96,236 @@ const HealthIssue = () => {
       className="flex-1 bg-[#fffff0]"
       style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
     >
-      <StatusBar style="dark" backgroundColor="#ffffff" />
-      <View className="flex-1 flex flex-col justify-between px-[4%] pt-12">
-        <View className="py-[16px]  gap-[24px]">
-          <Pressable
-            className="flex flex-row items-center gap-[16px] "
-            onPress={handlePrevious}
-          >
-            <FontAwesome name="angle-left" size={24} color="black" />
-            <Text
-              className="text-[#272757] text-[16px] leading-[20px] text-center"
-              style={{ fontFamily: "Inter_500Medium" }}
-            >
-              Back
-            </Text>
-          </Pressable>
-          <View className="flex flex-col gap-[16px]">
-            <View className="py-[4px] flex flex-col gap-[16px]">
-              <Text
-                className="text-[#030319] text-[16px] leading-[24px]"
-                style={{ fontFamily: "Inter_400Regular" }}
-              >
-                <Text style={{ fontFamily: "Inter_600SemiBold" }}>
-                  Click to select health issue
-                </Text>
-                (select multiple)
-              </Text>
-            </View>
-            <View className="flex flex-col gap-[16px]">
-              <Text
-                className="text-[#030319] text-[16px] leading-[24px]"
-                style={{ fontFamily: "Inter_500Medium" }}
-              >
-                Preferred Language (select just one)
-              </Text>
-              <RadioGroup
-                layout="column"
-                containerStyle={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  flexDirection: "row",
-                  gridRowGap: "16px",
-                  rowGap: "16px",
-                }}
-                radioButtons={radioButtons}
-                onPress={setSelectedId}
-                selectedId={selectedId}
-              />
-            </View>
-            <View className="py-[4px] flex flex-row justify-between">
-              <Text
-                className="text-[#030319] text-[14px] leading-[150%]"
-                style={{ fontFamily: "Inter_400Regular" }}
-              >
-                ({selectedCount} Selected)
-              </Text>
-              <View className="flex flex-row items-center gap-2 ">
-                <Image source={piocoin} style={{ width: 10, height: 20 }} />
-                <Text
-                  className="text-[#424242] text-[14px] leading-[150%]"
-                  style={{ fontFamily: "Inter_400Regular" }}
-                >
-                  {formatNumberToThousands(totalCost)}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-        <View className="flex-1 mb-4">
-          <FlatList
-            data={newdata}
-            renderItem={({ item }) => (
-              <SelectSickness
-                item={item}
-                selected={!!(item._id && selectedItems[item._id])}
-                onPress={() => item._id && toggleSelect(item._id)}
-              />
-            )}
-            keyExtractor={(item) => item.state}
-            numColumns={2}
-            columnWrapperStyle={{
-              justifyContent: "space-between",
-              marginHorizontal: 10,
-              columnGap: 12,
+      <StatusBar style="dark" backgroundColor="#fffff0" />
+
+      {/* Header */}
+      <View
+        style={{
+          backgroundColor: "#0E16FF",
+          paddingTop: Platform.OS === "android" ? 28 : 12,
+          paddingBottom: 28,
+          paddingHorizontal: 24,
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+        }}
+      >
+        <Pressable onPress={handlePrevious} style={{ marginBottom: 16 }}>
+          <Feather name="arrow-left" size={24} color="#fffff0" />
+        </Pressable>
+        <Text
+          style={{
+            fontFamily: "Inter_800ExtraBold",
+            fontSize: 24,
+            color: "#fffff0",
+          }}
+        >
+          What's the issue?
+        </Text>
+        <Text
+          style={{
+            fontFamily: "Inter_400Regular",
+            fontSize: 13,
+            color: "rgba(255,255,240,0.7)",
+            marginTop: 4,
+          }}
+        >
+          Select all that apply — multiple allowed
+        </Text>
+      </View>
+
+      <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}>
+        {/* Language selection */}
+        <View style={{ marginBottom: 14 }}>
+          <Text
+            style={{
+              fontFamily: "Inter_600SemiBold",
+              fontSize: 14,
+              color: "#272757",
+              marginBottom: 10,
             }}
-            ListFooterComponent={
-              <Pressable
-                disabled={isDisabled}
-                className={`px-[32px] h-[56px] ${
-                  isDisabled ? "bg-[#aaaaaa]" : "bg-[#0e16ff]"
-                } rounded-[8px] flex items-center justify-center mt-[12px]`}
-                onPress={handleNext}
-              >
-                <Text
-                  className="text-white text-[16px]"
-                  style={{ fontFamily: "Inter_700Bold" }}
-                >
-                  Next
-                </Text>
-              </Pressable>
-            }
+          >
+            Preferred Language
+          </Text>
+          <RadioGroup
+            layout="row"
+            containerStyle={{ flexWrap: "wrap", rowGap: 8 }}
+            radioButtons={radioButtons}
+            onPress={setSelectedId}
+            selectedId={selectedId}
           />
         </View>
+
+        {/* Call type toggle */}
+        <View style={{ marginBottom: 14 }}>
+          <Text
+            style={{
+              fontFamily: "Inter_600SemiBold",
+              fontSize: 14,
+              color: "#272757",
+              marginBottom: 10,
+            }}
+          >
+            Call Type
+          </Text>
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <Pressable
+              onPress={() => setCallType("video")}
+              style={{
+                flex: 1,
+                height: 48,
+                borderRadius: 12,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                backgroundColor: callType === "video" ? "#0E16FF" : "#fff",
+                borderWidth: 1.5,
+                borderColor: callType === "video" ? "#0E16FF" : "#E0E0E0",
+              }}
+            >
+              <Feather
+                name="video"
+                size={18}
+                color={callType === "video" ? "#fffff0" : "#272757"}
+              />
+              <Text
+                style={{
+                  fontFamily: "Inter_600SemiBold",
+                  fontSize: 14,
+                  color: callType === "video" ? "#fffff0" : "#272757",
+                }}
+              >
+                Video
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setCallType("voice")}
+              style={{
+                flex: 1,
+                height: 48,
+                borderRadius: 12,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                backgroundColor: callType === "voice" ? "#0E16FF" : "#fff",
+                borderWidth: 1.5,
+                borderColor: callType === "voice" ? "#0E16FF" : "#E0E0E0",
+              }}
+            >
+              <Feather
+                name="phone"
+                size={18}
+                color={callType === "voice" ? "#fffff0" : "#272757"}
+              />
+              <Text
+                style={{
+                  fontFamily: "Inter_600SemiBold",
+                  fontSize: 14,
+                  color: callType === "voice" ? "#fffff0" : "#272757",
+                }}
+              >
+                Voice
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Selection count + cost bar */}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 10,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: "Inter_400Regular",
+              fontSize: 13,
+              color: "#666",
+            }}
+          >
+            {selectedCount} selected
+          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Image source={piocoin} style={{ width: 10, height: 20 }} />
+            <Text
+              style={{
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 14,
+                color: "#272757",
+              }}
+            >
+              {formatNumberToThousands(totalCost)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Issues list */}
+        <FlatList
+          data={newdata}
+          renderItem={({ item }) => (
+            <SelectSickness
+              item={item}
+              selected={!!(item._id && selectedItems[item._id])}
+              onPress={() => item._id && toggleSelect(item._id)}
+              othersText={item.name === "Others" ? othersText : undefined}
+              onOthersTextChange={item.name === "Others" ? setOthersText : undefined}
+            />
+          )}
+          keyExtractor={(item) => item._id}
+          numColumns={2}
+          columnWrapperStyle={{
+            justifyContent: "space-between",
+            marginHorizontal: 4,
+            columnGap: 12,
+          }}
+          showsVerticalScrollIndicator={false}
+          ListFooterComponent={
+            <Pressable
+              disabled={isDisabled}
+              style={{
+                height: 56,
+                borderRadius: 14,
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: 16,
+                marginBottom: 24,
+                backgroundColor: isDisabled ? "#aaaaaa" : "#0E16FF",
+                shadowColor: "#0E16FF",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: isDisabled ? 0 : 0.25,
+                shadowRadius: 10,
+                elevation: isDisabled ? 0 : 5,
+              }}
+              onPress={handleNext}
+            >
+              <Text
+                style={{
+                  fontFamily: "Inter_700Bold",
+                  fontSize: 16,
+                  color: "#fffff0",
+                }}
+              >
+                Next →
+              </Text>
+            </Pressable>
+          }
+        />
       </View>
     </SafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-    paddingTop: Platform.OS === "android" ? 10 : 0,
-  },
-  text: {
-    fontSize: 25,
-    fontWeight: "500",
-  },
   loaderContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#fffff0",
   },
 });
+
 export default HealthIssue;

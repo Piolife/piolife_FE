@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { View, Text, Pressable, Image, StyleSheet } from "react-native";
+import { View, Text, Pressable, Image, StyleSheet, TextInput } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {
   DrugItemType,
@@ -15,6 +15,7 @@ import {
 } from "../reusables";
 import React from "react";
 import { Feather } from "@expo/vector-icons";
+import SpecialtyIcon, { TEXT_ONLY } from "@/components/SpecialtyIcon";
 
 const estateView = require("../../assets/images/Rectangle 12-2.png");
 const piocoin = require("../../assets/images/piocoin_symbol-removebg-preview 1.png");
@@ -56,34 +57,103 @@ export const SelectSickness = ({
   item,
   onPress,
   selected,
+  othersText,
+  onOthersTextChange,
 }: {
   item: HealthIssueType;
   selected?: boolean;
   onPress?: () => void;
+  othersText?: string;
+  onOthersTextChange?: (text: string) => void;
 }) => {
+  const isTextOnly = TEXT_ONLY.has(item.name);
+  const isOthers = item.name === "Others";
+
   return (
     <Pressable onPress={onPress} className="w-[48%] my-[8px]">
       <View
-        className={`px-[16px] h-[64px] rounded-[8px] items-center justify-center py-[16px] ${
-          selected
-            ? "bg-[#0E16FF]"
-            : "bg-[#FFFFFF] shadow-md border border-gray-200 "
-        }`}
+        style={{
+          backgroundColor: selected ? "#0E16FF" : "#FFFFFF",
+          borderRadius: 12,
+          paddingHorizontal: 10,
+          paddingVertical: 12,
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: isOthers && selected ? 110 : 88,
+          borderWidth: selected ? 0 : 1,
+          borderColor: "#E8E8F0",
+          shadowColor: "#272757",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: selected ? 0 : 0.06,
+          shadowRadius: 6,
+          elevation: selected ? 0 : 2,
+        }}
       >
-        <Image
-          source={{
-            uri: item.image,
+        {/* Icon — only for non-text-only specialties */}
+        {!isTextOnly && (
+          <SpecialtyIcon name={item.name} size={34} selected={selected} />
+        )}
+
+        {/* Specialty name */}
+        <Text
+          numberOfLines={2}
+          style={{
+            fontFamily: isTextOnly ? "Inter_700Bold" : "Inter_600SemiBold",
+            fontSize: isTextOnly ? 11 : 10,
+            color: selected ? "#fffff0" : "#272757",
+            textAlign: "center",
+            marginTop: isTextOnly ? 0 : 6,
+            lineHeight: 14,
           }}
-          style={{ width: 32, height: 32 }}
-          resizeMode="contain"
-        />
-        <View className="flex flex-row items-center gap-2 mt-1">
-          <Image source={piocoin} style={{ width: 10, height: 20 }} />
+        >
+          {item.name.split("(")[0].trim()}
+        </Text>
+
+        {/* Subtitle in parentheses if present */}
+        {item.name.includes("(") && (
           <Text
-            className={`text-[10px] font-[700] ${
-              selected ? "text-[#ffffff]" : "text-[#272757] "
-            }`}
-            style={{ fontFamily: "Inter_500Medium" }}
+            style={{
+              fontFamily: "Inter_400Regular",
+              fontSize: 9,
+              color: selected ? "rgba(255,255,240,0.7)" : "#888",
+              textAlign: "center",
+              lineHeight: 12,
+            }}
+          >
+            {item.name.match(/\(([^)]+)\)/)?.[1]}
+          </Text>
+        )}
+
+        {/* "Others" inline input when selected */}
+        {isOthers && selected && (
+          <TextInput
+            value={othersText}
+            onChangeText={onOthersTextChange}
+            placeholder="Specify..."
+            placeholderTextColor="rgba(255,255,240,0.5)"
+            style={{
+              marginTop: 6,
+              width: "100%",
+              borderBottomWidth: 1,
+              borderBottomColor: "rgba(255,255,240,0.6)",
+              color: "#fffff0",
+              fontFamily: "Inter_400Regular",
+              fontSize: 11,
+              paddingVertical: 3,
+              textAlign: "center",
+            }}
+          />
+        )}
+
+        {/* Price row */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 3, marginTop: 5 }}>
+          <Image source={piocoin} style={{ width: 9, height: 18 }} />
+          <Text
+            style={{
+              fontFamily: "Inter_700Bold",
+              fontSize: 10,
+              color: selected ? "#fffff0" : "#0E16FF",
+            }}
           >
             {formatNumberToThousands(item.price)}
           </Text>
@@ -92,45 +162,7 @@ export const SelectSickness = ({
     </Pressable>
   );
 };
-export const EstateSelect = ({
-  item,
-  onPress,
-}: {
-  item: { state: string; status: string };
-  onPress?: () => void;
-}) => {
-  return (
-    <Pressable
-      onPress={() => {
-        router.push("/estateFeatures");
-      }}
-      className="flex-1 mb-[8px] w-full"
-    >
-      <View
-        className={`p-[16px] rounded-[8px] items-center  bg-[#FFFFF0]  border-[#DADADA80] border-[1px] flex flex-row gap-[12px] w-full`}
-      >
-        <Image
-          source={estateView}
-          className="h-[89px] w-[89px] rounded-[8px]"
-        />
-        <View className="flex flex-col gap-[8px] flex-1">
-          <Text
-            className={`text-[16px] leading-[96%] text-[#272757] `}
-            style={{ fontFamily: "Inter_600SemiBold" }}
-          >
-            Woodland Estate
-          </Text>
-          <Text
-            className={`text-[12px] leading-[100%] text-[#777777] w-full`}
-            style={{ fontFamily: "Inter_500Medium" }}
-          >
-            1011 Ocean avanue, Benin city, Edo state
-          </Text>
-        </View>
-      </View>
-    </Pressable>
-  );
-};
+
 export const Features = ({ item }: { item: string; onPress?: () => void }) => {
   return (
     <View className={`  items-center    flex flex-row gap-[16px] w-full`}>
@@ -393,39 +425,45 @@ export const NearbyMeds = ({
     </Pressable>
   );
 };
+// FIXED: was showing officerInCharge for both name and subtitle
 export const NearbyPharms = ({
-  medicalLabName,
+  pharmacyName,
   officerInCharge,
   onPress,
 }: {
-  medicalLabName: string;
+  pharmacyName: string;
   officerInCharge: string;
   onPress: () => void;
-}) => {
-  return (
-    <Pressable
-      onPress={onPress}
-      className=" border-[#DADADA80] border-b-[1px] p-[16px] flex flex-col gap-[16px] items-center mb-2"
+}) => (
+  <Pressable
+    onPress={onPress}
+    className="border-[#DADADA80] border-b-[1px] p-[16px] flex flex-col gap-[8px] mb-2 bg-white rounded-[8px]"
+  >
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}
     >
-      <View className="flex flex-row gap-[8px] items-center justify-between w-full">
-        <View className="flex flex-col gap-[8px]">
-          <Text
-            className="text-[#272757] text-[16px] leading-[20px]  uppercase"
-            style={{ fontFamily: "Inter_600SemiBold" }}
-          >
-            {medicalLabName}
-          </Text>
-          <Text
-            className="text-[#272757] text-[14px] leading-[20px]  "
-            style={{ fontFamily: "Inter_600SemiBold" }}
-          >
-            {officerInCharge}
-          </Text>
-        </View>
+      <View>
+        <Text
+          className="text-[#272757] text-[16px] leading-[20px] uppercase"
+          style={{ fontFamily: "Inter_600SemiBold" }}
+        >
+          {pharmacyName || officerInCharge}
+        </Text>
+        <Text
+          className="text-[#272757] text-[12px] leading-[20px]"
+          style={{ fontFamily: "Inter_400Regular" }}
+        >
+          In charge: {officerInCharge}
+        </Text>
       </View>
-    </Pressable>
-  );
-};
+      <Feather name="chevron-right" size={18} color="#0E16FF" />
+    </View>
+  </Pressable>
+);
 
 const styles = StyleSheet.create({
   shadowProp: {
@@ -516,6 +554,7 @@ export const AvailableDoc = ({
     </Pressable>
   );
 };
+// FIXED: bg-[##0E16FF] → bg-[#0E16FF] (double # was causing invisible/broken buttons)
 export const CallDoc = ({
   username,
   profilePicture,
@@ -528,62 +567,75 @@ export const CallDoc = ({
   profilePicture: string;
   doctorId: string;
   languageProficiency: string[];
-}) => {
-  return (
-    <Pressable
-      className="border-[#DADADA80] border-[1px] p-[16px] rounded-[4px] bg-[#fffff0]"
-      style={[styles.shadowProp]}
-    >
-      <View className=" flex flex-row gap-[16px] items-center ">
-        <Image source={{ uri: profilePicture }} className="h-[80px] w-[80px]" />
-        <View className="flex flex-col gap-[8px] flex-1">
-          <View className=" border-[#dadada80] border-b pb-2 flex w-full ">
-            <Text
-              className="text-[#272757] text-[14px] leading-[20px]  capitalize"
-              style={{ fontFamily: "Inter_600SemiBold" }}
-            >
-              DR{username}
-            </Text>
-          </View>
-          <View className="flex-row">
-            {languageProficiency.map((tag, index) => (
-              <React.Fragment key={index}>
-                <Text className="text-[#272757] text-[12px] leading-[20px]">
-                  {tag}
-                </Text>
-                {index < languageProficiency.length - 1 && (
-                  <View className="w-px bg-gray-400 mx-2" />
-                )}
-              </React.Fragment>
-            ))}
-          </View>
+}) => (
+  <Pressable
+    className="border-[#DADADA80] border-[1px] p-[16px] rounded-[4px] bg-[#fffff0]"
+    style={[styles.shadowProp]}
+  >
+    <View className="flex flex-row gap-[16px] items-center">
+      <Image
+        source={{ uri: profilePicture }}
+        className="h-[80px] w-[80px]"
+        style={{ borderRadius: 40 }}
+      />
+      <View className="flex flex-col gap-[8px] flex-1">
+        <View className="border-[#dadada80] border-b pb-2 flex w-full">
+          <Text
+            className="text-[#272757] text-[14px] leading-[20px] capitalize"
+            style={{ fontFamily: "Inter_600SemiBold" }}
+          >
+            DR {username}
+          </Text>
+        </View>
+        <View className="flex-row">
+          {languageProficiency.map((tag, index) => (
+            <React.Fragment key={index}>
+              <Text className="text-[#272757] text-[12px] leading-[20px]">
+                {tag}
+              </Text>
+              {index < languageProficiency.length - 1 && (
+                <View className="w-px bg-gray-400 mx-2" />
+              )}
+            </React.Fragment>
+          ))}
         </View>
       </View>
-      <View className="flex items-end">
-        <View className="py-[10px] border-[#dadada] border-[1px] rounded-[8px] px-[16px] gap-[16px] flex flex-row">
-          <Pressable
-            className="p-[8px] rounded-full bg-[##0E16FF]"
-            onPress={() =>
-              router.push(
-                `/call?doctorId=${doctorId}&specialtyId=${specialtyId}&type=audio`
-              )
-            }
-          >
-            <Feather name="phone" size={16} color="white" />
-          </Pressable>
-          <View className="w-[1px] bg-[#DADADA80]"></View>
-          <Pressable
-            className="p-[8px] rounded-full bg-[##0E16FF] "
-            onPress={() =>
-              router.push(
-                `/call?doctorId=${doctorId}&specialtyId=${specialtyId}&type=video`
-              )
-            }
-          >
-            <Feather name="video" size={16} color="white" />
-          </Pressable>
-        </View>
+    </View>
+    {/* FIXED: was bg-[##0E16FF] — double hash made buttons transparent */}
+    <View className="flex items-end mt-3">
+      <View
+        style={{
+          borderWidth: 1,
+          borderColor: "#dadada80",
+          borderRadius: 8,
+          paddingVertical: 10,
+          paddingHorizontal: 16,
+          flexDirection: "row",
+          gap: 16,
+        }}
+      >
+        <Pressable
+          style={{ padding: 8, borderRadius: 20, backgroundColor: "#0E16FF" }} // FIXED
+          onPress={() =>
+            router.push(
+              `/call?doctorId=${doctorId}&specialtyId=${specialtyId}&type=audio`
+            )
+          }
+        >
+          <Feather name="phone" size={16} color="white" />
+        </Pressable>
+        <View style={{ width: 1, backgroundColor: "#DADADA80" }} />
+        <Pressable
+          style={{ padding: 8, borderRadius: 20, backgroundColor: "#0E16FF" }} // FIXED
+          onPress={() =>
+            router.push(
+              `/call?doctorId=${doctorId}&specialtyId=${specialtyId}&type=video`
+            )
+          }
+        >
+          <Feather name="video" size={16} color="white" />
+        </Pressable>
       </View>
-    </Pressable>
-  );
-};
+    </View>
+  </Pressable>
+);
