@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Animated,
   Platform,
-  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ExpoClipboard from "expo-clipboard";
@@ -45,24 +44,23 @@ const ReferScreen = () => {
           duration: 900,
           useNativeDriver: true,
         }),
-      ]),
+      ])
     ).start();
   }, []);
 
   const { data, loading } = useFetchData<any>(
     user ? `${API_URL}/api/v12/users/${user.id}/referral` : "",
-    { token: user?.token },
+    { token: user?.token }
   );
 
-  const referralCode =
-    data?.referralCode || user?.referralCode || user?.username || "———";
+  const referralCode = data?.referralCode ?? user?.referralCode ?? "———";
   const referralCount = data?.referralCount ?? 0;
   const referralEarnings = data?.referralEarnings ?? 0;
 
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Join PioLife — Nigeria's #1 e-consultation app! Use my referral code ${referralCode} when signing up and we both earn 20 PioCoins. Download: https://piolife.app`,
+        message: `Join PioLife — Nigeria's #1 e-consultation app! Use my referral code ${referralCode} when signing up and we both earn 200 PioCoins. Download: https://piolife.app`,
         title: "Join PioLife",
       });
     } catch {}
@@ -123,19 +121,17 @@ const ReferScreen = () => {
             marginTop: 6,
           }}
         >
-          Invite friends — you both get 20 PioCoins free
+          Invite friends — you both get 200 PioCoins free
         </Text>
       </View>
 
-      <Animated.ScrollView
+      <Animated.View
         style={{
           opacity: fadeAnim,
           flex: 1,
           paddingHorizontal: 20,
           paddingTop: 24,
         }}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
       >
         {/* Code card */}
         <View
@@ -179,7 +175,7 @@ const ReferScreen = () => {
                   style={{
                     fontFamily: "Inter_800ExtraBold",
                     fontSize: 28,
-                    color: "#000000",
+                    color: "#0E16FF",
                     letterSpacing: 4,
                   }}
                 >
@@ -188,11 +184,17 @@ const ReferScreen = () => {
               )}
             </View>
           </Animated.View>
-          <View className="flex-row" style={{ gap: 12 }}>
+          <View style={{ flexDirection: "row", gap: 12 }}>
             <Pressable
               onPress={handleCopy}
-              className="flex-row items-center gap-[6px] bg-[#F5F5FF] rounded-[10px] px-4 py-[10px]"
               style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                backgroundColor: "#F5F5FF",
+                borderRadius: 10,
+                paddingHorizontal: 16,
+                paddingVertical: 10,
                 opacity: pressed ? 0.8 : 1,
               })}
             >
@@ -209,8 +211,14 @@ const ReferScreen = () => {
             </Pressable>
             <Pressable
               onPress={handleShare}
-              className="flex-row items-center gap-[6px] bg-[#0E16FF] rounded-[10px] px-4 py-[10px]"
               style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                backgroundColor: "#0E16FF",
+                borderRadius: 10,
+                paddingHorizontal: 16,
+                paddingVertical: 10,
                 opacity: pressed ? 0.85 : 1,
               })}
             >
@@ -229,7 +237,7 @@ const ReferScreen = () => {
         </View>
 
         {/* Stats */}
-        <View className="flex-row" style={{ gap: 12, marginBottom: 20 }}>
+        <View style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}>
           {[
             {
               label: "Friends Referred",
@@ -317,13 +325,14 @@ const ReferScreen = () => {
             { step: "2", text: "Friend signs up using your code" },
             {
               step: "3",
-              text: "Both of you get 20 PioCoins added to your wallets instantly",
+              text: "Both of you get 200 PioCoins added to your wallets instantly",
             },
           ].map((item) => (
             <View
               key={item.step}
-              className="flex-row items-start"
               style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
                 gap: 12,
                 marginBottom: 14,
               }}
@@ -363,7 +372,7 @@ const ReferScreen = () => {
             </View>
           ))}
         </View>
-      </Animated.ScrollView>
+      </Animated.View>
     </SafeAreaView>
   );
 };

@@ -9,13 +9,13 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
   Text,
   View,
-  SafeAreaView,
   ScrollView,
   Pressable,
   Platform,
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";

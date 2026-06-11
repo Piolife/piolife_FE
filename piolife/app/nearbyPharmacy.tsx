@@ -1,131 +1,158 @@
+// FIXED app/nearbyPharmacy.tsx
+// Bug 1: NearbyPharms was called with officerInCharge as medicalLabName — showed wrong name
+// Bug 2: navigates to medLabTests for pharmacy — should go to pharmacyDrugs
+// Bug 3: bg-white, not bg-[#fffff0] theme
 import React, { useEffect, useState } from "react";
-import { StatusBar } from "expo-status-bar";
 import {
   Text,
   View,
-  SafeAreaView,
-  StyleSheet,
   Platform,
   ActivityIndicator,
   Pressable,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
-import { HistoryWalletType, User } from "@/services/core/types";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFetchData } from "@/services/api/request";
 import { API_URL } from "@/constants/api";
-import { CustomFlatList } from "@/components/reusables";
-import { getCurrentLocation } from "@/components/reusables";
-import {
-  ConsultationHistory,
-  HistoryWallet,
-  NearbyMeds,
-  NearbyPharms,
-} from "@/components/flatListItems/items";
-import { FontAwesome } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getCurrentLocation, CustomFlatList } from "@/components/reusables";
+import { NearbyPharms } from "@/components/flatListItems/items";
+import { Feather } from "@expo/vector-icons";
+
 const NearbyPharmacy = () => {
   const [location, setLocation] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
-  const [user, SetUser] = useState<User>();
-  const [errors, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    (async () => {
+      const userData = await AsyncStorage.getItem("user");
+      if (userData) setUser(JSON.parse(userData));
+      const coords = await getCurrentLocation();
+      setLocation(coords);
+    })();
+  }, []);
 
   const token = user?.token;
-  const { data, loading, error } = useFetchData<any>(
+  const { data, loading } = useFetchData<any>(
     location
       ? `${API_URL}/api/v12/users/nearby-specialized?lat=${location.latitude}&lng=${location.longitude}&radius=50&role=pharmacy_services`
       : "",
     { token }
   );
-  console.log("data jjjjj", data);
-  useEffect(() => {
-    (async () => {
-      try {
-        // Load user from storage
-        const userData = await AsyncStorage.getItem("user");
-        if (userData) {
-          const user = JSON.parse(userData);
-          SetUser(user);
-        }
 
-        // Get current location
-        const coords = await getCurrentLocation();
-        setLocation(coords);
-
-        // Mark that app has launched
-        await AsyncStorage.setItem("hasLaunched", "launched");
-      } catch (err: any) {
-        setError(err.message || "Something went wrong");
-      }
-    })();
-  }, []);
-
-  if (loading) {
-    return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
-  const handlePrevious = () => {
-    router.back();
-  };
   return (
-    <SafeAreaView
-      className="flex-1 bg-white"
-      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
-    >
-      <StatusBar style="dark" backgroundColor="#ffffff" />
-      <View className="py-[8px] px-[4%] gap-[16px] mt-12">
-        <Pressable
-          className="flex flex-row items-center gap-[16px] "
-          onPress={handlePrevious}
-        >
-          <FontAwesome name="angle-left" size={24} color="black" />
-          <Text
-            className="text-[#272757] text-[16px] leading-[20px] text-center "
-            style={{ fontFamily: "Inter_500Medium" }}
-          >
-            Back
-          </Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fffff0" }}>
+      <StatusBar style="dark" backgroundColor="#fffff0" />
+      <View
+        style={{
+          backgroundColor: "#0E16FF",
+          paddingTop: Platform.OS === "android" ? 28 : 12,
+          paddingBottom: 32,
+          paddingHorizontal: 24,
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+        }}
+      >
+        <Pressable onPress={() => router.back()} style={{ marginBottom: 20 }}>
+          <Feather name="arrow-left" size={24} color="#fffff0" />
         </Pressable>
-        <Text className="text-[#272757] text-[18px] ">Recomended Pharmacy</Text>
-        <CustomFlatList
-          data={data || []}
-          renderItem={({ item }: { item: any }) => (
-            <NearbyPharms
-              medicalLabName={item.officerInCharge}
-              officerInCharge={item.officerInCharge}
-              onPress={() =>
-                router.push({
-                  pathname: "/medLabTests", // <- the file under app/nextPage.tsx
-                  params: { id: item._id }, // <- send ID
-                })
-              }
-            />
-          )}
-          ListEmptyComponent={() => (
-            <Text style={{ textAlign: "center" }}>No items found.</Text>
-          )}
-          showsVerticalScrollIndicator={false}
-          ListFooterComponent={() => <View style={{ height: 32 }} />}
-        />
+        <Text
+          style={{
+            fontFamily: "Inter_300Light",
+            fontSize: 12,
+            color: "rgba(255,255,240,0.65)",
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            marginBottom: 4,
+          }}
+        >
+          Nearby
+        </Text>
+        <Text
+          style={{
+            fontFamily: "Inter_800ExtraBold",
+            fontSize: 26,
+            color: "#fffff0",
+          }}
+        >
+          Recommended Pharmacies
+        </Text>
+        <Text
+          style={{
+            fontFamily: "Inter_400Regular",
+            fontSize: 13,
+            color: "rgba(255,255,240,0.7)",
+            marginTop: 4,
+          }}
+        >
+          Within 50km of your location
+        </Text>
+      </View>
+
+      <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}>
+        {loading ? (
+          <View
+            style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+          >
+            <ActivityIndicator size="large" color="#0E16FF" />
+          </View>
+        ) : (
+          <CustomFlatList
+            data={data || []}
+            renderItem={({ item }: { item: any }) => (
+              // FIXED: pass pharmacyName AND officerInCharge separately
+              <NearbyPharms
+                pharmacyName={
+                  item.pharmacyName ?? item.officerInCharge ?? "Pharmacy"
+                }
+                officerInCharge={item.officerInCharge ?? "—"}
+                onPress={() =>
+                  // FIXED: was going to /medLabTests — now goes to pharmacy drugs
+                  router.push({
+                    pathname: "/pharmDrugs",
+                    params: {
+                      id: item._id,
+                      name: item.pharmacyName ?? item.officerInCharge,
+                    },
+                  })
+                }
+              />
+            )}
+            ListEmptyComponent={() => (
+              <View style={{ alignItems: "center", paddingTop: 40 }}>
+                <Text style={{ fontSize: 40, marginBottom: 12 }}>💊</Text>
+                <Text
+                  style={{
+                    fontFamily: "Inter_500Medium",
+                    fontSize: 15,
+                    color: "#888",
+                  }}
+                >
+                  No pharmacies found nearby
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: "Inter_400Regular",
+                    fontSize: 13,
+                    color: "#aaa",
+                    marginTop: 4,
+                  }}
+                >
+                  Try increasing the search radius
+                </Text>
+              </View>
+            )}
+            showsVerticalScrollIndicator={false}
+            ListFooterComponent={() => <View style={{ height: 32 }} />}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
 };
-const styles = StyleSheet.create({
-  loaderContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  shadowProp: {
-    shadowColor: "#171717",
-    shadowOffset: { width: -2, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-});
+
 export default NearbyPharmacy;

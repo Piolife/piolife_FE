@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { Text, View, SafeAreaView, Pressable, Platform } from "react-native";
+import { Text, View, Pressable, Platform } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { CustomTextInput } from "@/components/reusables";
 import { AddDrugFormProps, AddTestFormProps } from "@/services/core/types";
@@ -122,8 +123,7 @@ const AddTest = () => {
   return (
     <SafeAreaView
       className="flex-1 bg-white"
-      style={{ paddingTop: Platform.OS === "android" ? 30 : 0 }}
-    >
+      >
       <Toast config={toastConfig} />
 
       <StatusBar style="dark" backgroundColor="#ffffff" />

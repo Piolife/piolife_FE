@@ -4,9 +4,9 @@ import {
   Text,
   Pressable,
   Linking,
-  SafeAreaView,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 

@@ -13,7 +13,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
   Text,
   View,
-  SafeAreaView,
   ScrollView,
   Pressable,
   Platform,
@@ -21,6 +20,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
@@ -83,6 +83,7 @@ const PiolandTracker = () => {
   const params = useLocalSearchParams<{
     plotNumber: string;
     estateName: string;
+    estateId?: string;
     state: string;
     propertyValue: string;
     instalmentAmount: string;
@@ -109,6 +110,8 @@ const PiolandTracker = () => {
     straightDefaultCounter: number;
     revoked: boolean;
     completed: boolean;
+    propertyValue: number;
+    instalmentAmount: number;
   } | null>(null);
 
   const propertyValue = parseInt(params.propertyValue ?? "5000000");
@@ -139,6 +142,9 @@ const PiolandTracker = () => {
         straightDefaultCounter: 0,
         revoked: false,
         completed: isOutright,
+        // Persist so dashboard can reconstruct progress without URL params
+        propertyValue,
+        instalmentAmount,
       };
       await AsyncStorage.setItem(TRACKER_KEY, JSON.stringify(initial));
       setTracker(initial);
@@ -169,15 +175,18 @@ const PiolandTracker = () => {
   const handlePay = async () => {
     if (!tracker || tracker.revoked || tracker.completed) return;
 
-    const amountDue =
-      instalmentAmount + (tracker.totalDefaultCharges > 0 ? 0 : 0); // defaults already in balance
+    // If overdue (next due date has passed) add the ₦5,000 default charge on top
+    const isOverdue =
+      tracker.nextDueDate !== null &&
+      new Date(tracker.nextDueDate) < new Date();
+    const amountDue = instalmentAmount + (isOverdue ? DEFAULT_CHARGE : 0);
 
-    if (!wallet || wallet.balance < instalmentAmount) {
+    if (!wallet || wallet.balance < amountDue) {
       Alert.alert(
         "Insufficient Balance",
         `You need ₦${formatNumberToThousands(
-          instalmentAmount
-        )} for this instalment.\nWallet: ₦${formatNumberToThousands(
+          amountDue
+        )} for this instalment${isOverdue ? " (includes ₦5,000 overdue charge)" : ""}.\nWallet: ₦${formatNumberToThousands(
           wallet?.balance ?? 0
         )}`,
         [
@@ -191,9 +200,9 @@ const PiolandTracker = () => {
 
     Alert.alert(
       "Make Instalment Payment",
-      `Pay ₦${formatNumberToThousands(instalmentAmount)} for Plot ${
-        params.plotNumber
-      }?`,
+      `Pay ₦${formatNumberToThousands(amountDue)} for Plot ${params.plotNumber}?${
+        isOverdue ? "\n\nIncludes ₦5,000 overdue default charge." : ""
+      }`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -202,15 +211,13 @@ const PiolandTracker = () => {
             setPaying(true);
             try {
               await deductWallet({
-                amount: instalmentAmount,
-                description: `Pioland instalment: Plot ${params.plotNumber}, ${params.estateName}`,
+                amount: amountDue,
+                description: `Pioland instalment${isOverdue ? " + default charge" : ""}: Plot ${params.plotNumber}, ${params.estateName}`,
               });
 
               const now = new Date().toISOString();
+              // Balance only reduced by the instalmentAmount portion (default charge is a penalty, not principal)
               const newBalance = tracker.balance - instalmentAmount;
-
-              // Per prototype: on payment, deduct 30% of loan balance if loan outstanding
-              // (handled separately in collectLoan)
 
               const updated = {
                 ...tracker,
@@ -219,6 +226,13 @@ const PiolandTracker = () => {
                 lastPaymentDate: now,
                 nextDueDate: addMonth(now),
                 straightDefaultCounter: 0, // Reset on successful payment
+                // If overdue, record the default charge but mark as cleared
+                totalDefaultCharges: isOverdue
+                  ? tracker.totalDefaultCharges + DEFAULT_CHARGE
+                  : tracker.totalDefaultCharges,
+                defaultCounter: isOverdue
+                  ? tracker.defaultCounter + 1
+                  : tracker.defaultCounter,
                 completed: newBalance <= 0,
               };
 
@@ -254,30 +268,6 @@ const PiolandTracker = () => {
         },
       ]
     );
-  };
-
-  const handleSimulateDefault = async () => {
-    // Dev helper — simulate a missed payment (adds default charge)
-    if (!tracker) return;
-    const newStraight = tracker.straightDefaultCounter + 1;
-    const updated = {
-      ...tracker,
-      balance: tracker.balance + DEFAULT_CHARGE,
-      totalDefaultCharges: tracker.totalDefaultCharges + DEFAULT_CHARGE,
-      defaultCounter: tracker.defaultCounter + 1,
-      straightDefaultCounter: newStraight,
-      revoked: newStraight >= MAX_STRAIGHT_DEFAULTS,
-      nextDueDate: addMonth(tracker.nextDueDate ?? new Date().toISOString()),
-    };
-    await saveTracker(updated);
-    Toast.show({
-      type: "error",
-      text1: "Default recorded",
-      text2: `₦${formatNumberToThousands(
-        DEFAULT_CHARGE
-      )} default charge added.`,
-      position: "bottom",
-    });
   };
 
   if (!tracker) {

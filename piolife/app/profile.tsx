@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  SafeAreaView,
   ScrollView,
   Platform,
   Pressable,
   Image,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -66,9 +66,8 @@ const ProfileScreen = () => {
     <SafeAreaView
       style={{
         flex: 1,
-        backgroundColor: "#fffff0",
-        paddingTop: Platform.OS === "android" ? 20 : 0,
-      }}
+        backgroundColor: "#fffff0"
+        }}
     >
       <StatusBar style="dark" backgroundColor="#fffff0" />
 

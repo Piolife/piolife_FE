@@ -19,6 +19,13 @@ buildscript {
         classpath('com.facebook.react:react-native-gradle-plugin')
         classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
     }
+    configurations.classpath {
+        resolutionStrategy {
+            // Pin AGP to a version supported by the installed Android Studio
+            // (Latest supported version reported was 8.4.1).
+            force 'com.android.tools.build:gradle:8.4.1'
+        }
+    }
 }
 
 apply plugin: "com.facebook.react.rootproject"

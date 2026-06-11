@@ -78,7 +78,10 @@
     "socket.io-client": "^4.8.1",
     "stream-chat-expo": "^8.3.3",
     "tailwindcss": "^3.3.2",
-    "expo-crypto": "~14.0.2"
+    "expo-crypto": "~14.0.2",
+    "expo-speech": "~13.0.1",
+    "expo-document-picker": "~13.0.3",
+    "expo-file-system": "~18.0.12"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

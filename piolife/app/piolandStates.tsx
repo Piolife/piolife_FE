@@ -1,31 +1,16 @@
-/**
- * app/piolandStates.tsx — REPLACES states.tsx + selectPlot.tsx
- *
- * All 36 Nigerian states displayed as a grid.
- * Green = properties available, Grey = none (unclickable).
- * Passes state name + category to the estate list screen.
- */
 import React from "react";
 import {
   Text,
   View,
-  SafeAreaView,
   Pressable,
   Platform,
-  ScrollView,
-  Dimensions,
+  FlatList,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 
-const { width: SCREEN_W } = Dimensions.get("window");
-const PADDING = 10;
-const GAP = 6;
-const COLS = 4;
-const ITEM_W = (SCREEN_W - PADDING * 2 - GAP * (COLS - 1)) / COLS;
-
-// States with property availability. Toggle to false when no listings exist.
 const ALL_STATES = [
   { name: "Abia", available: true },
   { name: "Abuja (FCT)", available: true },
@@ -87,54 +72,47 @@ const PiolandStates = () => {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fffff0" }}>
       <StatusBar style="light" backgroundColor={accent} />
 
-      {/* Header */}
       <View
         style={{
           backgroundColor: accent,
           paddingTop: Platform.OS === "android" ? 30 : 16,
-          paddingBottom: 32,
-          paddingHorizontal: 24,
-          borderBottomLeftRadius: 28,
-          borderBottomRightRadius: 28,
+          paddingBottom: 28,
+          paddingHorizontal: 20,
+          borderBottomLeftRadius: 24,
+          borderBottomRightRadius: 24,
         }}
       >
-        <Pressable onPress={() => router.back()} style={{ marginBottom: 20 }}>
+        <Pressable onPress={() => router.back()} style={{ marginBottom: 16 }}>
           <Feather name="arrow-left" size={24} color="#fffff0" />
         </Pressable>
-        <Text
-          style={{
-            fontFamily: "Inter_700Bold",
-            fontSize: 24,
-            color: "#fffff0",
-          }}
-        >
+        <Text style={{ fontFamily: "Inter_700Bold", fontSize: 22, color: "#fffff0" }}>
           {CATEGORY_LABELS[cat] ?? "Properties"}
         </Text>
-        <Text
-          style={{
-            fontFamily: "Inter_400Regular",
-            fontSize: 13,
-            color: "rgba(255,255,240,0.7)",
-            marginTop: 6,
-          }}
-        >
-          🟢 Available · ⬜ No listings yet
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 16, marginTop: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#4ADE80" }} />
+            <Text style={{ fontFamily: "Inter_400Regular", fontSize: 12, color: "rgba(255,255,240,0.8)" }}>
+              Available
+            </Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#9CA3AF" }} />
+            <Text style={{ fontFamily: "Inter_400Regular", fontSize: 12, color: "rgba(255,255,240,0.8)" }}>
+              No listings yet
+            </Text>
+          </View>
+        </View>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          padding: PADDING,
-          gap: GAP,
-          paddingBottom: 60,
-        }}
-      >
-        {ALL_STATES.map((item) => (
+      <FlatList
+        data={ALL_STATES}
+        numColumns={3}
+        keyExtractor={(item) => item.name}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 12, paddingBottom: 48 }}
+        columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 12 }}
+        renderItem={({ item }) => (
           <Pressable
-            key={item.name}
             disabled={!item.available}
             onPress={() =>
               router.push({
@@ -142,31 +120,32 @@ const PiolandStates = () => {
                 params: { state: item.name, category: cat },
               })
             }
-            style={({ pressed }) => ({
-              width: ITEM_W,
-              height: 44,
-              borderRadius: 8,
+            style={{
+              flex: 1,
+              marginHorizontal: 4,
+              height: 52,
+              borderRadius: 10,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: item.available ? accent : "#E5E5E5",
-              opacity: pressed ? 0.82 : 1,
-            })}
+              paddingHorizontal: 4,
+              backgroundColor: item.available ? accent : "#D1D5DB",
+              elevation: item.available ? 3 : 0,
+            }}
           >
             <Text
-              numberOfLines={1}
+              numberOfLines={2}
               style={{
                 fontFamily: "Inter_600SemiBold",
-                fontSize: 10,
-                color: item.available ? "#fffff0" : "#999",
+                fontSize: 11,
+                color: item.available ? "#fffff0" : "#9CA3AF",
                 textAlign: "center",
-                paddingHorizontal: 2,
               }}
             >
               {item.name}
             </Text>
           </Pressable>
-        ))}
-      </ScrollView>
+        )}
+      />
     </SafeAreaView>
   );
 };

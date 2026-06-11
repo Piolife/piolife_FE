@@ -3,7 +3,6 @@ import { StatusBar } from "expo-status-bar";
 import {
   Text,
   View,
-  SafeAreaView,
   Image,
   Pressable,
   Platform,
@@ -11,6 +10,7 @@ import {
   Linking,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
@@ -42,26 +42,24 @@ const Settings = () => {
   const isClient = role === "client";
 
   const openSupport = () => {
-    Alert.alert(
-      "Customer Support",
-      "How would you like to reach us?",
-      [
-        {
-          text: "Call Us",
-          onPress: () => Linking.openURL("tel:+2348000000000"),
-        },
-        {
-          text: "WhatsApp",
-          onPress: () =>
-            Linking.openURL("https://wa.me/2348000000000?text=Hello%20Piolife%20Support"),
-        },
-        {
-          text: "Email",
-          onPress: () => Linking.openURL("mailto:support@piolife.com"),
-        },
-        { text: "Cancel", style: "cancel" },
-      ]
-    );
+    Alert.alert("Customer Support", "How would you like to reach us?", [
+      {
+        text: "Call Us",
+        onPress: () => Linking.openURL("tel:+2348000000000"),
+      },
+      {
+        text: "WhatsApp",
+        onPress: () =>
+          Linking.openURL(
+            "https://wa.me/2348000000000?text=Hello%20Piolife%20Support",
+          ),
+      },
+      {
+        text: "Email",
+        onPress: () => Linking.openURL("mailto:support@piolife.com"),
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
   };
 
   const rows: SettingsRow[] = [
@@ -117,7 +115,6 @@ const Settings = () => {
       style={{
         flex: 1,
         backgroundColor: "#fffff0",
-        paddingTop: Platform.OS === "android" ? 20 : 0,
       }}
     >
       <StatusBar style="dark" backgroundColor="#fffff0" />
@@ -150,9 +147,7 @@ const Settings = () => {
               marginTop: 4,
             }}
           >
-            {user.firstName
-              ? `${user.firstName} · `
-              : ""}
+            {user.firstName ? `${user.firstName} · ` : ""}
             ID: {(user as any).username}
           </Text>
         )}
@@ -160,15 +155,18 @@ const Settings = () => {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, gap: 10 }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 20,
+          gap: 10,
+        }}
       >
         {rows.map((row, idx) => (
           <Pressable
             key={idx}
             onPress={row.onPress}
+            className="flex-row items-center"
             style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
               gap: 16,
               backgroundColor: "#fff",
               borderRadius: 14,
@@ -190,6 +188,7 @@ const Settings = () => {
                 backgroundColor: row.danger ? "#FEF2F2" : "#EEF0FF",
                 alignItems: "center",
                 justifyContent: "center",
+                marginRight: 10,
               }}
             >
               {row.icon ? (
@@ -201,9 +200,13 @@ const Settings = () => {
               ) : (
                 <Feather
                   name={
-                    row.label.includes("VIP") ? "award" :
-                    row.label.includes("App Data") ? "wifi" :
-                    row.label.includes("Referral") ? "users" : "settings"
+                    row.label.includes("VIP")
+                      ? "award"
+                      : row.label.includes("App Data")
+                        ? "wifi"
+                        : row.label.includes("Referral")
+                          ? "users"
+                          : "settings"
                   }
                   size={20}
                   color={row.danger ? "#B91C1C" : "#0E16FF"}
@@ -212,7 +215,7 @@ const Settings = () => {
             </View>
 
             {/* Label */}
-            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View className="flex-row items-center" style={{ flex: 1, gap: 8 }}>
               <Text
                 style={{
                   fontFamily: "Inter_500Medium",

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { Text, View, SafeAreaView, Pressable } from "react-native";
+import { Text, View, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { CustomPicker, CustomTextInput } from "@/components/reusables";
@@ -112,8 +113,7 @@ const EmergencyDetails = () => {
   return (
     <SafeAreaView
       className="flex-1 bg-[#fffff0]"
-      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
-    >
+      >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}

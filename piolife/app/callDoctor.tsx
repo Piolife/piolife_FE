@@ -3,12 +3,12 @@ import { StatusBar } from "expo-status-bar";
 import {
   Text,
   View,
-  SafeAreaView,
   Pressable,
   Platform,
   StyleSheet,
   Image,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { CustomFlatList } from "@/components/reusables";
@@ -42,8 +42,7 @@ const CallDoctor = () => {
   return (
     <SafeAreaView
       className="flex-1 bg-[#fffff0]"
-      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
-    >
+      >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[24px]">
         <Pressable

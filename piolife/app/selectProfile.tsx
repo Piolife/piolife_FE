@@ -3,12 +3,12 @@ import { StatusBar } from "expo-status-bar";
 import {
   Text,
   View,
-  SafeAreaView,
   StyleSheet,
   Image,
   Pressable,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 const user = require("../assets/images/image 42-2.png");
 const provider = require("../assets/images/User Account.png");
@@ -17,8 +17,7 @@ const SelectProfile = () => {
   return (
     <SafeAreaView
       className="flex-1 bg-[#fffff0]"
-      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
-    >
+      >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[32px]">
         <Text

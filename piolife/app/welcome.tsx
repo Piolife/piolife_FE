@@ -3,13 +3,13 @@ import { StatusBar } from "expo-status-bar";
 import {
   Text,
   View,
-  SafeAreaView,
   StyleSheet,
   Image,
   Pressable,
   Platform,
   ImageBackground,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 const logo = require("../assets/images/conz.png");
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -19,8 +19,7 @@ const Welcome = () => {
   return (
     <SafeAreaView
       className="flex-1  "
-      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
-    >
+      >
       <View className="flex items-center justify-center my-32">
         <Image source={logo} className="w-[104px] h-[78px]" />
       </View>

@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   View,
   Text,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -11,6 +10,7 @@ import {
   Alert,
   Pressable,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { pharmacySignupFormData } from "@/services/core/types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
@@ -163,7 +163,7 @@ const PharmSignup = () => {
     delete filteredBankDetails.confirmAccountNumber;
     const payload = {
       ...filteredData,
-      bankDetails: filteredBankDetails,
+      bankDetails: [filteredBankDetails],
     };
     try {
       const response = (await postData(payload)) as signupResponse;
@@ -209,15 +209,26 @@ const PharmSignup = () => {
       setStep((prevStep) => prevStep + 1);
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     }
-    if (
-      step === 3 &&
-      !validationErrors.bankDetails?.accountNumber &&
-      !validationErrors.bankDetails?.confirmAccountNumber &&
-      !validationErrors.bankDetails?.accountName &&
-      !validationErrors.bankDetails?.bankName &&
-      validateSelection()
-    ) {
-      handleSignup();
+    if (step === 3) {
+      if (
+        !validationErrors.bankDetails?.accountNumber &&
+        !validationErrors.bankDetails?.confirmAccountNumber &&
+        !validationErrors.bankDetails?.accountName &&
+        !validationErrors.bankDetails?.bankName &&
+        validateSelection()
+      ) {
+        handleSignup();
+      } else if (
+        validationErrors.bankDetails?.accountNumber ||
+        validationErrors.bankDetails?.confirmAccountNumber ||
+        validationErrors.bankDetails?.accountName ||
+        validationErrors.bankDetails?.bankName
+      ) {
+        Toast.show({
+          type: "error",
+          text2: "Please fill in all bank details correctly",
+        });
+      }
     }
   };
   const {
@@ -271,8 +282,7 @@ const PharmSignup = () => {
   return (
     <SafeAreaView
       className="flex flex-1 bg-[#fffff0] "
-      style={{ paddingTop: Platform.OS === "android" ? 20 : 0 }}
-    >
+      >
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: "#fffff0" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}

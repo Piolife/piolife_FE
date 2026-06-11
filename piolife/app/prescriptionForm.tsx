@@ -3,20 +3,19 @@ import React, { useState } from "react";
 import {
   Text,
   View,
-  SafeAreaView,
   Pressable,
   ScrollView,
   TextInput,
   Platform,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { usePostData } from "@/services/api/request";
 import { API_URL } from "@/constants/api";
 import Toast from "react-native-toast-message";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const PrescriptionForm = () => {
   const { patientId, sessionId, medicalIssueId } = useLocalSearchParams<any>();
@@ -45,12 +44,9 @@ const PrescriptionForm = () => {
       return;
     }
     try {
-      const userData = await AsyncStorage.getItem("user");
-      const user = userData ? JSON.parse(userData) : null;
       await postData({
-        sessionId,
+        consultationId: sessionId,
         patientId,
-        doctorId: user?.id,
         medicalIssueId,
         complaint: form.complaint,
         diagnosis: form.diagnosis,

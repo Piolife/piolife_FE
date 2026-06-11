@@ -3,13 +3,13 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   UIManager,
   Pressable,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { emergencySignupFormData, FormData } from "@/services/core/types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -129,7 +129,7 @@ const EmergencySignup = () => {
 
     const payload = {
       ...filteredData,
-      bankDetails: filteredBankDetails,
+      bankDetails: [filteredBankDetails],
     };
     console.log("payload", payload);
     try {
@@ -178,14 +178,20 @@ const EmergencySignup = () => {
       setStep((prevStep) => prevStep + 1);
     }
 
-    if (
-      step === 3 &&
-      !validationErrors.bankDetails?.accountNumber &&
-      !validationErrors.bankDetails?.confirmAccountNumber &&
-      !validationErrors.bankDetails?.accountName &&
-      !validationErrors.bankDetails?.bankName
-    ) {
-      handleSignup(formData);
+    if (step === 3) {
+      if (
+        !validationErrors.bankDetails?.accountNumber &&
+        !validationErrors.bankDetails?.confirmAccountNumber &&
+        !validationErrors.bankDetails?.accountName &&
+        !validationErrors.bankDetails?.bankName
+      ) {
+        handleSignup(formData);
+      } else {
+        Toast.show({
+          type: "error",
+          text2: "Please fill in all bank details correctly",
+        });
+      }
     }
   };
 
@@ -280,8 +286,7 @@ const EmergencySignup = () => {
   return (
     <SafeAreaView
       className="flex flex-1 bg-[#fffff0] "
-      style={{ paddingTop: Platform.OS === "android" ? 20 : 0 }}
-    >
+      >
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: "#fffff0" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}

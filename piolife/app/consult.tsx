@@ -3,22 +3,14 @@ import { StatusBar } from "expo-status-bar";
 import {
   Text,
   View,
-  SafeAreaView,
   Pressable,
   Platform,
   Alert,
-  ScrollView,
-  Dimensions,
+  FlatList,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-
-const { width: SCREEN_W } = Dimensions.get("window");
-const COLS = 3;
-const PAD = 16;
-const GAP = 10;
-const CARD_W = (SCREEN_W - PAD * 2 - GAP * (COLS - 1)) / COLS;
-const CARD_H = 96;
 
 type OfficeButton = {
   id: number;
@@ -29,18 +21,18 @@ type OfficeButton = {
 };
 
 const buttons: OfficeButton[] = [
-  { id: 1,  text: "Hospital",      emoji: "🏥", link: "/hospitalOptions" },
-  { id: 2,  text: "Emergency",     emoji: "🚨", link: "/emergencyMenu" },
-  { id: 3,  text: "Real Estate",   emoji: "🏠", link: "/realEstate" },
-  { id: 4,  text: "Flight",        emoji: "✈️", comingSoon: true },
-  { id: 5,  text: "E-Commerce",    emoji: "🛒", comingSoon: true },
-  { id: 6,  text: "Hotel",         emoji: "🏨", comingSoon: true },
-  { id: 7,  text: "Insurance",     emoji: "🛡️", comingSoon: true },
-  { id: 8,  text: "Entertainment", emoji: "🎬", comingSoon: true },
-  { id: 9,  text: "Transport",     emoji: "🚗", comingSoon: true },
-  { id: 10, text: "Chambers",      emoji: "⚖️", comingSoon: true },
-  { id: 11, text: "Media House",   emoji: "📺", comingSoon: true },
-  { id: 12, text: "Government",    emoji: "🏛️", comingSoon: true },
+  { id: 1, text: "Hospital/Medic", emoji: "🏥", link: "/hospitalOptions" },
+  { id: 2, text: "Emergency office", emoji: "🚨", link: "/emergencyMenu" },
+  { id: 3, text: "Real Estate (pioland)", emoji: "🏠", link: "/realEstate" },
+  { id: 4, text: "Flight booking", emoji: "✈️", comingSoon: true },
+  { id: 5, text: "E-Commerce Room", emoji: "🛒", comingSoon: true },
+  { id: 6, text: "Hotel booking", emoji: "🏨", comingSoon: true },
+  { id: 7, text: "Insurance office", emoji: "🛡️", comingSoon: true },
+  { id: 8, text: "Entertainment industry", emoji: "🎬", comingSoon: true },
+  { id: 9, text: "Transportation(Biospace)", emoji: "🚗", comingSoon: true },
+  { id: 10, text: "Chambers", emoji: "⚖️", comingSoon: true },
+  { id: 11, text: "Media House", emoji: "📺", comingSoon: true },
+  { id: 12, text: "Government offices", emoji: "🏛️", comingSoon: true },
 ];
 
 const Consult = () => {
@@ -49,7 +41,7 @@ const Consult = () => {
       Alert.alert(
         "Coming Soon",
         `${button.text} will be available in a future update.`,
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
       return;
     }
@@ -60,13 +52,11 @@ const Consult = () => {
     <SafeAreaView
       style={{
         flex: 1,
-        backgroundColor: "#fffff0",
-        paddingTop: Platform.OS === "android" ? 10 : 0,
-      }}
+        backgroundColor: "#fffff0"
+        }}
     >
       <StatusBar style="light" backgroundColor="#0E16FF" />
 
-      {/* Compact header */}
       <View
         style={{
           backgroundColor: "#0E16FF",
@@ -85,7 +75,11 @@ const Consult = () => {
         </Pressable>
         <View>
           <Text
-            style={{ fontFamily: "Inter_700Bold", fontSize: 20, color: "#fffff0" }}
+            style={{
+              fontFamily: "Inter_700Bold",
+              fontSize: 20,
+              color: "#fffff0",
+            }}
           >
             Offices
           </Text>
@@ -102,73 +96,80 @@ const Consult = () => {
         </View>
       </View>
 
-      {/* 3-column grid — plain View to avoid VirtualizedList nesting warning */}
-      <ScrollView
+      <FlatList
+        data={buttons}
+        numColumns={3}
+        keyExtractor={(item) => item.id.toString()}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: PAD, paddingBottom: 40 }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            gap: GAP,
-          }}
-        >
-          {buttons.map((button) => {
-            const active = !!button.link && !button.comingSoon;
-            return (
-              <Pressable
-                key={button.id}
-                onPress={() => handlePress(button)}
-                style={({ pressed }) => ({
-                  width: CARD_W,
-                  height: CARD_H,
-                  borderRadius: 14,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingHorizontal: 6,
-                  backgroundColor: active ? "#0E16FF" : "#fff",
-                  borderWidth: active ? 0 : 1.5,
-                  borderColor: "#E8E8E8",
-                  opacity: pressed ? 0.85 : 1,
-                  shadowColor: "#272757",
-                  shadowOffset: { width: 0, height: active ? 4 : 1 },
-                  shadowOpacity: active ? 0.18 : 0.05,
-                  shadowRadius: active ? 10 : 4,
-                  elevation: active ? 5 : 1,
-                })}
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingVertical: 16,
+          paddingBottom: 48,
+          paddingHorizontal: 12,
+        }}
+        columnWrapperStyle={{
+          justifyContent: "space-between",
+          marginBottom: 14,
+        }}
+        renderItem={({ item: button }) => {
+          const active = !!button.link && !button.comingSoon;
+          return (
+            <Pressable
+              onPress={() => handlePress(button)}
+              style={({ pressed }) => ({
+                flex: 1,
+                minHeight: 100,
+                marginHorizontal: 4,
+                borderRadius: 14,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 14,
+                paddingHorizontal: 6,
+                backgroundColor: active ? "#0E16FF" : "#fff",
+                borderWidth: active ? 0 : 1.5,
+                borderColor: "#E8E8E8",
+                opacity: pressed ? 0.85 : 1,
+                shadowColor: "#272757",
+                shadowOffset: { width: 0, height: active ? 4 : 1 },
+                shadowOpacity: active ? 0.18 : 0.05,
+                shadowRadius: active ? 10 : 4,
+                elevation: active ? 5 : 1,
+              })}
+            >
+              <Text
+                style={{ fontSize: 28, marginBottom: 6, textAlign: "center" }}
               >
-                <Text style={{ fontSize: 28, marginBottom: 6 }}>{button.emoji}</Text>
+                {button.emoji}
+              </Text>
+              <Text
+                style={{
+                  fontFamily: "Inter_700Bold",
+                  fontSize: 11,
+                  color: active ? "#000000" : "#272757",
+                  textAlign: "center",
+                  lineHeight: 15,
+                }}
+              >
+                {button.text}
+              </Text>
+              {button.comingSoon && (
                 <Text
-                  numberOfLines={2}
                   style={{
-                    fontFamily: "Inter_700Bold",
-                    fontSize: 11,
-                    color: active ? "#ffffff" : "#272757",
+                    fontFamily: "Inter_400Regular",
+                    fontSize: 9,
+                    color: "#FF6B00",
+                    marginTop: 4,
+                    letterSpacing: 0.4,
                     textAlign: "center",
-                    lineHeight: 15,
                   }}
                 >
-                  {button.text}
+                  COMING SOON
                 </Text>
-                {button.comingSoon && (
-                  <Text
-                    style={{
-                      fontFamily: "Inter_400Regular",
-                      fontSize: 8,
-                      color: "#BBBBBB",
-                      marginTop: 3,
-                      letterSpacing: 0.4,
-                    }}
-                  >
-                    COMING SOON
-                  </Text>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-      </ScrollView>
+              )}
+            </Pressable>
+          );
+        }}
+      />
     </SafeAreaView>
   );
 };

@@ -9,7 +9,6 @@ import { StatusBar } from "expo-status-bar";
 import {
   Text,
   View,
-  SafeAreaView,
   StyleSheet,
   Image,
   Pressable,
@@ -17,6 +16,7 @@ import {
   ActivityIndicator,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Paystack, paystackProps } from "react-native-paystack-webview";
 import { FontAwesome } from "@expo/vector-icons";
@@ -83,8 +83,7 @@ const ClientWallet = () => {
   return (
     <SafeAreaView
       className="flex-1 bg-white"
-      style={{ paddingTop: Platform.OS === "android" ? 20 : 0 }}
-    >
+      >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[4%] gap-[32px]">
         <View className="flex flex-col gap-[8px]">

@@ -2,11 +2,11 @@ import React from "react";
 import {
   Text,
   View,
-  SafeAreaView,
   Pressable,
   Platform,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
@@ -70,7 +70,7 @@ const PiolandEstateDetail = () => {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 20 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
         style={{ flex: 1 }}
       >
@@ -205,7 +205,7 @@ const PiolandEstateDetail = () => {
               },
             })
           }
-          style={({ pressed }) => ({
+          style={{
             backgroundColor: accent,
             borderRadius: 14,
             height: 56,
@@ -213,13 +213,8 @@ const PiolandEstateDetail = () => {
             justifyContent: "center",
             flexDirection: "row",
             gap: 10,
-            opacity: pressed ? 0.88 : 1,
-            shadowColor: accent,
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.3,
-            shadowRadius: 12,
             elevation: 6,
-          })}
+          }}
         >
           <Feather name="map" size={20} color="#fffff0" />
           <Text style={{ fontFamily: "Inter_700Bold", fontSize: 16, color: "#fffff0" }}>

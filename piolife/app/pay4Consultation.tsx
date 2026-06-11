@@ -12,13 +12,13 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  SafeAreaView,
   Platform,
   Pressable,
   ScrollView,
   ActivityIndicator,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
@@ -26,7 +26,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFetchData, usePostData } from "@/services/api/request";
 import { API_URL } from "@/constants/api";
 import { formatNumberToThousands } from "@/components/reusables";
-import Toast from "react-native-toast-message";
 
 const COST_PER_ISSUE = 1500;
 
@@ -73,7 +72,13 @@ const Pay4Consultation = () => {
   );
 
   const { postData: deductWallet } = usePostData(
-    `${API_URL}/api/v12/wallet/${user?.id}/deduct`
+    `${API_URL}/api/v12/wallet/${user?.id}/deduct`,
+    true
+  );
+
+  const { postData: saveConsultation } = usePostData(
+    `${API_URL}/api/v12/sessions/consultations`,
+    true
   );
 
   const handlePay = async () => {
@@ -111,6 +116,20 @@ const Pay4Consultation = () => {
                 description: `Consultation: ${issueNames.join(", ")}`,
               });
               refetchWallet();
+
+              // Save consultation record immediately so it appears in Recent Consultations
+              try {
+                await saveConsultation({
+                  userId: user?.id,
+                  issues: issueNames,
+                  issueIds,
+                  callType,
+                  language,
+                  amount: totalCost,
+                  status: "pending",
+                });
+              } catch { /* non-fatal — payment already succeeded */ }
+
               setPaid(true);
 
               // Per prototype: privacy warning after successful payment
@@ -120,12 +139,11 @@ const Pay4Consultation = () => {
                 [{ text: "I Understand", style: "default" }]
               );
             } catch (err: any) {
-              Toast.show({
-                type: "error",
-                text1: "Payment failed",
-                text2: err?.message,
-                position: "bottom",
-              });
+              Alert.alert(
+                "Payment Failed",
+                err?.message || "Unable to process payment. Please try again.",
+                [{ text: "OK" }]
+              );
             } finally {
               setPaying(false);
             }
@@ -138,7 +156,6 @@ const Pay4Consultation = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fffff0", flexDirection: "column" }}>
       <StatusBar style="dark" backgroundColor="#fffff0" />
-      <Toast />
 
       {/* Header */}
       <View
@@ -176,6 +193,7 @@ const Pay4Consultation = () => {
       </View>
 
       <ScrollView
+        style={{ flex: 1 }}
         contentContainerStyle={{ padding: 20, paddingBottom: 20 }}
         showsVerticalScrollIndicator={false}
       >
@@ -438,6 +456,7 @@ const Pay4Consultation = () => {
                   backgroundColor: "#FEF2F2",
                   borderRadius: 14,
                   padding: 16,
+                  gap: 12,
                 }}
               >
                 <Text
@@ -455,11 +474,60 @@ const Pay4Consultation = () => {
                     fontFamily: "Inter_400Regular",
                     fontSize: 13,
                     color: "#7F1D1D",
+                    lineHeight: 20,
                   }}
                 >
-                  All doctors for your specialty are currently busy. Please
-                  check back shortly.
+                  All doctors for your selected specialty are currently busy.
+                  Your payment of ₦{formatNumberToThousands(totalCost)} has been
+                  saved. You can check back later from{" "}
+                  <Text style={{ fontFamily: "Inter_600SemiBold" }}>
+                    Recent Consultations
+                  </Text>{" "}
+                  on your home screen.
                 </Text>
+                <Pressable
+                  onPress={() => router.replace("/(tabs)")}
+                  style={{
+                    backgroundColor: "#B91C1C",
+                    borderRadius: 10,
+                    paddingVertical: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Inter_700Bold",
+                      fontSize: 14,
+                      color: "#fff",
+                    }}
+                  >
+                    Check Back Later — Go Home
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    // refetch practitioners to check again
+                    setPaid(false);
+                    setTimeout(() => setPaid(true), 100);
+                  }}
+                  style={{
+                    borderWidth: 1.5,
+                    borderColor: "#B91C1C",
+                    borderRadius: 10,
+                    paddingVertical: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Inter_600SemiBold",
+                      fontSize: 14,
+                      color: "#B91C1C",
+                    }}
+                  >
+                    🔄 Refresh — Check Again
+                  </Text>
+                </Pressable>
               </View>
             ) : (
               practitioners.map((doc: any) => (
@@ -589,19 +657,14 @@ const Pay4Consultation = () => {
           <Pressable
             onPress={handlePay}
             disabled={paying}
-            style={({ pressed }) => ({
+            style={{
               backgroundColor: paying ? "#7B83FF" : "#0E16FF",
               borderRadius: 14,
               height: 56,
               alignItems: "center",
               justifyContent: "center",
-              opacity: pressed ? 0.88 : 1,
-              shadowColor: "#0E16FF",
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.3,
-              shadowRadius: 12,
               elevation: 6,
-            })}
+            }}
           >
             {paying ? (
               <ActivityIndicator color="#fffff0" />

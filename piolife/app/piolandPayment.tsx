@@ -14,7 +14,6 @@ import React, { useEffect, useState } from "react";
 import {
   Text,
   View,
-  SafeAreaView,
   ScrollView,
   Pressable,
   Platform,
@@ -22,6 +21,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";

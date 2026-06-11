@@ -3,7 +3,6 @@ import { StatusBar } from "expo-status-bar";
 import {
   Text,
   View,
-  SafeAreaView,
   StyleSheet,
   Image,
   Pressable,
@@ -11,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { CustomFlatList } from "@/components/reusables";
 import { DrugItemType, User } from "@/services/core/types";
@@ -72,8 +72,7 @@ const Tests = () => {
   return (
     <SafeAreaView
       className="flex-1 bg-white"
-      style={{ paddingTop: Platform.OS === "android" ? 30 : 0 }}
-    >
+      >
       <StatusBar style="dark" backgroundColor="#ffffff" />
 
       <View className="py-[16px] px-[4%] gap-[32px]">

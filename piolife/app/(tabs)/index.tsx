@@ -3,15 +3,15 @@ import { StatusBar } from "expo-status-bar";
 import {
   Text,
   View,
-  SafeAreaView,
   StyleSheet,
   Image,
   Pressable,
   FlatList,
   Alert,
   ActivityIndicator,
-  Platform,
+  ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import { FontAwesome } from "@expo/vector-icons";
@@ -27,14 +27,16 @@ import { useFetchData } from "@/services/api/request";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User, wallet } from "@/services/core/types";
 import { API_URL } from "@/constants/api";
+
 const Index = () => {
   const [user, SetUser] = useState<User>();
+
   useEffect(() => {
     const loadUser = async () => {
       const userData = await AsyncStorage.getItem("user");
       if (userData) {
-        const user = JSON.parse(userData);
-        SetUser(user);
+        const parsed = JSON.parse(userData);
+        SetUser(parsed);
       }
     };
     loadUser();
@@ -42,298 +44,424 @@ const Index = () => {
   }, []);
 
   const token = user?.token;
+
   const { data, loading, error } = useFetchData<User>(
     user ? `${API_URL}/api/v12/users/${user.id}` : "",
     { token }
   );
+
   const {
     data: walletData,
     loading: isLoading,
-    error: isError,
-    refetch,
   } = useFetchData<wallet>(
     user ? `${API_URL}/api/v12/wallet/${user.id}/balance` : "",
     { token }
   );
-  const {
-    data: emergencyData,
-    loading: emergencyLoading,
-    error: emergencyError,
-  } = useFetchData<any>(
-    user ? `${API_URL}/api/v12/emergency-stock/emergencies/${user.id}` : "",
+
+  const { data: emergencyData } = useFetchData<any>(
+    user?.role === "emergency_services"
+      ? `${API_URL}/api/v12/emergency-stock/emergencies/${user.id}`
+      : "",
     { token }
   );
+
+  // Fetch real consultations for doctors
+  const { data: consultations } = useFetchData<any[]>(
+    user?.role === "medical_practitioner"
+      ? `${API_URL}/api/v12/sessions/consultations/practitioner/${user.id}`
+      : "",
+    { token }
+  );
+
+  // Fetch recent consultations for clients
+  const { data: clientConsultations } = useFetchData<any[]>(
+    user?.role === "client"
+      ? `${API_URL}/api/v12/sessions/consultations/user/${user.id}`
+      : "",
+    { token }
+  );
+
   if (error) {
-    Alert.alert(error);
+    Alert.alert(String(error));
   }
-  interface RecentConsultationsProps {
-    patient: string;
-    callType: string;
-  }
-  const recent = [
-    {
-      patient: "Juliana Ify",
-      callType: "Audio call",
-    },
-    {
-      patient: "Miriam Bello",
-      callType: "Video call",
-    },
-  ];
+
   if (loading || isLoading) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color="#0E16FF" />
       </View>
     );
   }
 
-  const RecentConsultations = ({
-    patient,
-    callType,
-  }: RecentConsultationsProps) => {
-    return (
-      <Pressable
-        className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-white justify-between"
-        style={[styles.shadowProp]}
-      >
-        <View className="flex flex-col gap-[8px]">
-          <Text
-            className="text-[#272757] text-[14px] leading-[20px]  "
-            style={{ fontFamily: "Inter_600SemiBold" }}
-          >
-            {patient}
-          </Text>
-          <Text
-            className="text-[#272757] text-[12px] leading-[20px]  "
-            style={{ fontFamily: "Inter_400Regular" }}
-          >
-            {callType}
-          </Text>
-        </View>
-        <Feather name="chevron-right" size={24} color="black" />
-      </Pressable>
-    );
-  };
+  const isProvider =
+    user?.role &&
+    ["medical_practitioner", "emergency_services", "pharmacy_services", "medical_lab_services"].includes(user.role);
+
   return (
-    <SafeAreaView
-      className={`flex-1 bg-[#fffff0]`}
-      style={{ paddingTop: Platform.OS === "android" ? 20 : 0 }}
-    >
-      <StatusBar style="dark" backgroundColor="#ffffff" />
-      <View className="py-[16px] px-[4%] gap-[32px]">
-        <View className="flex flex-row items-center justify-between mt-8">
-          <View className="flex w-[80%]">
-            <View className="flex flex-row gap-[16px]">
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fffff0" }}>
+      <StatusBar style="dark" backgroundColor="#fffff0" />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        <View style={{ paddingHorizontal: "4%", paddingTop: 24, gap: 24 }}>
+          {/* Top bar: greeting + notification */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
               {data ? (
                 <Image
                   source={{
-                    uri: [
-                      "emergency_services",
-                      "pharmacy_services",
-                      "medical_lab_services",
-                    ].includes(data?.role ?? "")
+                    uri: ["emergency_services", "pharmacy_services", "medical_lab_services"].includes(data?.role ?? "")
                       ? data?.logo
                       : data?.profilePicture,
                   }}
-                  className="w-[56px] h-[56px] rounded-full"
+                  style={{ width: 52, height: 52, borderRadius: 26 }}
                 />
               ) : (
-                <FontAwesome name="user" size={50} color="#ccc" />
+                <View
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 26,
+                    backgroundColor: "#EEF0FF",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <FontAwesome name="user" size={28} color="#0E16FF" />
+                </View>
               )}
-
-              <View className="flex flex-col gap-[4px] py-[4px] flex-1">
+              <View style={{ flex: 1 }}>
                 <Text
-                  className="text-[#030319] text-[16px] leading-[19px] "
-                  style={{ fontFamily: "Inter_500Medium" }}
+                  style={{ fontFamily: "Inter_500Medium", fontSize: 16, color: "#030319" }}
                 >
                   Hi,{" "}
                   {data?.role === "pharmacy_services"
                     ? data?.pharmacyName
                     : data?.role === "medical_lab_services"
                     ? data?.medicalLabName
-                    : data?.firstName}
+                    : data?.firstName ?? "there"}
                 </Text>
                 <Text
-                  className="text-[#2a2a2a] text-[14px] leading-[17px] "
-                  style={{ fontFamily: "Inter_400Regular" }}
+                  style={{ fontFamily: "Inter_400Regular", fontSize: 13, color: "#666" }}
                 >
                   ID: {data?.username}
                 </Text>
               </View>
             </View>
-          </View>
-          <View className="flex w-[20%] flex-row justify-end">
             <Pressable
-              // onPress={() => {
-              //   router.push("/notification");
-              // }}
-              className="flex flex-col justify-center items-center rounded-[8px] border-[#2727571A] border-[1px] w-[32] h-[32px]"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: "rgba(39,39,87,0.1)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              <Octicons name="bell" size={24} color="#272757" />
+              <Octicons name="bell" size={20} color="#272757" />
             </Pressable>
           </View>
-        </View>
-        <View className="flex flex-col gap-[16px]">
-          {user?.role === "client" && (
-            <Text
-              className="text-[#272757] text-[18px] leading-[17px] "
-              style={{ fontFamily: "Inter_600SemiBold" }}
-            >
-              Actions
-            </Text>
-          )}
-          {user?.role === "client" && <ClientScreen />}
-          {user?.role &&
-            [
-              "medical_practitioner",
-              "emergency_services",
-              "pharmacy_services",
-              "medical_lab_services",
-            ].includes(user.role) && (
-              <DoctorScreen
-                balance={formatNumberToThousands(walletData?.balance)}
-              />
-            )}
 
-          {user?.role === "medical_practitioner" && (
-            <Stat text="Consultations" serve={8} />
+          {/* Client: quick action bar */}
+          {user?.role === "client" && (
+            <>
+              <Text style={{ fontFamily: "Inter_600SemiBold", fontSize: 18, color: "#272757" }}>
+                Actions
+              </Text>
+              <ClientScreen />
+            </>
           )}
+
+          {/* Provider: wallet card */}
+          {isProvider && (
+            <DoctorScreen balance={formatNumberToThousands(walletData?.balance ?? 0)} />
+          )}
+
+          {/* Doctor: stats + dashboard shortcut */}
+          {user?.role === "medical_practitioner" && (
+            <View style={{ gap: 12 }}>
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <Stat
+                  text="Consultations"
+                  serve={consultations?.length ?? 0}
+                />
+                <Pressable
+                  onPress={() => router.push("/doctorDashboard")}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    borderRadius: 4,
+                    borderWidth: 1,
+                    borderColor: "rgba(165,165,165,0.4)",
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    backgroundColor: "#fff",
+                    opacity: pressed ? 0.85 : 1,
+                    shadowColor: "#171717",
+                    shadowOffset: { width: -2, height: 4 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 3,
+                    elevation: 2,
+                  })}
+                >
+                  <View style={{ gap: 4 }}>
+                    <Text style={{ fontFamily: "Inter_500Medium", fontSize: 13, color: "#030319" }}>
+                      Full Dashboard
+                    </Text>
+                    <Text style={{ fontFamily: "Inter_400Regular", fontSize: 12, color: "#888" }}>
+                      Reports & earnings
+                    </Text>
+                  </View>
+                  <Feather name="arrow-right" size={18} color="#0E16FF" />
+                </Pressable>
+              </View>
+            </View>
+          )}
+
+          {/* Pharmacy: action buttons */}
           {user?.role === "pharmacy_services" && (
-            <View>
-              <View className="flex flex-row justify-between my-4">
-                <Pressable
-                  onPress={() => {
-                    router.push("/pharmServices");
-                  }}
-                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
-                >
-                  <Text
-                    className="text-[#ffffff] text-[12px] leading-[17px] "
-                    style={{ fontFamily: "Inter_600SemiBold" }}
+            <View style={{ gap: 12 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                {[
+                  { label: "Services", route: "/pharmServices" },
+                  { label: "Drugs", route: "/drugs" },
+                  { label: "Add Drug", route: "/addDrug" },
+                ].map((btn) => (
+                  <Pressable
+                    key={btn.route}
+                    onPress={() => router.push(btn.route as any)}
+                    style={({ pressed }) => ({
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: "#0E16FF",
+                      height: 40,
+                      paddingHorizontal: 16,
+                      backgroundColor: "#0E16FF",
+                      width: "30%",
+                      opacity: pressed ? 0.85 : 1,
+                    })}
                   >
-                    Services
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    router.push("/drugs");
-                  }}
-                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
-                >
-                  <Text
-                    className="text-[#ffffff] text-[12px] leading-[17px] "
-                    style={{ fontFamily: "Inter_600SemiBold" }}
-                  >
-                    Drugs
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    router.push("/addDrug");
-                  }}
-                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
-                >
-                  <Text
-                    className="text-[#ffffff] text-[12px] leading-[17px] "
-                    style={{ fontFamily: "Inter_600SemiBold" }}
-                  >
-                    Add Drug
-                  </Text>
-                </Pressable>
+                    <Text
+                      style={{ fontFamily: "Inter_600SemiBold", fontSize: 12, color: "#fff" }}
+                    >
+                      {btn.label}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
               <Stat text="Served" serve={data?.consultationCount} />
             </View>
           )}
+
+          {/* Medical lab: action buttons */}
           {user?.role === "medical_lab_services" && (
-            <View>
-              <View className="flex flex-row justify-between my-4">
-                <Pressable
-                  onPress={() => {
-                    router.push("/medlabServices");
-                  }}
-                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
-                >
-                  <Text
-                    className="text-[#ffffff] text-[12px] leading-[17px] "
-                    style={{ fontFamily: "Inter_600SemiBold" }}
+            <View style={{ gap: 12 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                {[
+                  { label: "Services", route: "/medlabServices" },
+                  { label: "Tests", route: "/tests" },
+                  { label: "Add Test", route: "/addTest" },
+                ].map((btn) => (
+                  <Pressable
+                    key={btn.route}
+                    onPress={() => router.push(btn.route as any)}
+                    style={({ pressed }) => ({
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: "#0E16FF",
+                      height: 40,
+                      paddingHorizontal: 16,
+                      backgroundColor: "#0E16FF",
+                      width: "30%",
+                      opacity: pressed ? 0.85 : 1,
+                    })}
                   >
-                    Services
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    router.push("/tests");
-                  }}
-                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
-                >
-                  <Text
-                    className="text-[#ffffff] text-[12px] leading-[17px] "
-                    style={{ fontFamily: "Inter_600SemiBold" }}
-                  >
-                    Tests
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    router.push("/addTest");
-                  }}
-                  className="flex flex-col justify-center items-center rounded-[8px] border-[#0E16FF] border-[1px]  h-[32px] px-[16px] bg-[#0E16FF] w-[30%]"
-                >
-                  <Text
-                    className="text-[#ffffff] text-[12px] leading-[17px] "
-                    style={{ fontFamily: "Inter_600SemiBold" }}
-                  >
-                    Add Test
-                  </Text>
-                </Pressable>
+                    <Text
+                      style={{ fontFamily: "Inter_600SemiBold", fontSize: 12, color: "#fff" }}
+                    >
+                      {btn.label}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
-              <Stat text="Served" serve={9} />
+              <Stat text="Served" serve={data?.consultationCount ?? 0} />
             </View>
           )}
+
+          {/* Emergency services */}
           {user?.role === "emergency_services" && (
-            <View className="flex flex-row justify-between my-4">
+            <View style={{ flexDirection: "row" }}>
               <Stat
                 text="Served"
                 serve={emergencyData?.length}
-                onPress={() => {
-                  router.push("/emergencyServices");
-                }}
+                onPress={() => router.push("/emergencyServices")}
               />
             </View>
           )}
-        </View>
 
-        {user?.role === "client" && <ClientMenu />}
-        {user?.role === "medical_practitioner" && (
-          <View className="flex flex-col gap-[20px]">
-            <Text
-              className="text-[#272757] text-[18px] leading-[17px] "
-              style={{ fontFamily: "Inter_600SemiBold" }}
-            >
-              Recent Consultations
-            </Text>
-            <View className="flex flex-col gap-[16px]">
-              <FlatList
-                showsVerticalScrollIndicator={false}
-                ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-                horizontal={false}
-                ListFooterComponent={<View style={{ height: 650 }}></View>}
-                renderItem={({ item }) => (
-                  <RecentConsultations
-                    patient={item.patient}
-                    callType={item.callType}
-                  />
-                )}
-                data={recent}
-              />
+          {/* Client: activity menu */}
+          {user?.role === "client" && <ClientMenu />}
+
+          {/* Client: recent consultations */}
+          {user?.role === "client" && (
+            <View style={{ gap: 12 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={{ fontFamily: "Inter_600SemiBold", fontSize: 18, color: "#272757" }}>
+                  Recent Consultations
+                </Text>
+                <Pressable onPress={() => router.push("/recentConsultations")}>
+                  <Text style={{ fontFamily: "Inter_500Medium", fontSize: 13, color: "#0E16FF" }}>
+                    View all
+                  </Text>
+                </Pressable>
+              </View>
+              {!clientConsultations || clientConsultations.length === 0 ? (
+                <Pressable
+                  onPress={() => router.push("/recentConsultations")}
+                  style={{
+                    backgroundColor: "#fff",
+                    borderRadius: 14,
+                    padding: 20,
+                    alignItems: "center",
+                    borderWidth: 1,
+                    borderColor: "#E8E8E8",
+                  }}
+                >
+                  <Text style={{ fontFamily: "Inter_400Regular", fontSize: 14, color: "#888" }}>
+                    No consultations yet
+                  </Text>
+                </Pressable>
+              ) : (
+                clientConsultations.slice(0, 3).map((item: any) => (
+                  <Pressable
+                    key={item._id}
+                    onPress={() => router.push("/recentConsultations")}
+                    style={{
+                      backgroundColor: "#fff",
+                      borderRadius: 12,
+                      padding: 16,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      borderWidth: 1,
+                      borderColor: "#E8E8E8",
+                    }}
+                  >
+                    <View style={{ gap: 4 }}>
+                      <Text style={{ fontFamily: "Inter_600SemiBold", fontSize: 14, color: "#272757" }}>
+                        {item.issues?.join(", ") ?? "Consultation"}
+                      </Text>
+                      <Text style={{ fontFamily: "Inter_400Regular", fontSize: 12, color: "#888" }}>
+                        {item.callType === "video" ? "📹 Video" : "📞 Voice"} · {item.language ?? "English"}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: "flex-end", gap: 4 }}>
+                      <View style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 20,
+                        backgroundColor: item.status === "completed" ? "#DCFCE7" : "#FEF9C3",
+                      }}>
+                        <Text style={{
+                          fontFamily: "Inter_600SemiBold",
+                          fontSize: 11,
+                          color: item.status === "completed" ? "#16A34A" : "#CA8A04",
+                        }}>
+                          {item.status === "completed" ? "Done" : "Pending"}
+                        </Text>
+                      </View>
+                      <Feather name="chevron-right" size={16} color="#0E16FF" />
+                    </View>
+                  </Pressable>
+                ))
+              )}
             </View>
-          </View>
-        )}
-      </View>
+          )}
+
+          {/* Doctor: recent consultations from API */}
+          {user?.role === "medical_practitioner" && (
+            <View style={{ gap: 16 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={{ fontFamily: "Inter_600SemiBold", fontSize: 18, color: "#272757" }}>
+                  Recent Consultations
+                </Text>
+                <Pressable onPress={() => router.push("/doctorDashboard")}>
+                  <Text style={{ fontFamily: "Inter_500Medium", fontSize: 13, color: "#0E16FF" }}>
+                    View all
+                  </Text>
+                </Pressable>
+              </View>
+              {!consultations || consultations.length === 0 ? (
+                <View
+                  style={{
+                    backgroundColor: "#fff",
+                    borderRadius: 14,
+                    padding: 20,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontFamily: "Inter_400Regular", fontSize: 14, color: "#888" }}>
+                    No consultations yet
+                  </Text>
+                </View>
+              ) : (
+                <FlatList
+                  scrollEnabled={false}
+                  data={consultations.slice(0, 5)}
+                  keyExtractor={(item) => item._id ?? String(Math.random())}
+                  ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+                  renderItem={({ item }) => (
+                    <Pressable
+                      style={[
+                        {
+                          borderRadius: 4,
+                          borderWidth: 1,
+                          borderColor: "rgba(218,218,218,0.5)",
+                          padding: 16,
+                          flexDirection: "row",
+                          gap: 16,
+                          alignItems: "center",
+                          backgroundColor: "#fff",
+                          justifyContent: "space-between",
+                        },
+                        styles.shadowProp,
+                      ]}
+                    >
+                      <View style={{ gap: 4 }}>
+                        <Text
+                          style={{ fontFamily: "Inter_600SemiBold", fontSize: 14, color: "#272757" }}
+                        >
+                          {item.patientName ?? item.userId ?? "Patient"}
+                        </Text>
+                        <Text
+                          style={{ fontFamily: "Inter_400Regular", fontSize: 12, color: "#888" }}
+                        >
+                          {item.callType === "video" ? "📹 Video call" : "📞 Audio call"}
+                        </Text>
+                      </View>
+                      <Feather name="chevron-right" size={20} color="#0E16FF" />
+                    </Pressable>
+                  )}
+                />
+              )}
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
   loaderContainer: {
     flex: 1,
@@ -345,6 +473,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: -2, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
+    elevation: 2,
   },
 });
+
 export default Index;

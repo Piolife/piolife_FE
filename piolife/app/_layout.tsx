@@ -1,57 +1,41 @@
 import { useFonts } from "expo-font";
-import { Stack, useFocusEffect } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
 import "react-native-reanimated";
 import "../global.css";
-import {
-  Platform,
-  SafeAreaView,
-  View,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
+import { Platform, View, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LogBox } from "react-native";
 import { JsStack } from "@/components/JsStack";
-import { io, Socket } from "socket.io-client";
 import { Easing } from "react-native-reanimated";
 import {
-  Call,
   StreamCall,
   StreamVideo,
   StreamVideoClient,
-  StreamTheme,
-  CallContent,
   User,
   useCalls,
   RingingCallContent,
 } from "@stream-io/video-react-native-sdk";
 import {
-  Inter_100Thin,
-  Inter_200ExtraLight,
   Inter_300Light,
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
   Inter_700Bold,
   Inter_800ExtraBold,
-  Inter_900Black,
 } from "@expo-google-fonts/inter";
 import { PaperProvider } from "react-native-paper";
 import { getSocket } from "./weSocket";
 import { useUser } from "@/components/UserContext";
-import { createStackNavigator } from "@react-navigation/stack";
 const ROTATE_VALUES = ["60deg", "45deg", "30deg", "15deg", "0deg"];
 const ANIMATION_DURATION = 400;
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
-import { BaseToast, ErrorToast } from "react-native-toast-message";
+import { ErrorToast } from "react-native-toast-message";
 import Toast, { BaseToastProps } from "react-native-toast-message";
 import React from "react";
-import IncomingCallListener from "../components/IncomingCallHandler";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useStreamProvider } from "@/components/reusables";
 import { getStreamClient } from "@/components/streamClient";
 import { UserProvider } from "@/components/UserContext";
@@ -65,8 +49,6 @@ export const toastConfig = {
         borderLeftColor: "red",
         zIndex: 9999,
         elevation: 9999,
-        position: "absolute", // helps with layering
-        top: 120,
       }}
       text1Style={{ color: "black", fontWeight: "bold" }}
       text2Style={{ color: "black" }}
@@ -126,7 +108,7 @@ function RootLayoutContent() {
       </StreamCall>
     );
   };
-  const [loaded] = useFonts({
+  useFonts({
     Inter_600SemiBold,
     Inter_400Regular,
     Inter_500Medium,
@@ -424,19 +406,6 @@ function RootLayoutContent() {
                 name="realEstate"
                 options={{ headerShown: false }}
               />
-              <JsStack.Screen name="states" options={{ headerShown: false }} />
-              <JsStack.Screen
-                name="selectPlot"
-                options={{ headerShown: false }}
-              />
-              <JsStack.Screen
-                name="selectEstate"
-                options={{ headerShown: false }}
-              />
-              <JsStack.Screen
-                name="estateFeatures"
-                options={{ headerShown: false }}
-              />
               <JsStack.Screen
                 name="healthIssue"
                 options={{ headerShown: false }}
@@ -488,6 +457,38 @@ function RootLayoutContent() {
               />
               <JsStack.Screen
                 name="piolandDashboard"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="incomingCall"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="prescriptionForm"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="doctorDashboard"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="vipSubscription"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="subscription"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="referral"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="appDataSubscription"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
+                name="pharmDrugs"
                 options={{ headerShown: false }}
               />
               <JsStack.Screen
@@ -553,11 +554,7 @@ function RootLayoutContent() {
               <JsStack.Screen
                 name="walletHistory"
                 options={{
-                  headerShown: true,
-                  headerBackTitle: "",
-                  headerTitleAlign: "left",
-                  headerShadowVisible: false,
-                  headerTitle: "History",
+                  headerShown: false,
                 }}
               />
               <JsStack.Screen
@@ -567,24 +564,16 @@ function RootLayoutContent() {
                 }}
               />
               <JsStack.Screen
-                name="nearbyMedLab"
+                name="nearbyMedlab"
                 options={{
-                  headerShown: true,
-                  headerBackTitle: "",
-                  headerTitleAlign: "left",
-                  headerShadowVisible: false,
-                  headerTitle: "Recomended Med Lab",
+                  headerShown: false,
                 }}
               />
 
               <JsStack.Screen
-                name="NearbyPharmacy"
+                name="nearbyPharmacy"
                 options={{
-                  headerShown: true,
-                  headerBackTitle: "",
-                  headerTitleAlign: "left",
-                  headerShadowVisible: false,
-                  headerTitle: "Recomended Pharmacy",
+                  headerShown: false,
                 }}
               />
               <JsStack.Screen
@@ -619,10 +608,3 @@ function RootLayoutContent() {
     </UserProvider>
   );
 }
-const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});

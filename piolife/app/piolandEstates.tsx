@@ -2,11 +2,11 @@ import React from "react";
 import {
   Text,
   View,
-  SafeAreaView,
   Pressable,
   Platform,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
@@ -102,7 +102,7 @@ const PiolandEstates = () => {
                 },
               })
             }
-            style={({ pressed }) => ({
+            style={{
               backgroundColor: accent,
               borderRadius: 12,
               height: 56,
@@ -110,13 +110,8 @@ const PiolandEstates = () => {
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              opacity: pressed ? 0.85 : 1,
-              shadowColor: accent,
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: 0.18,
-              shadowRadius: 8,
               elevation: 4,
-            })}
+            }}
           >
             <Text style={{ fontFamily: "Inter_600SemiBold", fontSize: 15, color: "#fffff0" }}>
               {estate.name}

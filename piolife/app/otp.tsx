@@ -6,9 +6,9 @@ import {
   Alert,
   StyleSheet,
   StatusBar,
-  SafeAreaView,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Link } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { router } from "expo-router";
@@ -18,6 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FontAwesome } from "@expo/vector-icons";
 import { usePostData, useFetchData, useGetData } from "@/services/api/request";
 import { API_URL } from "@/constants/api";
+import Toast from "react-native-toast-message";
 
 // const verify = require("../assets/images/verfiymail.png");
 const Otp = () => {
@@ -37,6 +38,9 @@ const Otp = () => {
   }, []);
   const { data, loading, error, refetch } = useGetData<any>(
     `${API_URL}/api/v12/users/verify-email?token=${token}&otp=${otp}`
+  );
+  const { loading: resendLoading, postData: resendOtp } = usePostData<any>(
+    `${API_URL}/api/v12/users/resend-verification`
   );
   if (error) {
     console.log("erro", error);
@@ -74,6 +78,29 @@ const Otp = () => {
     return `${firstPart}....@${domain}`;
   };
   const singleEmail = Array.isArray(email) ? email[0] : email;
+
+  const handleResend = async () => {
+    try {
+      const response = (await resendOtp({ email: singleEmail })) as any;
+      if (response?.otpToken) {
+        await AsyncStorage.setItem("verificationToken", response.otpToken);
+        setToken(response.otpToken);
+      }
+      Toast.show({
+        type: "success",
+        text2: response?.message || "Verification code resent",
+        position: "top",
+        topOffset: 80,
+      });
+    } catch (err: any) {
+      Toast.show({
+        type: "error",
+        text2: err.message,
+        position: "top",
+        topOffset: 80,
+      });
+    }
+  };
 
   if (!singleEmail || typeof singleEmail !== "string") return null;
 
@@ -126,7 +153,7 @@ const Otp = () => {
             fontStyle={{ fontSize: 20, fontWeight: "bold" }}
             focusedStyle={{ borderColor: "#0BA5EC", borderBottomWidth: 3 }}
           />
-          {/* <View className="flex flex-col items-center mt-8">
+          <View className="flex flex-col items-center mt-8">
             <View className="flex flex-row items-center">
               <Text
                 className="text-center  text-[16px] text-[#121212] leading-[22px] mr-[2px]"
@@ -134,16 +161,16 @@ const Otp = () => {
               >
                 Haven’t gotten the email?
               </Text>
-              <Pressable>
+              <Pressable onPress={handleResend} disabled={resendLoading}>
                 <Text
                   className="text-[#121212] text-[16px] leading-[25px]"
                   style={{ fontFamily: "Inter_600SemiBold" }}
                 >
-                  {otpLoading ? "Sending" : "Resend code"}
+                  {resendLoading ? "Sending" : "Resend code"}
                 </Text>
               </Pressable>
             </View>
-          </View> */}
+          </View>
         </View>
       </View>
     </SafeAreaView>

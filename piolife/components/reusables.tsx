@@ -27,7 +27,7 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { CustomDatePickerProps } from "@/services/core/types";
-import { uploadImageToCloudinary } from "./cloudinary";
+import { uploadImageToCloudinary, uploadPdfToCloudinary } from "./cloudinary";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import * as Location from "expo-location";
@@ -256,39 +256,44 @@ export const ReusableImageUpload: React.FC<ReusableImageUploadProps> = ({
   handleChange,
   errorMessage,
 }) => {
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const handleImageUpload = async () => {
+  const handleDocumentUpload = async () => {
     try {
-      const imageUrl = await uploadImageToCloudinary(setLoading);
-      setImageUri(imageUrl);
-      handleChange(fieldName, imageUrl); // Update parent state via handleChange
+      const result = await uploadPdfToCloudinary(setLoading);
+      if (result) {
+        setFileName(result.name);
+        handleChange(fieldName, result.url); // Update parent state via handleChange
+      }
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.error("Error uploading document:", error);
     }
   };
 
   return (
-    <Pressable onPress={handleImageUpload}>
+    <Pressable onPress={handleDocumentUpload}>
       <View>
         <View
           className={`${
-            imageUri ? "p-[12px]" : "p-[24px]"
+            fileName ? "p-[12px]" : "p-[24px]"
           } rounded-[4px]  border-[1px] border-[#a5a5a5]  flex flex-col items-center`}
         >
           {loading ? (
             <ActivityIndicator size="large" color="#0086C9" />
-          ) : imageUri ? (
+          ) : fileName ? (
             <View className="flex flex-col items-center w-full">
-              <Image
-                resizeMode="contain"
-                source={{ uri: imageUri }}
-                style={{ width: 200, height: 100 }}
-              />
+              <FontAwesome name="file-pdf-o" size={32} color="#FF0000" />
+              <Text
+                numberOfLines={1}
+                className="text-[12px] leading-[20px] text-[#272757] mt-[8px]"
+                style={{ fontFamily: "Inter_400Regular" }}
+              >
+                {fileName}
+              </Text>
               <Pressable
                 onPress={() => {
-                  setImageUri(null);
+                  setFileName(null);
                   handleChange(fieldName, null);
                 }}
               >
@@ -296,19 +301,19 @@ export const ReusableImageUpload: React.FC<ReusableImageUploadProps> = ({
                   className="font-600 text-[10px] leading-[10px] text-[#FF0000] py-2 mt-2"
                   style={{ fontFamily: "Inter_600SemiBold" }}
                 >
-                  Remove Image
+                  Remove File
                 </Text>
               </Pressable>
             </View>
           ) : (
             <View className="flex flex-col items-center">
-              <FontAwesome name="image" size={24} color="#a5a5a5" />
+              <FontAwesome name="file-pdf-o" size={24} color="#a5a5a5" />
               <View className="flex flex-col items-center mt-[12px]">
                 <Text
                   className="text-[12px] leading-[20px] text-[#272757]"
                   style={{ fontFamily: "Inter_600SemiBold" }}
                 >
-                  Upload here
+                  Upload PDF here
                 </Text>
               </View>
             </View>
@@ -368,18 +373,24 @@ interface CustomDropdownProps {
   value: string;
   onValueChange: (value: string) => void;
   placeholder?: string;
+}
+
+export const CustomDropdown = ({
+  label,
   items,
   value,
   onValueChange,
   placeholder = "Select an option",
-}) => {
+}: CustomDropdownProps) => {
   const [visible, setVisible] = useState(false);
   const [menuWidth, setMenuWidth] = useState(0);
 
   return (
     <View style={{ marginBottom: 20 }}>
       {label && (
-        <Text style={{ fontSize: 16, fontWeight: "600" }}>{label}</Text>
+        <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 6 }}>
+          {label}
+        </Text>
       )}
 
       <View onLayout={(event) => setMenuWidth(event.nativeEvent.layout.width)}>
@@ -397,7 +408,12 @@ interface CustomDropdownProps {
                 backgroundColor: "white",
               }}
             >
-              <Text style={{ fontSize: 16, color: value ? "black" : "gray" }}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: value ? "black" : "gray",
+                }}
+              >
                 {value
                   ? items.find((item) => item.value === value)?.label
                   : placeholder}
@@ -407,7 +423,7 @@ interface CustomDropdownProps {
         >
           <View style={{ width: menuWidth }}>
             <FlatList
-              nestedScrollEnabled={true}
+              nestedScrollEnabled
               data={items}
               keyExtractor={(item) => item.value}
               renderItem={({ item }) => (
@@ -427,6 +443,7 @@ interface CustomDropdownProps {
     </View>
   );
 };
+
 export const ClientScreen = () => {
   return (
     <View className="py-[8px] px-[24px] bg-[#0e16ff] flex flex-row rounded-[16px] items-center justify-between">
@@ -573,6 +590,7 @@ export const ClientMenu = () => {
       </Text>
       <View className="flex flex-col gap-[16px]">
         <Pressable
+          onPress={() => router.push("/appDataSubscription")}
           className="rounded-[4px] border-[#DADADA80] border-[1px] p-[16px] flex flex-row gap-[16px] items-center bg-white justify-between"
           style={[styles.shadowProp]}
         >

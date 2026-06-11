@@ -3,12 +3,12 @@ import { StatusBar } from "expo-status-bar";
 import {
   Text,
   View,
-  SafeAreaView,
   StyleSheet,
   Image,
   Pressable,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 const doctor = require("../assets/images/First Aid-2.png");
 const lab = require("../assets/images/blood-test.png");
@@ -19,8 +19,7 @@ const SelectConsultant = () => {
   return (
     <SafeAreaView
       className="flex-1 bg-[#fffff0]"
-      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
-    >
+      >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[16px] px-[24px] gap-[32px]">
         <Text

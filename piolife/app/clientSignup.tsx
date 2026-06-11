@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   Pressable,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { clientSignupFormData } from "@/services/core/types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -255,8 +255,7 @@ const ClientSignup = () => {
   return (
     <SafeAreaView
       className="flex flex-1 bg-[#fffff0] "
-      style={{ paddingTop: Platform.OS === "android" ? 20 : 0 }}
-    >
+      >
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: "#fffff0" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}

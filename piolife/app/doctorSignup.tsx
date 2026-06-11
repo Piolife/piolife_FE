@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   View,
   Text,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +12,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { doctorSignupFormData } from "@/services/core/types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -34,6 +34,7 @@ import allcountry from "../countries.json";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import PhoneInputWithCountryPicker from "@/components/countryPick";
 import { API_URL } from "@/constants/api";
+import Toast from "react-native-toast-message";
 const errorImage = require("../assets/images/error.png");
 interface signupResponse {
   otp: string;
@@ -208,7 +209,7 @@ const DoctorSignup = () => {
       ...filteredData,
       specialty: specialtiesArray,
       languageProficiency: updatedLanguageProficiency,
-      bankDetails: filteredBankDetails,
+      bankDetails: [filteredBankDetails],
     };
     try {
       const response = (await postData(payload)) as signupResponse;
@@ -274,15 +275,26 @@ const DoctorSignup = () => {
       setStep((prevStep) => prevStep + 1);
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     }
-    if (
-      step === 5 &&
-      !validationErrors.bankDetails?.accountNumber &&
-      !validationErrors.bankDetails?.confirmAccountNumber &&
-      !validationErrors.bankDetails?.accountName &&
-      !validationErrors.bankDetails?.bankName &&
-      validateSelection()
-    ) {
-      handleSignup();
+    if (step === 5) {
+      if (
+        !validationErrors.bankDetails?.accountNumber &&
+        !validationErrors.bankDetails?.confirmAccountNumber &&
+        !validationErrors.bankDetails?.accountName &&
+        !validationErrors.bankDetails?.bankName &&
+        validateSelection()
+      ) {
+        handleSignup();
+      } else if (
+        validationErrors.bankDetails?.accountNumber ||
+        validationErrors.bankDetails?.confirmAccountNumber ||
+        validationErrors.bankDetails?.accountName ||
+        validationErrors.bankDetails?.bankName
+      ) {
+        Toast.show({
+          type: "error",
+          text2: "Please fill in all bank details correctly",
+        });
+      }
     }
   };
   const {
@@ -381,8 +393,7 @@ const DoctorSignup = () => {
   return (
     <SafeAreaView
       className="flex flex-1 bg-[#fffff0] "
-      style={{ paddingTop: Platform.OS === "android" ? 20 : 0 }}
-    >
+      >
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: "#fffff0" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -667,7 +678,7 @@ const DoctorSignup = () => {
                         className="text-[14px] leading-[22px] text-[#030319]"
                         style={{ fontFamily: "Inter_300Light" }}
                       >
-                        Degree certificate
+                        Degree certificate (PDF only)
                       </Text>
                       <ReusableImageUpload
                         fieldName="degreeCertificate"
@@ -680,7 +691,7 @@ const DoctorSignup = () => {
                         className="text-[14px] leading-[22px] text-[#030319]"
                         style={{ fontFamily: "Inter_300Light" }}
                       >
-                        Current Praticing license
+                        Current Praticing license (PDF only)
                       </Text>
                       <ReusableImageUpload
                         fieldName="currentPracticeLicense"

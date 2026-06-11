@@ -8,19 +8,27 @@ import React from "react";
 import {
   Text,
   View,
-  SafeAreaView,
   Pressable,
   Platform,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 
-const OFFERS = [
+const OFFERS: {
+  id: string;
+  icon: React.ComponentProps<typeof Feather>["name"];
+  title: string;
+  subtitle: string;
+  accent: string;
+  bg: string;
+  requiresId: boolean;
+}[] = [
   {
     id: "student",
-    icon: "🎓",
+    icon: "award",
     title: "Student / NYSC Corps",
     subtitle: "Exclusive student & corps member packages",
     accent: "#1D6A3A",
@@ -29,7 +37,7 @@ const OFFERS = [
   },
   {
     id: "pioland",
-    icon: "🏘️",
+    icon: "grid",
     title: "Pioland Properties",
     subtitle: "Residential plots with all amenities included",
     accent: "#0E16FF",
@@ -38,7 +46,7 @@ const OFFERS = [
   },
   {
     id: "luxury",
-    icon: "🏙️",
+    icon: "star",
     title: "Luxury Apartments",
     subtitle: "Premium apartments — outright payment only",
     accent: "#B45309",
@@ -110,7 +118,7 @@ const RealEstate = () => (
           lineHeight: 38,
         }}
       >
-        Pioland 🏡
+        Pioland
       </Text>
       <Text
         style={{
@@ -130,12 +138,66 @@ const RealEstate = () => (
       contentContainerStyle={{ padding: 24, paddingBottom: 60, gap: 16 }}
       showsVerticalScrollIndicator={false}
     >
+      {/* My Properties CTA */}
+      <Pressable
+        onPress={() => router.push("/piolandDashboard")}
+        className="flex-row items-center"
+        style={({ pressed }) => ({
+          backgroundColor: "#272757",
+          borderRadius: 20,
+          padding: 18,
+          gap: 14,
+          opacity: pressed ? 0.9 : 1,
+          shadowColor: "#272757",
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.18,
+          shadowRadius: 18,
+          elevation: 8,
+        })}
+      >
+        <View
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 16,
+            backgroundColor: "rgba(255,255,255,0.15)",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Feather name="home" size={24} color="#fffff0" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              fontFamily: "Inter_700Bold",
+              fontSize: 16,
+              color: "#fffff0",
+            }}
+          >
+            My Properties
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Inter_400Regular",
+              fontSize: 12,
+              color: "rgba(255,255,240,0.7)",
+              marginTop: 2,
+            }}
+          >
+            Track payments & progress
+          </Text>
+        </View>
+        <Feather name="arrow-right" size={20} color="#fffff0" />
+      </Pressable>
+
       <Text
         style={{
           fontFamily: "Inter_600SemiBold",
           fontSize: 15,
           color: "#272757",
           marginBottom: 4,
+          marginTop: 4,
         }}
       >
         Choose a Package
@@ -150,12 +212,11 @@ const RealEstate = () => (
               params: { category: offer.id },
             })
           }
+          className="flex-row items-center"
           style={({ pressed }) => ({
             backgroundColor: "#fff",
             borderRadius: 20,
             padding: 20,
-            flexDirection: "row",
-            alignItems: "center",
             gap: 16,
             shadowColor: "#272757",
             shadowOffset: { width: 0, height: 6 },
@@ -175,9 +236,10 @@ const RealEstate = () => (
               backgroundColor: offer.bg,
               alignItems: "center",
               justifyContent: "center",
+              marginRight: 10,
             }}
           >
-            <Text style={{ fontSize: 28 }}>{offer.icon}</Text>
+            <Feather name={offer.icon} size={26} color={offer.accent} />
           </View>
           <View style={{ flex: 1 }}>
             <Text
@@ -207,17 +269,16 @@ const RealEstate = () => (
 
       {/* Info card */}
       <View
+        className="flex-row items-start"
         style={{
           backgroundColor: "#EEF0FF",
           borderRadius: 16,
           padding: 16,
           marginTop: 8,
-          flexDirection: "row",
           gap: 12,
-          alignItems: "flex-start",
         }}
       >
-        <Text style={{ fontSize: 20 }}>💡</Text>
+        <Feather name="info" size={20} color="#0E16FF" />
         <View style={{ flex: 1 }}>
           <Text
             style={{

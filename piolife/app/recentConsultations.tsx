@@ -3,12 +3,12 @@ import { StatusBar } from "expo-status-bar";
 import {
   Text,
   View,
-  SafeAreaView,
   StyleSheet,
   Platform,
   ActivityIndicator,
   Pressable,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { HistoryWalletType, User } from "@/services/core/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -52,8 +52,7 @@ const RecentConsultations = () => {
   return (
     <SafeAreaView
       className="flex-1 bg-white"
-      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
-    >
+      >
       <StatusBar style="dark" backgroundColor="#ffffff" />
       <View className="py-[8px] px-[4%] gap-[16px]">
         <Pressable
@@ -83,8 +82,16 @@ const RecentConsultations = () => {
           }
           renderItem={({ item }: { item: any }) => (
             <ConsultationHistory
-              amount={item.medicalIssue.name}
-              type={item.practitioner.username}
+              amount={
+                item.medicalIssue?.name ??
+                (Array.isArray(item.issues) ? item.issues.join(", ") : "—")
+              }
+              type={
+                item.practitioner?.username ??
+                (item.status === "pending"
+                  ? "Awaiting doctor"
+                  : item.status ?? "—")
+              }
               timestamp={item.createdAt}
             />
           )}

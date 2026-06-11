@@ -3,12 +3,12 @@ import { StatusBar } from "expo-status-bar";
 import {
   Text,
   View,
-  SafeAreaView,
   StyleSheet,
   Pressable,
   Platform,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 
@@ -43,7 +43,7 @@ const HospitalOptions = () => {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: "#fffff0", paddingTop: Platform.OS === "android" ? 10 : 0 }}
+      style={{ flex: 1, backgroundColor: "#fffff0" }}
     >
       <StatusBar style="dark" backgroundColor="#fffff0" />
 
@@ -92,6 +92,7 @@ const HospitalOptions = () => {
             <Pressable
               key={idx}
               onPress={item.onPress}
+              className="flex-row items-center"
               style={({ pressed }) => [
                 styles.card,
                 { opacity: pressed ? 0.9 : 1 },
@@ -147,7 +148,7 @@ const HospitalOptions = () => {
         >
           Nearby Services
         </Text>
-        <View style={{ flexDirection: "row", gap: 12, marginBottom: 24 }}>
+        <View className="flex-row" style={{ gap: 12, marginBottom: 24 }}>
           <Pressable
             onPress={() => router.push("/nearbyPharmacy")}
             style={({ pressed }) => ({
@@ -211,7 +212,7 @@ const HospitalOptions = () => {
         >
           Your Records
         </Text>
-        <View style={{ flexDirection: "row", gap: 12 }}>
+        <View className="flex-row" style={{ gap: 12 }}>
           <Pressable
             onPress={() => router.push("/medicalHistory")}
             style={({ pressed }) => ({
@@ -267,8 +268,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
     shadowColor: "#272757",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.07,

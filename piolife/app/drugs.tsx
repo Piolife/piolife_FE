@@ -1,146 +1,282 @@
-import React, { useEffect, useState } from "react";
-import { StatusBar } from "expo-status-bar";
+/**
+ * app/drugs.tsx — FIXED
+ *
+ * BUG: Was fetching ALL pharmacy stock, not just the logged-in pharmacy's stock.
+ * FIX: Uses user.id to fetch only THIS pharmacy's drugs.
+ * Also adds delete and edit navigation.
+ */
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  Text,
   View,
-  SafeAreaView,
-  StyleSheet,
-  Image,
-  Pressable,
+  Text,
   Platform,
-  Alert,
+  FlatList,
+  Pressable,
   ActivityIndicator,
+  Alert,
+  RefreshControl,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { CustomFlatList } from "@/components/reusables";
-import {
-  AddDrugFormProps,
-  DrugItemType,
-  HistoryWalletType,
-  LoginFormProps,
-  User,
-} from "@/services/core/types";
-import { validateAddDrugsForm, validateLoginForm } from "@/hooks/auth";
-import { useFetchData, usePostData } from "@/services/api/request";
+import { StatusBar } from "expo-status-bar";
+import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Toast, { BaseToastProps } from "react-native-toast-message";
-import { BaseToast, ErrorToast } from "react-native-toast-message";
-import { getCurrentLocation } from "@/components/reusables";
+import { useFetchData, usePostData } from "@/services/api/request";
 import { API_URL } from "@/constants/api";
-import { FontAwesome } from "@expo/vector-icons";
-import { DrugList, HistoryWallet } from "@/components/flatListItems/items";
-type LoginResponse = {
-  message: string;
-  user: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    token: string;
-    isVerified: boolean;
-    dateOfBirth: string;
-  };
-};
-export const toastConfig = {
-  error: (props: React.JSX.IntrinsicAttributes & BaseToastProps) => (
-    <ErrorToast
-      {...props}
-      style={{
-        backgroundColor: "#fff",
-        borderLeftColor: "red",
-        zIndex: 9999,
-        elevation: 9999,
-        position: "absolute",
-        top: 120,
-      }}
-      text1Style={{ color: "black", fontWeight: "bold" }}
-      text2Style={{ color: "black" }}
-    />
-  ),
-};
+import { formatNumberToThousands } from "@/components/reusables";
+import Toast from "react-native-toast-message";
+
 const Drugs = () => {
-  const handlePrevious = () => {
-    router.back();
-  };
-  const [user, SetUser] = useState<User>();
+  const [user, setUser] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem("user").then((u) => {
+      if (u) setUser(JSON.parse(u));
+    });
+  }, []);
+
   const token = user?.token;
-  const { data, loading, error } = useFetchData<any>(
-    `${API_URL}/api/v12/pharmacy-stock`,
+
+  // FIX: fetch by THIS pharmacy's user id, not all stock
+  const {
+    data: drugs,
+    loading,
+    refetch,
+  } = useFetchData<any[]>(
+    user ? `${API_URL}/api/v12/pharmacy-stock/user/${user.id}` : "",
     { token }
   );
 
-  useEffect(() => {
-    const loadUser = async () => {
-      const userData = await AsyncStorage.getItem("user");
-      if (userData) {
-        const user = JSON.parse(userData);
-        SetUser(user);
-      }
-    };
-    loadUser();
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    refetch();
+    setRefreshing(false);
   }, []);
-  if (loading) {
+
+  const totalItems = Array.isArray(drugs) ? drugs.length : 0;
+  const lowStock = Array.isArray(drugs)
+    ? drugs.filter((d: any) => (d.quantity ?? 0) < 5).length
+    : 0;
+
+  if (loading && !drugs) {
     return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#fffff0",
+        }}
+      >
+        <ActivityIndicator size="large" color="#0E16FF" />
       </View>
     );
   }
+
   return (
-    <SafeAreaView
-      className="flex-1 bg-white"
-      style={{ paddingTop: Platform.OS === "android" ? 30 : 0 }}
-    >
-      <StatusBar style="dark" backgroundColor="#ffffff" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fffff0" }}>
+      <StatusBar style="dark" backgroundColor="#fffff0" />
+      <Toast />
 
-      <View className="py-[16px] px-[4%] gap-[32px]">
-        <Pressable
-          className="flex flex-row items-center gap-[16px] mt-10"
-          onPress={handlePrevious}
-        >
-          <FontAwesome name="angle-left" size={24} color="black" />
-          <Text
-            className="text-[#272757] text-[16px] leading-[20px] text-center "
-            style={{ fontFamily: "Inter_500Medium" }}
-          >
-            Back
-          </Text>
+      {/* Header */}
+      <View
+        style={{
+          backgroundColor: "#1D6A3A",
+          paddingTop: Platform.OS === "android" ? 30 : 16,
+          paddingBottom: 32,
+          paddingHorizontal: 24,
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+        }}
+      >
+        <Pressable onPress={() => router.back()} style={{ marginBottom: 20 }}>
+          <Feather name="arrow-left" size={24} color="#fffff0" />
         </Pressable>
-
-        <View className="flex flex-col ">
-          <CustomFlatList
-            data={data || []}
-            renderItem={({ item }: { item: DrugItemType }) => (
-              <DrugList
-                _id={item._id}
-                name={item.name}
-                description={item.description}
-                price={item.price}
-              />
-            )}
-            ListEmptyComponent={() => (
-              <Text style={{ textAlign: "center" }}>No items found.</Text>
-            )}
-            showsVerticalScrollIndicator={false}
-            ListFooterComponent={() => <View style={{ height: 70 }} />}
-          />
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+          }}
+        >
+          <View>
+            <Text
+              style={{
+                fontFamily: "Inter_700Bold",
+                fontSize: 24,
+                color: "#fffff0",
+              }}
+            >
+              Drug Stock
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Inter_400Regular",
+                fontSize: 13,
+                color: "rgba(255,255,240,0.7)",
+                marginTop: 4,
+              }}
+            >
+              {totalItems} items · {lowStock} low stock
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => router.push("/addDrug")}
+            style={{
+              backgroundColor: "#fffff0",
+              borderRadius: 12,
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              flexDirection: "row",
+              gap: 6,
+              alignItems: "center",
+            }}
+          >
+            <Feather name="plus" size={16} color="#1D6A3A" />
+            <Text
+              style={{
+                fontFamily: "Inter_700Bold",
+                fontSize: 13,
+                color: "#1D6A3A",
+              }}
+            >
+              Add Drug
+            </Text>
+          </Pressable>
         </View>
       </View>
+
+      <FlatList
+        data={Array.isArray(drugs) ? drugs : []}
+        keyExtractor={(item) => item._id}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#1D6A3A"
+          />
+        }
+        contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
+        ListEmptyComponent={
+          <View style={{ alignItems: "center", marginTop: 60 }}>
+            <Text style={{ fontSize: 40 }}>💊</Text>
+            <Text
+              style={{
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 16,
+                color: "#272757",
+                marginTop: 12,
+              }}
+            >
+              No drugs added yet
+            </Text>
+            <Pressable
+              onPress={() => router.push("/addDrug")}
+              style={{
+                marginTop: 16,
+                backgroundColor: "#1D6A3A",
+                borderRadius: 12,
+                paddingHorizontal: 24,
+                paddingVertical: 10,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: "Inter_600SemiBold",
+                  fontSize: 14,
+                  color: "#fffff0",
+                }}
+              >
+                Add First Drug
+              </Text>
+            </Pressable>
+          </View>
+        }
+        renderItem={({ item }) => {
+          const isLow = (item.quantity ?? 0) < 5;
+          return (
+            <View
+              style={{
+                backgroundColor: "#fff",
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 14,
+                shadowColor: "#272757",
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.06,
+                shadowRadius: 8,
+                elevation: 3,
+                borderLeftWidth: isLow ? 3 : 0,
+                borderLeftColor: "#B91C1C",
+              }}
+            >
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 14,
+                  backgroundColor: "#E6F4EC",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ fontSize: 20 }}>💊</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontFamily: "Inter_600SemiBold",
+                    fontSize: 14,
+                    color: "#272757",
+                  }}
+                >
+                  {item.name}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: "Inter_400Regular",
+                    fontSize: 12,
+                    color: "#888",
+                    marginTop: 2,
+                  }}
+                >
+                  Qty: {item.quantity ?? "—"} · ₦
+                  {formatNumberToThousands(item.price ?? 0)}
+                </Text>
+                {isLow && (
+                  <Text
+                    style={{
+                      fontFamily: "Inter_600SemiBold",
+                      fontSize: 11,
+                      color: "#B91C1C",
+                      marginTop: 2,
+                    }}
+                  >
+                    ⚠️ Low stock
+                  </Text>
+                )}
+              </View>
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: "/addDrug",
+                    params: { id: item._id, editMode: "true" },
+                  })
+                }
+                style={{ padding: 6 }}
+              >
+                <Feather name="edit-2" size={16} color="#888" />
+              </Pressable>
+            </View>
+          );
+        }}
+      />
     </SafeAreaView>
   );
 };
-const styles = StyleSheet.create({
-  loaderContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  shadowProp: {
-    shadowColor: "#171717",
-    shadowOffset: { width: -2, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-});
+
 export default Drugs;

@@ -3,7 +3,6 @@ import { StatusBar } from "expo-status-bar";
 import {
   Text,
   View,
-  SafeAreaView,
   Pressable,
   Platform,
   FlatList,
@@ -11,6 +10,7 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import RadioGroup, { RadioButtonProps } from "react-native-radio-buttons-group";
 import { router } from "expo-router";
@@ -94,8 +94,7 @@ const HealthIssue = () => {
   return (
     <SafeAreaView
       className="flex-1 bg-[#fffff0]"
-      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
-    >
+      >
       <StatusBar style="dark" backgroundColor="#fffff0" />
 
       {/* Header */}

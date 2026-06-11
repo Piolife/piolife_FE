@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import {
   Text,
   View,
-  SafeAreaView,
   Pressable,
   Platform,
   ScrollView,
   Dimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";

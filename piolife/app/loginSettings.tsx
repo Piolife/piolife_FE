@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  SafeAreaView,
   Platform,
   Pressable,
   TextInput,
@@ -10,6 +9,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -125,9 +125,8 @@ const LoginSettings = () => {
     <SafeAreaView
       style={{
         flex: 1,
-        backgroundColor: "#fffff0",
-        paddingTop: Platform.OS === "android" ? 20 : 0,
-      }}
+        backgroundColor: "#fffff0"
+        }}
     >
       <StatusBar style="dark" backgroundColor="#fffff0" />
       <Toast />

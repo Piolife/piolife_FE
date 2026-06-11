@@ -6,9 +6,9 @@ import {
   Alert,
   StyleSheet,
   StatusBar,
-  SafeAreaView,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Link } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { router } from "expo-router";

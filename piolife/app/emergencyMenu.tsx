@@ -11,7 +11,6 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  SafeAreaView,
   Platform,
   Pressable,
   ActivityIndicator,
@@ -19,6 +18,7 @@ import {
   TextInput,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
@@ -31,7 +31,7 @@ import {
 } from "@/components/reusables";
 import Toast from "react-native-toast-message";
 
-const EMERGENCY_COST = 100000; // ₦100,000 per prototype
+const EMERGENCY_COST = 5000; // ₦5,000 per prototype
 
 const LANDMARKS = [
   "Bus Stop",
@@ -76,11 +76,11 @@ const EmergencyMenu = () => {
   const token = user?.token;
   const { data: wallet } = useFetchData<any>(
     user ? `${API_URL}/api/v12/wallet/${user.id}/balance` : "",
-    { token }
+    { token },
   );
   const { loading: dispatching, postData } = usePostData(
     `${API_URL}/api/v12/emergency-stock/emergencies`,
-    true
+    true,
   );
 
   const checkBalanceAndProceed = () => {
@@ -88,15 +88,15 @@ const EmergencyMenu = () => {
       Alert.alert(
         "Insufficient Balance",
         `Emergency service costs ₦${formatNumberToThousands(
-          EMERGENCY_COST
+          EMERGENCY_COST,
         )}. Your balance: ₦${formatNumberToThousands(
-          wallet?.balance ?? 0
+          wallet?.balance ?? 0,
         )}.\n\nFund or loan your wallet to continue.`,
         [
           { text: "Fund Wallet", onPress: () => router.push("/clientWallet") },
           { text: "Collect Loan", onPress: () => router.push("/collectLoan") },
           { text: "Cancel", style: "cancel" },
-        ]
+        ],
       );
       return;
     }
@@ -129,7 +129,7 @@ const EmergencyMenu = () => {
         },
         { text: "No, I'll fill the form", onPress: () => setStep("form") },
         { text: "Cancel", style: "cancel" },
-      ]
+      ],
     );
   };
 
@@ -151,20 +151,17 @@ const EmergencyMenu = () => {
         locationDescription: form.locationDesc,
         cost: EMERGENCY_COST,
       });
-      Toast.show({
-        type: "success",
-        text1: "🚑 Emergency dispatched!",
-        text2: "Nearest ambulance has been notified.",
-        position: "bottom",
-      });
-      setTimeout(() => router.replace("/(tabs)"), 2500);
+      Alert.alert(
+        "🚑 Emergency Dispatched!",
+        "Nearest ambulance has been notified and is on its way.",
+        [{ text: "OK", onPress: () => router.replace("/(tabs)") }]
+      );
     } catch (err: any) {
-      Toast.show({
-        type: "error",
-        text1: "Dispatch failed",
-        text2: err?.message,
-        position: "bottom",
-      });
+      Alert.alert(
+        "Dispatch Failed",
+        err?.message || "Unable to dispatch. Please try again.",
+        [{ text: "OK" }]
+      );
     }
   };
 
@@ -175,7 +172,7 @@ const EmergencyMenu = () => {
           flex: 1,
           backgroundColor: "#B91C1C",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "center"
         }}
       >
         <ActivityIndicator size="large" color="#fff" />
@@ -194,9 +191,10 @@ const EmergencyMenu = () => {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#fffff0", flexDirection: "column" }}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: "#fffff0", flexDirection: "column" }}
+    >
       <StatusBar style="dark" backgroundColor="#fffff0" />
-      <Toast />
       <View
         style={{
           backgroundColor: "#B91C1C",
@@ -236,268 +234,287 @@ const EmergencyMenu = () => {
       </View>
 
       {step === "info" ? (
-        <>
-          <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 20 }} style={{ flex: 1 }}>
-            <View
-              style={{
-                backgroundColor: "#FEF2F2",
-                borderRadius: 16,
-                padding: 16,
-                borderLeftWidth: 4,
-                borderLeftColor: "#B91C1C",
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: "Inter_600SemiBold",
-                  fontSize: 14,
-                  color: "#B91C1C",
-                  marginBottom: 4,
-                }}
-              >
-                ⚠️ Important Notice
-              </Text>
-              <Text
-                style={{
-                  fontFamily: "Inter_400Regular",
-                  fontSize: 13,
-                  color: "#7F1D1D",
-                  lineHeight: 20,
-                }}
-              >
-                Your wallet will be debited ₦
-                {formatNumberToThousands(EMERGENCY_COST)} immediately. Nearest
-                ambulance will be automatically dispatched to your location.
-              </Text>
-            </View>
-          </ScrollView>
-
-          {/* Button always visible at bottom */}
-          <View style={{ paddingHorizontal: 24, paddingBottom: Platform.OS === "android" ? 20 : 30, paddingTop: 12, borderTopWidth: 1, borderTopColor: "rgba(185,28,28,0.1)" }}>
-            <Pressable
-              onPress={checkBalanceAndProceed}
-              style={({ pressed }) => ({
-                backgroundColor: "#B91C1C",
-                borderRadius: 14,
-                height: 60,
-                alignItems: "center",
-                justifyContent: "center",
-                flexDirection: "row",
-                gap: 10,
-                opacity: pressed ? 0.88 : 1,
-                shadowColor: "#B91C1C",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.4,
-                shadowRadius: 16,
-                elevation: 10,
-              })}
-            >
-              <Feather name="alert-circle" size={22} color="#fffff0" />
-              <Text style={{ fontFamily: "Inter_800ExtraBold", fontSize: 17, color: "#fffff0" }}>
-                Request Ambulance Now
-              </Text>
-            </Pressable>
-          </View>
-        </>
-      ) : (
-        <>
-        <ScrollView
-          contentContainerStyle={{ padding: 20, paddingBottom: 20 }}
-          showsVerticalScrollIndicator={false}
-          style={{ flex: 1 }}
-        >
-          <Text
-            style={{
-              fontFamily: "Inter_600SemiBold",
-              fontSize: 16,
-              color: "#272757",
-              marginBottom: 16,
-            }}
-          >
-            Emergency Details
-          </Text>
-
-          {/* Location description */}
-          <Text
-            style={{
-              fontFamily: "Inter_500Medium",
-              fontSize: 13,
-              color: "#272757",
-              marginBottom: 6,
-            }}
-          >
-            Describe the location
-          </Text>
-          <TextInput
-            value={form.locationDesc}
-            onChangeText={(v) => setForm((p) => ({ ...p, locationDesc: v }))}
-            placeholder="e.g. No 5 Aba Road, opposite the school gate…"
-            placeholderTextColor="#C0C0C0"
-            multiline
-            style={{
-              borderWidth: 1.5,
-              borderColor: "#E0E0E0",
-              borderRadius: 12,
-              padding: 14,
-              fontFamily: "Inter_400Regular",
-              fontSize: 14,
-              color: "#272757",
-              minHeight: 72,
-              marginBottom: 20,
-              backgroundColor: "#fff",
-            }}
-          />
-
-          {/* Landmark */}
-          <Text
-            style={{
-              fontFamily: "Inter_500Medium",
-              fontSize: 13,
-              color: "#272757",
-              marginBottom: 10,
-            }}
-          >
-            Closest Landmark
-          </Text>
+        <View style={{ flex: 1, justifyContent: "space-between", padding: 24, paddingBottom: Platform.OS === "android" ? 24 : 34 }}>
           <View
             style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 8,
-              marginBottom: 20,
+              backgroundColor: "#FEF2F2",
+              borderRadius: 16,
+              padding: 16,
+              borderLeftWidth: 4,
+              borderLeftColor: "#B91C1C",
             }}
           >
-            {LANDMARKS.map((l) => (
-              <Pressable
-                key={l}
-                onPress={() => setForm((p) => ({ ...p, landmark: l }))}
-                style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 8,
-                  borderRadius: 20,
-                  backgroundColor: form.landmark === l ? "#B91C1C" : "#fff",
-                  borderWidth: 1,
-                  borderColor: form.landmark === l ? "#B91C1C" : "#E0E0E0",
-                }}
-              >
-                <Text
-                  style={{
-                    fontFamily: "Inter_500Medium",
-                    fontSize: 13,
-                    color: form.landmark === l ? "#fff" : "#272757",
-                  }}
-                >
-                  {l}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          {form.landmark === "Other" && (
-            <TextInput
-              value={form.otherLandmark}
-              onChangeText={(v) => setForm((p) => ({ ...p, otherLandmark: v }))}
-              placeholder="Specify landmark"
-              placeholderTextColor="#C0C0C0"
+            <Text
               style={{
-                borderWidth: 1.5,
-                borderColor: "#E0E0E0",
-                borderRadius: 12,
-                padding: 14,
-                fontFamily: "Inter_400Regular",
+                fontFamily: "Inter_600SemiBold",
                 fontSize: 14,
-                color: "#272757",
-                marginBottom: 16,
-                backgroundColor: "#fff",
+                color: "#B91C1C",
+                marginBottom: 4,
               }}
-            />
-          )}
-
-          {/* Incident type */}
-          <Text
-            style={{
-              fontFamily: "Inter_500Medium",
-              fontSize: 13,
-              color: "#272757",
-              marginBottom: 10,
-            }}
-          >
-            Nature of Incident
-          </Text>
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 8,
-              marginBottom: 20,
-            }}
-          >
-            {INCIDENTS.map((i) => (
-              <Pressable
-                key={i}
-                onPress={() => setForm((p) => ({ ...p, incidentType: i }))}
-                style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 8,
-                  borderRadius: 20,
-                  backgroundColor: form.incidentType === i ? "#B91C1C" : "#fff",
-                  borderWidth: 1,
-                  borderColor: form.incidentType === i ? "#B91C1C" : "#E0E0E0",
-                }}
-              >
-                <Text
-                  style={{
-                    fontFamily: "Inter_500Medium",
-                    fontSize: 13,
-                    color: form.incidentType === i ? "#fff" : "#272757",
-                  }}
-                >
-                  {i}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          {form.incidentType === "Other" && (
-            <TextInput
-              value={form.otherIncident}
-              onChangeText={(v) => setForm((p) => ({ ...p, otherIncident: v }))}
-              placeholder="Specify incident type"
-              placeholderTextColor="#C0C0C0"
+            >
+              ⚠️ Important Notice
+            </Text>
+            <Text
               style={{
-                borderWidth: 1.5,
-                borderColor: "#E0E0E0",
-                borderRadius: 12,
-                padding: 14,
                 fontFamily: "Inter_400Regular",
-                fontSize: 14,
-                color: "#272757",
-                marginBottom: 16,
-                backgroundColor: "#fff",
+                fontSize: 13,
+                color: "#7F1D1D",
+                lineHeight: 20,
               }}
-            />
-          )}
+            >
+              Your wallet will be debited ₦
+              {formatNumberToThousands(EMERGENCY_COST)} immediately. Nearest
+              ambulance will be automatically dispatched to your location.
+            </Text>
+          </View>
 
-        </ScrollView>
-
-        {/* Dispatch button always visible at bottom */}
-        <View style={{ paddingHorizontal: 20, paddingBottom: Platform.OS === "android" ? 20 : 30, paddingTop: 12, borderTopWidth: 1, borderTopColor: "rgba(185,28,28,0.1)" }}>
           <Pressable
-            onPress={() => handleDispatch()}
-            disabled={!form.incidentType || !form.locationDesc}
-            style={({ pressed }) => ({
-              backgroundColor: !form.incidentType || !form.locationDesc ? "#9CA3AF" : "#B91C1C",
+            onPress={checkBalanceAndProceed}
+            style={{
+              backgroundColor: "#B91C1C",
               borderRadius: 14,
-              height: 56,
+              height: 60,
               alignItems: "center",
               justifyContent: "center",
-              opacity: pressed ? 0.88 : 1,
-            })}
+              flexDirection: "row",
+              gap: 10,
+              elevation: 10,
+            }}
           >
-            <Text style={{ fontFamily: "Inter_700Bold", fontSize: 16, color: "#fffff0" }}>
-              🚑 Dispatch Ambulance
+            <Feather name="alert-circle" size={22} color="#fffff0" />
+            <Text
+              style={{
+                fontFamily: "Inter_800ExtraBold",
+                fontSize: 17,
+                color: "#fffff0",
+              }}
+            >
+              Request Ambulance Now
             </Text>
           </Pressable>
         </View>
-        </>
+      ) : (
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text
+              style={{
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 16,
+                color: "#272757",
+                marginBottom: 16,
+              }}
+            >
+              Emergency Details
+            </Text>
+
+            {/* Location description */}
+            <Text
+              style={{
+                fontFamily: "Inter_500Medium",
+                fontSize: 13,
+                color: "#272757",
+                marginBottom: 6,
+              }}
+            >
+              Describe the location
+            </Text>
+            <TextInput
+              value={form.locationDesc}
+              onChangeText={(v) => setForm((p) => ({ ...p, locationDesc: v }))}
+              placeholder="e.g. No 5 Aba Road, opposite the school gate…"
+              placeholderTextColor="#C0C0C0"
+              multiline
+              style={{
+                borderWidth: 1.5,
+                borderColor: "#E0E0E0",
+                borderRadius: 12,
+                padding: 14,
+                fontFamily: "Inter_400Regular",
+                fontSize: 14,
+                color: "#272757",
+                minHeight: 72,
+                marginBottom: 20,
+                backgroundColor: "#fff",
+              }}
+            />
+
+            {/* Landmark */}
+            <Text
+              style={{
+                fontFamily: "Inter_500Medium",
+                fontSize: 13,
+                color: "#272757",
+                marginBottom: 10,
+              }}
+            >
+              Closest Landmark
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 8,
+                marginBottom: 20,
+              }}
+            >
+              {LANDMARKS.map((l) => (
+                <Pressable
+                  key={l}
+                  onPress={() => setForm((p) => ({ ...p, landmark: l }))}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor: form.landmark === l ? "#B91C1C" : "#fff",
+                    borderWidth: 1,
+                    borderColor: form.landmark === l ? "#B91C1C" : "#E0E0E0",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Inter_500Medium",
+                      fontSize: 13,
+                      color: form.landmark === l ? "#fff" : "#272757",
+                    }}
+                  >
+                    {l}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            {form.landmark === "Other" && (
+              <TextInput
+                value={form.otherLandmark}
+                onChangeText={(v) =>
+                  setForm((p) => ({ ...p, otherLandmark: v }))
+                }
+                placeholder="Specify landmark"
+                placeholderTextColor="#C0C0C0"
+                style={{
+                  borderWidth: 1.5,
+                  borderColor: "#E0E0E0",
+                  borderRadius: 12,
+                  padding: 14,
+                  fontFamily: "Inter_400Regular",
+                  fontSize: 14,
+                  color: "#272757",
+                  marginBottom: 16,
+                  backgroundColor: "#fff",
+                }}
+              />
+            )}
+
+            {/* Incident type */}
+            <Text
+              style={{
+                fontFamily: "Inter_500Medium",
+                fontSize: 13,
+                color: "#272757",
+                marginBottom: 10,
+              }}
+            >
+              Nature of Incident
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 8,
+                marginBottom: 20,
+              }}
+            >
+              {INCIDENTS.map((i) => (
+                <Pressable
+                  key={i}
+                  onPress={() => setForm((p) => ({ ...p, incidentType: i }))}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor:
+                      form.incidentType === i ? "#B91C1C" : "#fff",
+                    borderWidth: 1,
+                    borderColor:
+                      form.incidentType === i ? "#B91C1C" : "#E0E0E0",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Inter_500Medium",
+                      fontSize: 13,
+                      color: form.incidentType === i ? "#fff" : "#272757",
+                    }}
+                  >
+                    {i}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            {form.incidentType === "Other" && (
+              <TextInput
+                value={form.otherIncident}
+                onChangeText={(v) =>
+                  setForm((p) => ({ ...p, otherIncident: v }))
+                }
+                placeholder="Specify incident type"
+                placeholderTextColor="#C0C0C0"
+                style={{
+                  borderWidth: 1.5,
+                  borderColor: "#E0E0E0",
+                  borderRadius: 12,
+                  padding: 14,
+                  fontFamily: "Inter_400Regular",
+                  fontSize: 14,
+                  color: "#272757",
+                  marginBottom: 16,
+                  backgroundColor: "#fff",
+                }}
+              />
+            )}
+          </ScrollView>
+
+          <View
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: "#fffff0",
+              paddingHorizontal: 20,
+              paddingBottom: Platform.OS === "android" ? 24 : 34,
+              paddingTop: 12,
+              borderTopWidth: 1,
+              borderTopColor: "rgba(185,28,28,0.1)",
+            }}
+          >
+            <Pressable
+              onPress={() => handleDispatch()}
+              disabled={!form.incidentType || !form.locationDesc}
+              style={{
+                backgroundColor:
+                  !form.incidentType || !form.locationDesc ? "#9CA3AF" : "#B91C1C",
+                borderRadius: 14,
+                height: 56,
+                alignItems: "center",
+                justifyContent: "center",
+                elevation: 6,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: "Inter_700Bold",
+                  fontSize: 16,
+                  color: "#ffffff",
+                }}
+              >
+                🚑 Dispatch Ambulance
+              </Text>
+            </Pressable>
+          </View>
+        </View>
       )}
     </SafeAreaView>
   );

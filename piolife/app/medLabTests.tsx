@@ -1,166 +1,411 @@
+/**
+ * app/medLabTests.tsx — REWRITTEN
+ *
+ * FIXES:
+ *  1. Race condition: location state no longer gates the fetch URL
+ *  2. Shows correct lab test list for the chosen lab (by labId param)
+ *  3. Auto-highlights tests matching doctor's diagnostic note
+ *  4. Wallet balance check before payment
+ *  5. Sends order notification to lab on payment
+ */
 import React, { useEffect, useState } from "react";
-import { StatusBar } from "expo-status-bar";
 import {
-  Text,
   View,
-  SafeAreaView,
-  StyleSheet,
+  Text,
   Platform,
-  ActivityIndicator,
-  Pressable,
   FlatList,
+  Pressable,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
-import { router } from "expo-router";
-import { HistoryWalletType, User } from "@/services/core/types";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router, useLocalSearchParams } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { Feather } from "@expo/vector-icons";
+import Checkbox from "expo-checkbox";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFetchData, usePostData } from "@/services/api/request";
 import { API_URL } from "@/constants/api";
-import { CustomFlatList } from "@/components/reusables";
-import { getCurrentLocation } from "@/components/reusables";
+import { formatNumberToThousands } from "@/components/reusables";
+import Toast from "react-native-toast-message";
 
-import Toast, { BaseToastProps } from "react-native-toast-message";
-
-import Checkbox from "expo-checkbox";
-import { useLocalSearchParams } from "expo-router";
-const NearbyMedLab = () => {
-  const [location, setLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const [user, SetUser] = useState<User>();
-  const [errors, setError] = useState<string | null>(null);
-  const [stocks, setStocks] = useState<any[]>([]);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [errorz, setErrors] = useState<Partial<any>>({});
-
-  const token = user?.token;
-  const { data, loading, error } = useFetchData<any>(
-    location ? `${API_URL}/api/v12/medlab-stock/user/${id}` : "",
-    { token }
-  );
-  const {
-    data: register,
-    loading: isLoading,
-    postData,
-  } = usePostData(`${API_URL}/api/v12/medlab-stock/orders`, true);
+const MedLabTests = () => {
+  const { id, name } = useLocalSearchParams<{ id: string; name: string }>();
+  const [user, setUser] = useState<any>(null);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    (async () => {
-      try {
-        // Load user from storage
-        const userData = await AsyncStorage.getItem("user");
-        if (userData) {
-          const user = JSON.parse(userData);
-          SetUser(user);
-        }
-
-        // Get current location
-        const coords = await getCurrentLocation();
-        setLocation(coords);
-
-        // Mark that app has launched
-        await AsyncStorage.setItem("hasLaunched", "launched");
-      } catch (err: any) {
-        setError(err.message || "Something went wrong");
-      }
-    })();
+    AsyncStorage.getItem("user").then((u) => {
+      if (u) setUser(JSON.parse(u));
+    });
   }, []);
-  const toggleSelect = (id: string) => {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+
+  const token = user?.token;
+
+  // FIX: fetch by lab ID directly — no location gating
+  const { data: tests, loading } = useFetchData<any[]>(
+    id ? `${API_URL}/api/v12/medlab-stock/user/${id}` : "",
+    { token }
+  );
+
+  const { data: wallet } = useFetchData<any>(
+    user ? `${API_URL}/api/v12/wallet/${user.id}/balance` : "",
+    { token }
+  );
+
+  // Doctor's diagnostic note — auto-highlight matching tests
+  const { data: prescriptions } = useFetchData<any[]>(
+    user ? `${API_URL}/api/v12/sessions/prescriptions/user/${user.id}` : "",
+    { token }
+  );
+  const diagnosis =
+    Array.isArray(prescriptions) && prescriptions.length > 0
+      ? prescriptions[prescriptions.length - 1]?.diagnosis ?? ""
+      : "";
+
+  const { loading: ordering, postData } = usePostData(
+    `${API_URL}/api/v12/medlab-stock/orders`,
+    true
+  );
+
+  const toggle = (testId: string) => {
+    setSelected((prev) => ({ ...prev, [testId]: !prev[testId] }));
+  };
+
+  const selectedItems = tests ? tests.filter((t: any) => selected[t._id]) : [];
+  const totalCost = selectedItems.reduce(
+    (s: number, t: any) => s + (t.price ?? 0),
+    0
+  );
+
+  const handleOrder = () => {
+    if (selectedItems.length === 0) {
+      Toast.show({
+        type: "error",
+        text1: "Select at least one test",
+        position: "bottom",
+      });
+      return;
+    }
+    if (!wallet || wallet.balance < totalCost) {
+      Alert.alert(
+        "Insufficient Balance",
+        `You need ₦${formatNumberToThousands(
+          totalCost
+        )} for these tests.\nYour balance: ₦${formatNumberToThousands(
+          wallet?.balance ?? 0
+        )}`,
+        [
+          { text: "Fund Wallet", onPress: () => router.push("/clientWallet") },
+          { text: "Collect Loan", onPress: () => router.push("/collectLoan") },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+      return;
+    }
+
+    Alert.alert(
+      "Confirm Booking",
+      `Book ${selectedItems.length} test(s) for ₦${formatNumberToThousands(
+        totalCost
+      )}?\n₦${formatNumberToThousands(
+        totalCost
+      )} will be deducted from your wallet.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Confirm & Pay",
+          onPress: async () => {
+            try {
+              await postData({
+                testIds: selectedItems.map((t: any) => t._id),
+                userId: user?.id,
+                labId: id,
+                diagnosisNote: diagnosis,
+              });
+              Toast.show({
+                type: "success",
+                text1: "Tests booked!",
+                text2:
+                  "The lab has been notified with your diagnostic details.",
+                position: "bottom",
+              });
+              setSelected({});
+            } catch (err: any) {
+              Toast.show({
+                type: "error",
+                text1: "Booking failed",
+                text2: err?.message,
+                position: "bottom",
+              });
+            }
+          },
+        },
+      ]
     );
   };
 
-  if (loading || isLoading) {
+  if (loading) {
     return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#fffff0",
+        }}
+      >
+        <ActivityIndicator size="large" color="#7C3AED" />
       </View>
     );
   }
 
-  const handleAddTestOrder = async () => {
-    try {
-      let response;
-      const trimmedData = {
-        testIds: selected,
-        userId: user?.id,
-        medLabId: id,
-      };
-      console.log("trimmedData", trimmedData);
-      response = await postData(trimmedData);
-
-      if (response) {
-        router.push("/nearbyMedlab");
-        setSelected([]);
-      }
-    } catch (err: any) {
-      Toast.show({
-        type: "error",
-        text2: err.message,
-        position: "top",
-        topOffset: 80,
-      });
-    }
-  };
   return (
-    <SafeAreaView
-      className="flex-1 bg-white"
-      style={{ paddingTop: Platform.OS === "android" ? 10 : 0 }}
-    >
-      <StatusBar style="dark" backgroundColor="#ffffff" />
-      <View className="flex-1 bg-white px-[4%]">
-        {/* Items list */}
-        <FlatList
-          data={data}
-          keyExtractor={(item) => item._id}
-          contentContainerStyle={{ paddingBottom: 100 }} // leave space for floating button
-          renderItem={({ item }) => (
-            <View className="flex-row items-center p-4 border-b border-gray-200">
-              <Checkbox
-                value={selected.includes(item._id)}
-                onValueChange={() => toggleSelect(item._id)}
-              />
-              <Text className="ml-3 text-base">{item.name}</Text>
-            </View>
-          )}
-          ListEmptyComponent={
-            !loading && (
-              <Text className="text-center text-gray-500 mt-10">
-                No stock items available
-              </Text>
-            )
-          }
-        />
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fffff0" }}>
+      <StatusBar style="dark" backgroundColor="#fffff0" />
+      <Toast />
 
-        {/* Floating button */}
-        <View className="absolute bottom-5 left-0 right-0 items-center">
-          <Pressable
-            onPress={handleAddTestOrder}
-            disabled={selected.length === 0}
-            className={`px-6 py-3 rounded-2xl shadow-lg ${
-              selected.length === 0 ? "bg-gray-300" : "bg-blue-600"
-            }`}
+      {/* Header */}
+      <View
+        style={{
+          backgroundColor: "#7C3AED",
+          paddingTop: Platform.OS === "android" ? 30 : 16,
+          paddingBottom: 28,
+          paddingHorizontal: 24,
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+        }}
+      >
+        <Pressable onPress={() => router.back()} style={{ marginBottom: 16 }}>
+          <Feather name="arrow-left" size={24} color="#fffff0" />
+        </Pressable>
+        <Text
+          style={{
+            fontFamily: "Inter_700Bold",
+            fontSize: 22,
+            color: "#fffff0",
+          }}
+        >
+          {name ?? "Medical Lab"}
+        </Text>
+        <Text
+          style={{
+            fontFamily: "Inter_400Regular",
+            fontSize: 13,
+            color: "rgba(255,255,240,0.7)",
+            marginTop: 4,
+          }}
+        >
+          Select tests · Wallet: ₦
+          {formatNumberToThousands(wallet?.balance ?? 0)}
+        </Text>
+
+        {diagnosis ? (
+          <View
+            style={{
+              marginTop: 10,
+              backgroundColor: "rgba(255,255,255,0.15)",
+              borderRadius: 10,
+              padding: 10,
+            }}
           >
-            <Text className="text-white font-semibold text-lg">Proceed</Text>
+            <Text
+              style={{
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 11,
+                color: "#fffff0",
+                marginBottom: 2,
+              }}
+            >
+              🩺 Doctor's diagnostic note (shared with lab):
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Inter_400Regular",
+                fontSize: 12,
+                color: "rgba(255,255,240,0.85)",
+              }}
+              numberOfLines={2}
+            >
+              {diagnosis}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      <FlatList
+        data={tests ?? []}
+        keyExtractor={(item) => item._id}
+        contentContainerStyle={{ padding: 20, paddingBottom: 140 }}
+        ListEmptyComponent={
+          <View style={{ alignItems: "center", marginTop: 40 }}>
+            <Text style={{ fontSize: 36 }}>🔬</Text>
+            <Text
+              style={{
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 15,
+                color: "#272757",
+                marginTop: 12,
+              }}
+            >
+              No tests listed
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Inter_400Regular",
+                fontSize: 13,
+                color: "#888",
+                marginTop: 6,
+              }}
+            >
+              This lab hasn't added any tests yet.
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => {
+          const isHighlighted = diagnosis
+            .toLowerCase()
+            .includes(item.name?.toLowerCase());
+          return (
+            <Pressable
+              onPress={() => toggle(item._id)}
+              style={({ pressed }) => ({
+                backgroundColor: isHighlighted ? "#F5F3FF" : "#fff",
+                borderRadius: 14,
+                padding: 16,
+                marginBottom: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 14,
+                borderWidth: isHighlighted ? 1.5 : 0.5,
+                borderColor: isHighlighted ? "#7C3AED" : "#F0F0F0",
+                shadowColor: "#272757",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.05,
+                shadowRadius: 6,
+                elevation: 2,
+                opacity: pressed ? 0.9 : 1,
+              })}
+            >
+              <Checkbox
+                value={!!selected[item._id]}
+                onValueChange={() => toggle(item._id)}
+                color="#7C3AED"
+              />
+              <View style={{ flex: 1 }}>
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Inter_600SemiBold",
+                      fontSize: 14,
+                      color: "#272757",
+                    }}
+                  >
+                    {item.name}
+                  </Text>
+                  {isHighlighted && (
+                    <View
+                      style={{
+                        backgroundColor: "#7C3AED",
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        borderRadius: 6,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: "Inter_700Bold",
+                          fontSize: 9,
+                          color: "#fff",
+                        }}
+                      >
+                        RECOMMENDED
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                {item.description ? (
+                  <Text
+                    style={{
+                      fontFamily: "Inter_400Regular",
+                      fontSize: 12,
+                      color: "#888",
+                      marginTop: 2,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {item.description}
+                  </Text>
+                ) : null}
+                {item.homeService && (
+                  <Text
+                    style={{
+                      fontFamily: "Inter_400Regular",
+                      fontSize: 11,
+                      color: "#7C3AED",
+                      marginTop: 2,
+                    }}
+                  >
+                    🏠 Home service available
+                  </Text>
+                )}
+              </View>
+              <Text
+                style={{
+                  fontFamily: "Inter_700Bold",
+                  fontSize: 14,
+                  color: "#7C3AED",
+                }}
+              >
+                ₦{formatNumberToThousands(item.price)}
+              </Text>
+            </Pressable>
+          );
+        }}
+      />
+
+      {/* Floating pay button */}
+      {selectedItems.length > 0 && (
+        <View style={{ position: "absolute", bottom: 24, left: 20, right: 20 }}>
+          <Pressable
+            onPress={handleOrder}
+            disabled={ordering}
+            style={({ pressed }) => ({
+              backgroundColor: ordering ? "#A78BFA" : "#7C3AED",
+              borderRadius: 14,
+              height: 58,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              opacity: pressed ? 0.88 : 1,
+              shadowColor: "#7C3AED",
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.35,
+              shadowRadius: 14,
+              elevation: 8,
+            })}
+          >
+            <Text
+              style={{
+                fontFamily: "Inter_700Bold",
+                fontSize: 16,
+                color: "#fffff0",
+              }}
+            >
+              {ordering
+                ? "Booking…"
+                : `Pay ₦${formatNumberToThousands(totalCost)} · Book ${
+                    selectedItems.length
+                  } Test${selectedItems.length > 1 ? "s" : ""}`}
+            </Text>
           </Pressable>
         </View>
-      </View>
+      )}
     </SafeAreaView>
   );
 };
-const styles = StyleSheet.create({
-  loaderContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  shadowProp: {
-    shadowColor: "#171717",
-    shadowOffset: { width: -2, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-});
-export default NearbyMedLab;
+
+export default MedLabTests;
