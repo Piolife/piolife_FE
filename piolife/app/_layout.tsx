@@ -33,33 +33,85 @@ const ANIMATION_DURATION = 400;
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
-import { ErrorToast } from "react-native-toast-message";
 import Toast, { BaseToastProps } from "react-native-toast-message";
 import React from "react";
+import { Text } from "react-native";
 import { useStreamProvider } from "@/components/reusables";
 import { getStreamClient } from "@/components/streamClient";
 import { UserProvider } from "@/components/UserContext";
+import { Feather } from "@expo/vector-icons";
+
+type ToastVariant = {
+  icon: keyof typeof Feather.glyphMap;
+  iconColor: string;
+  iconBg: string;
+  bar: string;
+};
+
+const VARIANTS: Record<string, ToastVariant> = {
+  error:   { icon: "x-circle",     iconColor: "#DC2626", iconBg: "#FEE2E2", bar: "#DC2626" },
+  success: { icon: "check-circle", iconColor: "#16A34A", iconBg: "#DCFCE7", bar: "#16A34A" },
+  info:    { icon: "info",         iconColor: "#0E16FF", iconBg: "#EEF0FF", bar: "#0E16FF" },
+  warning: { icon: "alert-triangle", iconColor: "#D97706", iconBg: "#FEF3C7", bar: "#D97706" },
+};
+
+const AppToast = ({ type, text1, text2 }: BaseToastProps & { type?: string }) => {
+  const v = VARIANTS[type ?? "info"] ?? VARIANTS.info;
+  return (
+    <View
+      style={{
+        marginHorizontal: 16,
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 14,
+        paddingRight: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 20,
+        elevation: 10,
+        gap: 12,
+        overflow: "hidden",
+      }}
+    >
+      {/* Left accent bar */}
+      <View style={{ width: 4, position: "absolute", left: 0, top: 0, bottom: 0, backgroundColor: v.bar, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }} />
+
+      {/* Icon */}
+      <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: v.iconBg, alignItems: "center", justifyContent: "center", marginLeft: 16 }}>
+        <Feather name={v.icon} size={20} color={v.iconColor} />
+      </View>
+
+      {/* Text */}
+      <View style={{ flex: 1 }}>
+        {text1 ? (
+          <Text style={{ fontFamily: "Inter_700Bold", fontSize: 14, color: "#272757", lineHeight: 20 }} numberOfLines={2}>
+            {text1}
+          </Text>
+        ) : null}
+        {text2 ? (
+          <Text style={{ fontFamily: "Inter_400Regular", fontSize: 12, color: "#6B7280", marginTop: 2, lineHeight: 17 }} numberOfLines={2}>
+            {text2}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+};
 
 export const toastConfig = {
-  error: (props: React.JSX.IntrinsicAttributes & BaseToastProps) => (
-    <ErrorToast
-      {...props}
-      style={{
-        backgroundColor: "#fff",
-        borderLeftColor: "red",
-        zIndex: 9999,
-        elevation: 9999,
-      }}
-      text1Style={{ color: "black", fontWeight: "bold" }}
-      text2Style={{ color: "black" }}
-    />
-  ),
+  error:   (props: BaseToastProps) => <AppToast {...props} type="error" />,
+  success: (props: BaseToastProps) => <AppToast {...props} type="success" />,
+  info:    (props: BaseToastProps) => <AppToast {...props} type="info" />,
+  warning: (props: BaseToastProps) => <AppToast {...props} type="warning" />,
 };
 export default function RootLayout() {
   return (
     <UserProvider>
-      <Toast config={toastConfig} />
       <RootLayoutContent />
+      <Toast config={toastConfig} />
     </UserProvider>
   );
 }
@@ -460,6 +512,10 @@ function RootLayoutContent() {
                 options={{ headerShown: false }}
               />
               <JsStack.Screen
+                name="call"
+                options={{ headerShown: false }}
+              />
+              <JsStack.Screen
                 name="incomingCall"
                 options={{ headerShown: false }}
               />
@@ -602,9 +658,5 @@ function RootLayoutContent() {
       </>
     </StreamVideo>
   );
-  return (
-    <UserProvider>
-      {!client ? <AuthStack /> : <AppStack client={client} />}
-    </UserProvider>
-  );
+  return !client ? <AuthStack /> : <AppStack client={client} />;
 }

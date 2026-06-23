@@ -6,7 +6,7 @@
  *  2. Wallet deduction actually happens before navigating to call
  *  3. Privacy warning shown AFTER successful payment per prototype
  *  4. Specialty indicators with availability (green/red dot)
- *  5. ₦1,500 per health issue selected (per prototype)
+ *  5. PC 1,500 per health issue selected (per prototype)
  */
 import React, { useEffect, useState } from "react";
 import {
@@ -25,7 +25,7 @@ import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFetchData, usePostData } from "@/services/api/request";
 import { API_URL } from "@/constants/api";
-import { formatNumberToThousands } from "@/components/reusables";
+import { formatNumberToThousands, PioCoinAmount } from "@/components/reusables";
 
 const COST_PER_ISSUE = 1500;
 
@@ -66,7 +66,7 @@ const Pay4Consultation = () => {
     user
       ? `${API_URL}/api/v12/sessions/practitioners?issueIds=${issueIds.join(
           ","
-        )}&language=${language}`
+        )}&language=${language}&userId=${user.id}`
       : "",
     { token }
   );
@@ -85,9 +85,9 @@ const Pay4Consultation = () => {
     if (!wallet || wallet.balance < totalCost) {
       Alert.alert(
         "Insufficient Balance",
-        `You need ₦${formatNumberToThousands(
+        `You need PC ${formatNumberToThousands(
           totalCost
-        )} for this consultation.\nYour wallet: ₦${formatNumberToThousands(
+        )} for this consultation.\nYour wallet: PC ${formatNumberToThousands(
           wallet?.balance ?? 0
         )}`,
         [
@@ -101,7 +101,7 @@ const Pay4Consultation = () => {
 
     Alert.alert(
       "Confirm Payment",
-      `₦${formatNumberToThousands(totalCost)} will be deducted for ${
+      `PC ${formatNumberToThousands(totalCost)} will be deducted for ${
         issueNames.length
       } health issue(s). Proceed?`,
       [
@@ -166,30 +166,35 @@ const Pay4Consultation = () => {
           paddingHorizontal: 24,
           borderBottomLeftRadius: 28,
           borderBottomRightRadius: 28,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 14,
         }}
       >
-        <Pressable onPress={() => router.back()} style={{ marginBottom: 20 }}>
+        <Pressable onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color="#fffff0" />
         </Pressable>
-        <Text
-          style={{
-            fontFamily: "Inter_700Bold",
-            fontSize: 24,
-            color: "#fffff0",
-          }}
-        >
-          Confirm & Pay
-        </Text>
-        <Text
-          style={{
-            fontFamily: "Inter_400Regular",
-            fontSize: 13,
-            color: "rgba(255,255,240,0.7)",
-            marginTop: 4,
-          }}
-        >
-          Review your consultation details below
-        </Text>
+        <View>
+          <Text
+            style={{
+              fontFamily: "Inter_700Bold",
+              fontSize: 24,
+              color: "#fffff0",
+            }}
+          >
+            Confirm & Pay
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Inter_400Regular",
+              fontSize: 13,
+              color: "rgba(255,255,240,0.7)",
+              marginTop: 4,
+            }}
+          >
+            Review your consultation details below
+          </Text>
+        </View>
       </View>
 
       <ScrollView
@@ -247,15 +252,14 @@ const Pay4Consultation = () => {
                 >
                   {name}
                 </Text>
-                <Text
+                <PioCoinAmount
+                  amount={formatNumberToThousands(COST_PER_ISSUE)}
                   style={{
                     fontFamily: "Inter_600SemiBold",
                     fontSize: 13,
                     color: "#0E16FF",
                   }}
-                >
-                  ₦{formatNumberToThousands(COST_PER_ISSUE)}
-                </Text>
+                />
               </View>
             ))}
           </View>
@@ -328,15 +332,14 @@ const Pay4Consultation = () => {
             >
               Wallet Balance
             </Text>
-            <Text
+            <PioCoinAmount
+              amount={formatNumberToThousands(wallet?.balance ?? 0)}
               style={{
                 fontFamily: "Inter_600SemiBold",
                 fontSize: 13,
                 color: "#272757",
               }}
-            >
-              ₦{formatNumberToThousands(wallet?.balance ?? 0)}
-            </Text>
+            />
           </View>
           <View
             style={{
@@ -361,15 +364,14 @@ const Pay4Consultation = () => {
             >
               Total
             </Text>
-            <Text
+            <PioCoinAmount
+              amount={formatNumberToThousands(totalCost)}
               style={{
                 fontFamily: "Inter_800ExtraBold",
                 fontSize: 22,
                 color: "#0E16FF",
               }}
-            >
-              ₦{formatNumberToThousands(totalCost)}
-            </Text>
+            />
           </View>
         </View>
 
@@ -478,7 +480,7 @@ const Pay4Consultation = () => {
                   }}
                 >
                   All doctors for your selected specialty are currently busy.
-                  Your payment of ₦{formatNumberToThousands(totalCost)} has been
+                  Your payment of PC {formatNumberToThousands(totalCost)} has been
                   saved. You can check back later from{" "}
                   <Text style={{ fontFamily: "Inter_600SemiBold" }}>
                     Recent Consultations
@@ -669,11 +671,15 @@ const Pay4Consultation = () => {
             {paying ? (
               <ActivityIndicator color="#fffff0" />
             ) : (
-              <Text
-                style={{ fontFamily: "Inter_700Bold", fontSize: 16, color: "#fffff0" }}
-              >
-                Pay ₦{formatNumberToThousands(totalCost)}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Text style={{ fontFamily: "Inter_700Bold", fontSize: 16, color: "#fffff0" }}>
+                  Pay
+                </Text>
+                <PioCoinAmount
+                  amount={formatNumberToThousands(totalCost)}
+                  style={{ fontFamily: "Inter_700Bold", fontSize: 16, color: "#fffff0" }}
+                />
+              </View>
             )}
           </Pressable>
         </View>

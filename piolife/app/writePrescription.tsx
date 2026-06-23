@@ -118,7 +118,8 @@ const WritePrescription = () => {
   }, [existing]);
 
   const { loading: submitting, postData } = usePostData(
-    `${API_URL}/api/v12/sessions/prescriptions`
+    `${API_URL}/api/v12/sessions/prescriptions`,
+    true
   );
 
   const handleSubmit = async () => {
@@ -180,32 +181,37 @@ const WritePrescription = () => {
             paddingHorizontal: 24,
             borderBottomLeftRadius: 28,
             borderBottomRightRadius: 28,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 14,
           }}
         >
-          <Pressable onPress={() => router.back()} style={{ marginBottom: 16 }}>
+          <Pressable onPress={() => router.back()}>
             <Feather name="arrow-left" size={24} color="#fffff0" />
           </Pressable>
-          <Text
-            style={{
-              fontFamily: "Inter_700Bold",
-              fontSize: 22,
-              color: "#fffff0",
-            }}
-          >
-            {isDoctor ? "Consultation Report" : "My Prescription"}
-          </Text>
-          <Text
-            style={{
-              fontFamily: "Inter_400Regular",
-              fontSize: 13,
-              color: "rgba(255,255,240,0.65)",
-              marginTop: 4,
-            }}
-          >
-            {isDoctor
-              ? "Fill in patient's report below"
-              : "Report from your doctor"}
-          </Text>
+          <View>
+            <Text
+              style={{
+                fontFamily: "Inter_700Bold",
+                fontSize: 22,
+                color: "#fffff0",
+              }}
+            >
+              {isDoctor ? "Consultation Report" : "My Prescription"}
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Inter_400Regular",
+                fontSize: 13,
+                color: "rgba(255,255,240,0.65)",
+                marginTop: 4,
+              }}
+            >
+              {isDoctor
+                ? "Fill in patient's report below"
+                : "Report from your doctor"}
+            </Text>
+          </View>
         </View>
 
         <ScrollView

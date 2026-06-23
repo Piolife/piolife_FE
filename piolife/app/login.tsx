@@ -22,8 +22,7 @@ import { LoginFormProps } from "@/services/core/types";
 import { validateLoginForm } from "@/hooks/auth";
 import { usePostData } from "@/services/api/request";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Toast, { BaseToastProps } from "react-native-toast-message";
-import { BaseToast, ErrorToast } from "react-native-toast-message";
+import Toast from "react-native-toast-message";
 import { getCurrentLocation } from "@/components/reusables";
 import { API_URL } from "@/constants/api";
 import { useUser } from "@/components/UserContext";
@@ -39,41 +38,6 @@ export type LoginResponse = {
     isVerified: boolean;
     dateOfBirth: string;
   };
-};
-interface CustomToastProps extends BaseToastProps {
-  text1?: string;
-  text2?: string;
-}
-
-const toastConfig = {
-  error: ({ text1, text2 }: CustomToastProps) => (
-    <View className="flex-col  w-[90%] h-[60px] border border-[#D92D20] bg-[#FEF3F2] p-3 rounded-lg gap-2 z-999">
-      {text1 && (
-        <Text className="text-[#D92D20] text-[12px] font-[700]">{text1}</Text>
-      )}
-      {text2 && <Text style={{ color: "red" }}>{text2}</Text>}
-    </View>
-  ),
-  success: ({ text1, text2 }: CustomToastProps) => (
-    <View className="flex-row items-center justify-start w-[90%] h-[52px] border border-[#ABEFC6] bg-[#ECFDF3] p-3 rounded-lg">
-      {text1 && (
-        <Text className="text-[#067647] text-[12px] font-semibold">
-          {text1}
-        </Text>
-      )}
-      {text2 && <Text style={{ color: "white" }}>{text2}</Text>}
-    </View>
-  ),
-  delete: ({ text1, text2 }: CustomToastProps) => (
-    <View className="flex-row items-center justify-start w-[90%] h-[52px] border border-[#D92D20] bg-[#FEF3F2] p-3 rounded-lg">
-      {text1 && (
-        <Text className="text-[#D92D20] text-[12px] font-semibold">
-          {text1}
-        </Text>
-      )}
-      {text2 && <Text style={{ color: "white" }}>{text2}</Text>}
-    </View>
-  ),
 };
 const Login = () => {
   const {
@@ -171,8 +135,6 @@ const Login = () => {
           contentContainerStyle={{ paddingBottom: 40 }}
           keyboardShouldPersistTaps="handled"
         >
-          <Toast config={toastConfig} />
-
           <StatusBar style="dark" backgroundColor="#ffffff" />
           <View className="py-[16px] px-[4%] gap-[32px]">
             <Text

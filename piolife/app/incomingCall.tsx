@@ -17,13 +17,11 @@ import { router, useLocalSearchParams } from "expo-router";
 import {
   useCalls,
   CallingState,
-  StreamVideo,
   StreamCall,
   StreamTheme,
   CallContent,
   CallControls,
 } from "@stream-io/video-react-native-sdk";
-import { getExistingClient } from "@/components/streamClient";
 import { Feather } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 
@@ -65,25 +63,21 @@ const IncomingCallScreen = () => {
   }, [incomingCall]);
 
   if (activeCall) {
-    const client = getExistingClient();
-    if (!client) return null;
     return (
-      <StreamVideo client={client}>
-        <StreamCall call={activeCall}>
-          <StreamTheme>
-            <CallContent
-              CallControls={() => (
-                <CallControls
-                  onHangupCallHandler={async () => {
-                    await activeCall.leave();
-                    router.replace("/(tabs)");
-                  }}
-                />
-              )}
-            />
-          </StreamTheme>
-        </StreamCall>
-      </StreamVideo>
+      <StreamCall call={activeCall}>
+        <StreamTheme>
+          <CallContent
+            CallControls={() => (
+              <CallControls
+                onHangupCallHandler={async () => {
+                  await activeCall.leave();
+                  router.replace("/doctorDashboard");
+                }}
+              />
+            )}
+          />
+        </StreamTheme>
+      </StreamCall>
     );
   }
 

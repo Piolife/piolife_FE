@@ -38,6 +38,26 @@ import * as Crypto from "expo-crypto";
 const wallet = require("../assets/images/Cash Wallet.png");
 const consult = require("../assets/images/image 46.png");
 const history = require("../assets/images/image 45-2.png");
+const piocoinSymbol = require("../assets/images/piocoin_symbol-removebg-preview 1.png");
+
+export const PioCoinAmount = ({
+  amount,
+  style,
+  imageSize = 20,
+}: {
+  amount: string | number;
+  style?: object;
+  imageSize?: number;
+}) => (
+  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+    <Image
+      source={piocoinSymbol}
+      style={{ width: imageSize * 0.55, height: imageSize }}
+      resizeMode="contain"
+    />
+    <Text style={style}>{typeof amount === "number" ? amount.toLocaleString() : amount}</Text>
+  </View>
+);
 
 export const CustomTextInput: React.FC<CustomTextInputProps> = ({
   fadeAnim,
@@ -522,12 +542,19 @@ export const DoctorScreen = ({ balance }: DoctorScreenProps) => {
         >
           Balance Amount
         </Text>
-        <Text
-          className="font-[400] text-[24px] leading-[100%] text-[#FFFFF0]"
-          style={{ fontFamily: "Inter_600SemiBold" }}
-        >
-          ₦{balance}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <Image
+            source={piocoinSymbol}
+            style={{ width: 7.7, height: 14 }}
+            resizeMode="contain"
+          />
+          <Text
+            className="font-[400] text-[24px] leading-[100%] text-[#FFFFF0]"
+            style={{ fontFamily: "Inter_600SemiBold" }}
+          >
+            {typeof balance === "number" ? balance.toLocaleString() : balance}
+          </Text>
+        </View>
       </View>
       <View className="flex flex-row justify-end">
         <Pressable
@@ -839,6 +866,7 @@ export const CustomPickerTwo: React.FC<CustomPickerProp> = ({
           onChange(newValue);
         }}
         setItems={setItems}
+        listMode="SCROLLVIEW"
         placeholderStyle={{ color: "#A5A5A5" }}
         placeholder={placeholder}
         style={{ borderColor: "#a5a5a5" }}
